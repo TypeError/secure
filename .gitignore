@@ -1,0 +1,5 @@
+/build
+/dist
+/secure.egg-info
+.DS_Store
+__pycache__
