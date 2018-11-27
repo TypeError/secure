@@ -1,6 +1,6 @@
 # Secure
 
-Secure 🔒 is a small library that adds optional security headers and cookie presets for [Responder](https://github.com/kennethreitz/responder).
+Secure 🔒 is a small library that adds optional security headers and cookie attributes for [Responder](https://github.com/kennethreitz/responder).
 
 ## Install
 
@@ -29,7 +29,7 @@ Prevent Cross-site injections
 Value: `script-src 'self'; object-src 'self'`  
 
 #### Referrer-Policy
-Enable referrer if same origin, remove path for cross origin and disable referrer in unsupported browsers  
+Enable full referrer if same origin, remove path for cross origin and disable referrer in unsupported browsers  
 Value: `no-referrer, strict-origin-when-cross-origin`
 
 #### Cache-control / Pragma
@@ -43,13 +43,16 @@ Value: `no-cache, no-store` / `no-cache`
 The Path directive instructs the browser to only send the cookie if provided path exists in the URL. 
 
 #### Secure
-The Secure flag instructs the browser to only the cookie via HTTPS.
+The Secure flag instructs the browser to only send the cookie via HTTPS.
 
 #### HttpOnly
 The HttpOnly flag instructs the browser to not allow any client side code to access the cookie's contents.
 
 #### SameSite
 The SameSite flag directs the browser not to include cookies on certain cross-site requests. There are two values that can be set for the same-site attribute, lax or strict. The lax value allows the cookie to be sent via certain cross-site GET requests, but disallows the cookie on all POST requests. For example cookies are still sent on links `<a href=“x”>`, prerendering `<link rel=“prerender” href=“x”` and forms sent by GET requests `<form-method=“get”...`, but cookies will not be sent via POST requests `<form-method=“post”...`, images `<img src=“x”>` or iframes `<iframe src=“x”>`. The strict value prevents the cookie from being sent cross-site in any context. Strict offers greater security but may impede functionality. This approach makes authenticated CSRF attacks impossible with the strict flag and only possible via state changing GET requests with the lax flag.
+
+#### Expires
+The Expires attribute sets an expiration date for persistent cookies.
 
 ## Responder Headers
 ### Usage
@@ -73,20 +76,21 @@ def prepare_response(req, resp):
 x-frame-options: DENY
 x-xss-protection: 1; mode=block
 x-content-type-options: nosniff
+referrer-policy: no-referrer, strict-origin-when-cross-origin
 ```
 
-### Options (not required)
+### Options
 
 **Example**:
 `secure.responder_headers(req, resp, csp=True)`
 
-- `hsts` *(default=False)* *
-- `frame` *(default=True)*
-- `xss` *(default=True)*
-- `content` *(default=True)*
-- `csp` *(default=False)* *
-- `referrer` *(default=True)*
-- `cache` *(default=False)*
+- `hsts` - *(default=False)* *
+- `frame` - *(default=True)*
+- `xss` - *(default=True)*
+- `content` - *(default=True)*
+- `csp` - *(default=False)* *
+- `referrer` - *(default=True)*
+- `cache` - *(default=False)*
 
 You should use Responder's [built in HSTS option](https://python-responder.org/en/latest/tour.html#hsts-redirect-to-https) and the CSP headers should be carefully constructed, however you can use the defaults by including the `hsts=True` and/or `csp=True` options. 
 
@@ -106,25 +110,24 @@ api = responder.API()
 @api.route("/secure")
 async def greet_world(req, resp):
     resp.text = "Secure"
-    secure.responder_cookies(
-        req, resp, name="responder-cookie", value="ABC123", secure=False
-    )
+    secure.responder_cookies(req, resp, name="responder", value="ABC123", expires=1)
 ```
 
 *Set-Cookie HTTP response header:*   
 
-`set-cookie: responder-cookie=ABC123; Path=/; Secure; HttpOnly; SameSite=Lax;`
+`set-cookie: responder=ABC123; Path=/; Secure; HttpOnly; SameSite=Lax; Expires=Tue, 27 Nov 2018 11:38:56 GMT;`
 
-### Options (not required)
+### Options
 
 **Example**:
 
 `secure.responder_cookies(req,resp, name="responder-cookie", value="ABC123", secure=False)`
 
-- `path` *(default="/")*
-- `secure` *(default=True)*
-- `httponly` *(default=True)*
-- `samesite` *Options: `lax` or `strict` (default="lax")*
+- `path`  -*(default="/")*
+- `secure` - *(default=True)*
+- `httponly` - *(default=True)*
+- `samesite` - *options: `lax` or `strict` (default="lax")*
+- `expires` - cookie expiration in hours (default=False)
 
 
 ## Attribution/References

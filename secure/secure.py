@@ -1,3 +1,6 @@
+from datetime import datetime, timedelta
+
+
 class Header:
     def __init__(self, header, value, info="N/A"):
         self.header = header
@@ -35,8 +38,8 @@ class Security_Headers:
 
     referrer_policy = Header(
         "Referrer-Policy",
-        "no-referrer, strict-origin-when-cross-origin"
-        "Enable referrer if same origin, remove path for cross origin and disable referrer in unsupported browsers",
+        "no-referrer, strict-origin-when-cross-origin",
+        "Enable full referrer if same origin, remove path for cross origin and disable referrer in unsupported browsers",
     )
 
     cache_control = Header(
@@ -87,7 +90,9 @@ class Cookies:
     def __init__(self, value):
         self.value = value
 
-    def secure_cookie(self, path="/", secure=True, httponly=True, samesite="lax"):
+    def secure_cookie(
+        self, path="/", secure=True, httponly=True, samesite="lax", expires=False
+    ):
         cookie_value = f"{self}; Path={path}"
         if secure:
             cookie_value += "; Secure"
@@ -98,8 +103,16 @@ class Cookies:
                 cookie_value += "; SameSite=Lax"
             elif samesite == "strict":
                 cookie_value += "; SameSite=Strict"
+        if expires:
+            cookie_value += f"; Expires={cookie_expiration(expires)}"
 
         return cookie_value
+
+
+def cookie_expiration(hours):
+    expire_time = datetime.utcnow() + timedelta(hours=hours)
+    expire_time = f"{expire_time.strftime('%a, %d %b %Y %H:%M:%S')} GMT"
+    return expire_time
 
 
 def responder_headers(
@@ -120,6 +133,16 @@ def responder_headers(
 
 
 def responder_cookies(
-    req, resp, name, value, path="/", secure=True, httponly=True, samesite="lax"
+    req,
+    resp,
+    name,
+    value,
+    path="/",
+    secure=True,
+    httponly=True,
+    samesite="lax",
+    expires=False,
 ):
-    resp.cookies[name] = Cookies.secure_cookie(value, path, secure, httponly, samesite)
+    resp.cookies[name] = Cookies.secure_cookie(
+        value, path, secure, httponly, samesite, expires
+    )
