@@ -28,6 +28,14 @@ Value: `nosniff`
 Prevent Cross-site injections  
 Value: `script-src 'self'; object-src 'self'`  
 
+#### Referrer-Policy
+Enable referrer if same origin, remove path for cross origin and disable referrer in unsupported browsers  
+Value: `no-referrer, strict-origin-when-cross-origin`
+
+#### Cache-control / Pragma
+Prevent cacheable HTTPS response  
+Value: `no-cache, no-store` / `no-cache`
+
 *Recommendations used by Secure 🔒 and more information regarding security headers can be found at the [OWASP Secure Headers Project](https://www.owasp.org/index.php/OWASP_Secure_Headers_Project).*
  
 ## Cookies
@@ -77,6 +85,8 @@ x-content-type-options: nosniff
 - `xss` *(default=True)*
 - `content` *(default=True)*
 - `csp` *(default=False)* *
+- `referrer` *(default=True)*
+- `cache` *(default=False)*
 
 You should use Responder's [built in HSTS option](https://python-responder.org/en/latest/tour.html#hsts-redirect-to-https) and the CSP headers should be carefully constructed, however you can use the defaults by including the `hsts=True` and/or `csp=True` options. 
 
@@ -120,8 +130,10 @@ async def greet_world(req, resp):
 ## Attribution/References
 - [Responder: A familiar HTTP Service Framework](https://python-responder.org/en/latest/)
 - [kennethreitz/setup.py: 📦 A Human’s Ultimate Guide to setup.py.](https://github.com/kennethreitz/setup.py)
+- [OWASP -  Application Security FAQ - Browser Cache](https://www.owasp.org/index.php/OWASP_Application_Security_FAQ#Browser_Cache)
 - [OWASP - HttpOnly](https://www.owasp.org/index.php/HttpOnly)
 - [OWASP - SameSite](https://www.owasp.org/index.php/SameSite)
 - [OWASP - Secure Headers Project](https://www.owasp.org/index.php/OWASP_Secure_Headers_Project)
 - [OWASP - SecureFlag](https://www.owasp.org/index.php/SecureFlag)
 - [OWASP - Session Management Cheat Sheet](https://www.owasp.org/index.php/Session_Management_Cheat_Sheet#Cookies)
+- [Mozilla Web Security](https://infosec.mozilla.org/guidelines/web_security)
