@@ -88,9 +88,3 @@ def responder_cookies(
     req, resp, name, value, path="/", secure=True, httponly=True, samesite="lax"
 ):
     resp.cookies[name] = Cookies.secure_cookie(value, path, secure, httponly, samesite)
-
-
-test = Cookies("test").secure_cookie()
-print(test)
-
-print(default_headers())
