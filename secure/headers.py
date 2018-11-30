@@ -1,6 +1,3 @@
-from datetime import datetime, timedelta
-
-
 class Header:
     def __init__(self, header, value, info="N/A"):
         self.header = header
@@ -11,6 +8,8 @@ class Header:
 class Security_Headers:
     # Header recommendations from the OWASP Secure Headers Project
     # (https://www.owasp.org/index.php/OWASP_Secure_Headers_Project)
+
+    server = Header("Server", "Secure")
 
     http_strict_transport_security = Header(
         "Strict-Transport-Security",
@@ -50,18 +49,23 @@ class Security_Headers:
 
     @staticmethod
     def secure_headers(
+        server=True,
         hsts=True,
-        frame=True,
+        xfo=True,
         xss=True,
         content=True,
         csp=True,
         referrer=True,
-        cache=False,
+        cache=True,
     ):
         headers = []
+        if server:
+            if type(server) == str:
+                Security_Headers.server.value = server
+            headers.append(Security_Headers.server)
         if hsts:
             headers.append(Security_Headers.http_strict_transport_security)
-        if frame:
+        if xfo:
             headers.append(Security_Headers.x_frame_options)
         if xss:
             headers.append(Security_Headers.x_xss_protection)
@@ -86,63 +90,8 @@ def default_headers():
     return headers
 
 
-class Cookies:
-    def __init__(self, value):
-        self.value = value
-
-    def secure_cookie(
-        self, path="/", secure=True, httponly=True, samesite="lax", expires=False
-    ):
-        cookie_value = f"{self}; Path={path}"
-        if secure:
-            cookie_value += "; Secure"
-        if httponly:
-            cookie_value += "; HttpOnly"
-        if samesite:
-            if samesite == "lax":
-                cookie_value += "; SameSite=Lax"
-            elif samesite == "strict":
-                cookie_value += "; SameSite=Strict"
-        if expires:
-            cookie_value += f"; Expires={cookie_expiration(expires)}"
-
-        return cookie_value
-
-
-def cookie_expiration(hours):
-    expire_time = datetime.utcnow() + timedelta(hours=hours)
-    expire_time = f"{expire_time.strftime('%a, %d %b %Y %H:%M:%S')} GMT"
-    return expire_time
-
-
-def responder_headers(
-    req,
-    resp,
-    hsts=False,
-    frame=True,
-    xss=True,
-    content=True,
-    csp=False,
-    referrer=True,
-    cache=False,
-):
+def set_headers(resp, server, hsts, xfo, xss, content, csp, referrer, cache):
     for header in Security_Headers.secure_headers(
-        hsts, frame, xss, content, csp, referrer, cache
+        server, hsts, xfo, xss, content, csp, referrer, cache
     ):
         resp.headers[header.header] = header.value
-
-
-def responder_cookies(
-    req,
-    resp,
-    name,
-    value,
-    path="/",
-    secure=True,
-    httponly=True,
-    samesite="lax",
-    expires=False,
-):
-    resp.cookies[name] = Cookies.secure_cookie(
-        value, path, secure, httponly, samesite, expires
-    )

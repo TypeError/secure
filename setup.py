@@ -13,7 +13,7 @@ from setuptools import find_packages, setup, Command
 
 # Package meta-data.
 NAME = 'secure'
-DESCRIPTION = 'A small library that adds optional security headers and cookie presets for Responder'
+DESCRIPTION = 'A lightweight package that adds optional security headers and cookie attributes for Python web frameworks.'
 URL = 'https://github.com/cakinney/secure'
 EMAIL = 'cakinney@gmail.com'
 AUTHOR = 'Caleb Kinney'
