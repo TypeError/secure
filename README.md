@@ -188,7 +188,7 @@ def set_secure_cookie():
 ## CherryPy
 
 #### Headers
-`'tools.response_headers.headers': SecureHeaders.cherrypy()`
+`'tools.response_headers.headers': secure.SecureHeaders.cherrypy()`
 
 ##### Example
 CherryPy [Application Configuration](http://docs.cherrypy.org/en/latest/config.html#application-config):
@@ -432,12 +432,12 @@ async def set_secure_cookie(request):
 ## Attribution/References
 
 #### Frameworks
-- [Bottle: A fast and simple micro-framework for python web-applications.](https://github.com/bottlepy/bottle)
-- [CherryPy: A pythonic, object-oriented HTTP framework.](https://github.com/cherrypy/cherrypy)
-- [Falcon: A bare-metal Python web API framework for building high-performance microservices, app backends, and higher-level frameworks.](https://github.com/falconry/falcon)
-- [Pyramid: aAPython web framework](https://github.com/Pylons/pyramid)
-- [Sanic: An Async Python 3.5+ web server that's written to go fast](https://github.com/huge-success/sanic)  
-- [Responder: A familiar HTTP Service Framework](https://python-responder.org/en/latest/)  
+- [Bottle](https://github.com/bottlepy/bottle) - A fast and simple micro-framework for python web-applications.
+- [CherryPy](https://github.com/cherrypy/cherrypy) - A pythonic, object-oriented HTTP framework.
+- [Falcon](https://github.com/falconry/falcon) - A bare-metal Python web API framework for building high-performance microservices, app backends, and higher-level frameworks.
+- [Pyramid](https://github.com/Pylons/pyramid) - A Python web framework
+- [Sanic](https://github.com/huge-success/sanic) - An Async Python 3.5+ web server that's written to go fast
+- [Responder](https://python-responder.org/en/latest/) - A familiar HTTP Service Framework
 
 #### Resources
 - [kennethreitz/setup.py: 📦 A Human’s Ultimate Guide to setup.py.](https://github.com/kennethreitz/setup.py)
