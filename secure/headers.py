@@ -9,16 +9,18 @@ class Security_Headers:
     # Header recommendations from the OWASP Secure Headers Project
     # (https://www.owasp.org/index.php/OWASP_Secure_Headers_Project)
 
-    server = Header("Server", "Secure")
+    server = Header("Server", "NULL")
 
     http_strict_transport_security = Header(
         "Strict-Transport-Security",
         "max-age=63072000; includeSubdomains",
-        "Ensure application is loaded over HTTPS",
+        "Ensure application communication is sent over HTTPS",
     )
 
     x_frame_options = Header(
-        "X-Frame-Options", "DENY", "Disable iframes (Clickjacking protection)"
+        "X-Frame-Options",
+        "SAMEORIGIN",
+        "Disable framing from different origins (clickjacking defense)",
     )
 
     x_xss_protection = Header(
@@ -42,7 +44,9 @@ class Security_Headers:
     )
 
     cache_control = Header(
-        "Cache-control", "no-cache, no-store", "Prevent cacheable HTTPS response"
+        "Cache-control",
+        "no-cache, no-store, must-revalidate",
+        "Prevent cacheable HTTPS response",
     )
 
     pragma = Header("Pragma", "no-cache", "Prevent cacheable HTTPS response")
@@ -54,7 +58,7 @@ class Security_Headers:
         xfo=True,
         xss=True,
         content=True,
-        csp=True,
+        csp=False,
         referrer=True,
         cache=True,
     ):
@@ -87,6 +91,14 @@ def default_headers():
     for header in Security_Headers.secure_headers():
         headers[header.header] = header.value
 
+    return headers
+
+def tuple_headers(server, hsts, xfo, xss, content, csp, referrer, cache):
+    headers = []
+    for header in Security_Headers.secure_headers(
+        server, hsts, xfo, xss, content, csp, referrer, cache
+    ):
+        headers.append((header.header, header.value))
     return headers
 
 

@@ -42,10 +42,13 @@ class Cookie:
         return cookie_value
 
 
-def cookie_expiration(hours):
-    expire_time = datetime.utcnow() + timedelta(hours=hours)
-    expire_time = f"{expire_time.strftime('%a, %d %b %Y %H:%M:%S')} GMT"
-    return expire_time
+def cookie_expiration(hours, timedelta_obj=False):
+    expire_time_obj = datetime.utcnow() + timedelta(hours=hours)
+    expire_time = f"{expire_time_obj.strftime('%a, %d %b %Y %H:%M:%S')} GMT"
+    if timedelta_obj:
+        return timedelta(hours=hours)
+    else:
+        return expire_time
 
 
 def set_cookie(resp, name, value, path, secure, httponly, samesite, expires):
