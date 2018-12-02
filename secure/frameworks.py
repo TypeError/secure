@@ -113,10 +113,10 @@ class SecureCookie:
         samesite="lax",
         expires=False,
     ):
-        response.add_header(
-            "Set-Cookie",
-            f"{name}={Cookie.secure_cookie(value, path, secure, httponly, samesite, expires)}",
+        cookie_value = Cookie.secure_cookie(
+            value, path, secure, httponly, samesite, expires
         )
+        response.add_header("Set-Cookie", "{}={}".format(name, cookie_value))
 
     def sanic(
         response,
@@ -140,10 +140,11 @@ class SecureCookie:
         samesite="lax",
         expires=False,
     ):
-        resp.set_header(
-            "Set-Cookie",
-            f"{name}={Cookie.secure_cookie(value, path, secure, httponly, samesite, expires)}",
+
+        cookie_value = Cookie.secure_cookie(
+            value, path, secure, httponly, samesite, expires
         )
+        resp.set_header("Set-Cookie", "{}={}".format(name, cookie_value))
 
     def pyramid(
         response,
@@ -180,7 +181,7 @@ class SecureCookie:
         samesite="lax",
         expires=False,
     ):
-
-        header[
-            "Set-Cookie"
-        ] = f"{name}={Cookie.secure_cookie(value, path, secure, httponly, samesite, expires)}"
+        cookie_value = Cookie.secure_cookie(
+            value, path, secure, httponly, samesite, expires
+        )
+        header["Set-Cookie"] = "{}={}".format(name, cookie_value)

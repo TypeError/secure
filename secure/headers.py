@@ -68,20 +68,36 @@ class Security_Headers:
                 Security_Headers.server.value = server
             headers.append(Security_Headers.server)
         if hsts:
+            if type(hsts) == str:
+                Security_Headers.http_strict_transport_security.value = hsts
             headers.append(Security_Headers.http_strict_transport_security)
         if xfo:
+            if type(xfo) == str:
+                Security_Headers.x_frame_options.value = xfo
             headers.append(Security_Headers.x_frame_options)
         if xss:
+            if type(xss) == str:
+                Security_Headers.x_xss_protection.value = xss
             headers.append(Security_Headers.x_xss_protection)
         if content:
+            if type(content) == str:
+                Security_Headers.x_content_type_options.value = content
             headers.append(Security_Headers.x_content_type_options)
         if csp:
+            if type(csp) == str:
+                Security_Headers.content_security_policy.value = csp
             headers.append(Security_Headers.content_security_policy)
         if referrer:
+            if type(referrer) == str:
+                Security_Headers.referrer_policy.value = referrer
             headers.append(Security_Headers.referrer_policy)
         if cache:
-            headers.append(Security_Headers.cache_control)
-            headers.append(Security_Headers.pragma)
+            if type(cache) == str:
+                Security_Headers.cache_control.value = cache
+                headers.append(Security_Headers.cache_control)
+            else:
+                headers.append(Security_Headers.cache_control)
+                headers.append(Security_Headers.pragma)
 
         return headers
 
@@ -92,6 +108,7 @@ def default_headers():
         headers[header.header] = header.value
 
     return headers
+
 
 def tuple_headers(server, hsts, xfo, xss, content, csp, referrer, cache):
     headers = []

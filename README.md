@@ -23,35 +23,35 @@ pipenv:
  
 #### Server
 Contain information about server software   
-**Value:** `NULL` *(obfuscate server information)*
+**Default Value:** `NULL` *(obfuscate server information)*
 
 #### Strict-Transport-Security (HSTS)
 Ensure application communication is sent over HTTPS   
-**Value:** `max-age=63072000; includeSubdomains`  
+**Default Value:** `max-age=63072000; includeSubdomains`  
  
 #### X-Frame-Options (XFO)
 Disable framing from different origins (clickjacking defense)  
-**Value:** `SAMEORIGIN`  
+**Default Value:** `SAMEORIGIN`  
 
 #### X-XSS-Protection
 Enable browser cross-site scripting filters  
-**Value:** `X-XSS-Protection", "1; mode=block`  
+**Default Value:** `X-XSS-Protection", "1; mode=block`  
 
 #### X-Content-Type-Options
 Prevent MIME-sniffing  
-**Value:** `nosniff`  
+**Default Value:** `nosniff`  
 
 #### Content-Security-Policy (CSP)
 Prevent cross-site injections  
-**Value:** `script-src 'self'; object-src 'self'`  *(not included by default)**
+**Default Value:** `script-src 'self'; object-src 'self'`  *(not included by default)**
 
 #### Referrer-Policy
 Enable full referrer if same origin, remove path for cross origin and disable referrer in unsupported browsers  
-**Value:** `no-referrer, strict-origin-when-cross-origin`
+**Default Value:** `no-referrer, strict-origin-when-cross-origin`
 
 #### Cache-control / Pragma
 Prevent cacheable HTTPS response  
-**Value:** `no-cache, no-store, must-revalidate` / `no-cache`
+**Default Value:** `no-cache, no-store, must-revalidate` / `no-cache`
 
  **The Content-Security-Policy (CSP) header can break functionality and can (and should) be carefully constructed, use the `csp=True` option to enable default values.*
 
@@ -76,21 +76,21 @@ Pragma: no-cache
 
 ### Options
 
-You can toggle the setting of headers with default values by passing the following options:   
+You can toggle the setting of headers with default values by passing `True` or `False` and override default values by passing a string to the following options:   
 
 - `server` - set the Server header, e.g. `Server=“Secure”` *(string / bool, default=True)*
-- `hsts` - set the Strict-Transport-Security header *(bool, default=True)*  
-- `xfo` - set the X-Frame-Options header *(bool, default=True)*  
-- `xss` - set the X-XSS-Protection header *(bool, default=True)*  
-- `content` - set the X-Content-Type-Options header *(bool, default=True)*  
-- `csp` - set the Content-Security-Policy *(bool, default=False)* *  
-- `referrer` - set the Referrer-Policy header *(bool, default=True)*  
-- `cache` - set the Cache-control and Pragma headers *(bool, default=True)*  
+- `hsts` - set the Strict-Transport-Security header *(string / bool, default=True)*  
+- `xfo` - set the X-Frame-Options header *(string / bool, default=True)*  
+- `xss` - set the X-XSS-Protection header *(string / bool, default=True)*  
+- `content` - set the X-Content-Type-Options header *(string / bool, default=True)*  
+- `csp` - set the Content-Security-Policy *(string / bool, default=False)* *  
+- `referrer` - set the Referrer-Policy header *(string / bool, default=True)*  
+- `cache` - set the Cache-control and Pragma headers *(string / bool, default=True)*  
 
 ####  Example
 
 ```Python
-secure.SecureHeaders.framework(response, hsts=False, csp=True)
+secure.SecureHeaders.framework(response, hsts=False, csp=True, xfo="DENY")
 ```
 
 ## Cookies
@@ -426,6 +426,7 @@ async def set_secure_cookie(request):
 . . . 
 ```
 
+*To set  Cross Origin Resource Sharing (CORS) headers, please see [sanic-cors](https://github.com/ashleysommer/sanic-cors).*
 
 
 
