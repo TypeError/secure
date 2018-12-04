@@ -3,23 +3,28 @@
 Secure 🔒 is a lightweight package that adds optional security headers and cookie attributes for Python web frameworks.
 
 Supported Python web frameworks:  
-- [Bottle](https://bottlepy.org)  
-- [CherryPy](https://cherrypy.org)  
-- [Falcon](https://falconframework.org)  
-- [Pyramid](https://trypyramid.com)  
-- [Responder](https://python-responder.org)  
-- [Sanic](https://sanicframework.org)  
+[aiohttp](https://docs.aiohttp.org), [Bottle](https://bottlepy.org), [CherryPy](https://cherrypy.org), [Falcon](https://falconframework.org), [hug](http://www.hug.rest), [Pyramid](https://trypyramid.com), [Quart](https://pgjones.gitlab.io/quart/), [Responder](https://python-responder.org), [Sanic](https://sanicframework.org), [Tornado](https://www.tornadoweb.org/) 
 
 Please see [flask-talisman](https://github.com/GoogleCloudPlatform/flask-talisman) for Flask support and [django-security](https://github.com/sdelements/django-security/) for Django support. 
 
 ## Install
-pip:
-`pip install secure`
+**pip**:
 
-pipenv:
-`pipenv install secure`   
+```console
+$ pip install secure
+```
+
+**Pipenv**:
+
+```console
+$ pipenv install secure
+```
 
 ## Headers
+
+Security Headers are HTTP response headers that, when set, can enhance the security of your web application by enabling browser security policies. 
+
+*Recommendations used by Secure 🔒 and more information regarding security headers can be found at the [OWASP Secure Headers Project](https://www.owasp.org/index.php/OWASP_Secure_Headers_Project).*
  
 #### Server
 Contain information about server software   
@@ -55,8 +60,6 @@ Prevent cacheable HTTPS response
 
  **The Content-Security-Policy (CSP) header can break functionality and can (and should) be carefully constructed, use the `csp=True` option to enable default values.*
 
-
-*Recommendations used by Secure 🔒 and more information regarding security headers can be found at the [OWASP Secure Headers Project](https://www.owasp.org/index.php/OWASP_Secure_Headers_Project).*
  
  ### Example
 `secure.SecureHeaders.framework(response)`
@@ -146,6 +149,55 @@ secure.SecureCookie.framework(
 ```
 
 # Supported Frameworks
+
+## aiohttp
+
+#### Headers
+`secure.SecureHeaders.aiohttp(resp)`
+
+##### Example
+```Python
+from aiohttp import web
+from aiohttp.web import middleware
+from secure import SecureHeaders
+
+. . . 
+
+@middleware
+async def set_secure_headers(request, handler):
+    resp = await handler(request)
+    SecureHeaders.aiohttp(resp)
+    return resp
+    
+. . . 
+
+app = web.Application(middlewares=[set_secure_headers])
+
+. . . 
+```
+
+#### Cookies
+```Python
+secure.SecureCookie.aiohttp(resp, name="aiohttp", value="ABC123")
+```
+
+##### Example
+```Python
+from aiohttp import web
+from secure import SecureCookie
+
+. . . 
+
+@routes.get("/secure")
+async def set_secure_cookie(request):
+    resp = web.Response(text="Secure")
+    SecureCookie.aiohttp(resp, name="aiohttp", value="ABC123")
+    return resp
+    
+. . . 
+```
+
+
 ## Bottle
 
 #### Headers
@@ -249,6 +301,8 @@ class SetSecureHeaders(object):
     def process_request(self, req, resp):
         SecureHeaders.falcon(resp)
 
+. . . 
+
 app = api = falcon.API(middleware=[SetSecureHeaders()])
 
 . . . 
@@ -274,6 +328,46 @@ class SetSecureCookie(object):
 . . . 
 ```
 
+## hug
+
+#### Headers
+`secure.SecureHeaders.hug(response)`
+
+##### Example
+```Python
+import hug
+from secure import SecureHeaders
+
+. . . 
+
+@hug.response_middleware()
+def set_secure_headers(request, response, resource):
+      SecureHeaders.hug(response)
+
+. . . 
+```
+
+#### Cookies
+```Python
+secure.SecureCookie.hug(response, name="hug", value="ABC123")
+```
+
+##### Example
+```Python
+import hug
+from secure import SecureCookie
+
+. . . 
+
+@hug.get('/secure')
+def set_secure_cookie(response=None):
+    SecureCookie.hug(response, name="hug", value="ABC123")
+    return "Secure"
+        
+. . . 
+```
+
+
 ## Pyramid
 
 #### Headers
@@ -285,7 +379,6 @@ def set_secure_headers(handler, registry):
         response = handler(request)
         secure.SecureHeaders.pyramid(response)
         return response
-        
 ```
 
 ##### Example
@@ -315,7 +408,7 @@ config.add_tween(".set_secure_headers")
 #### Cookies
 ```Python
 response = Response("Secure")
-    secure.SecureCookie.pyramid(response, name="pyramid", value="ABC123")
+secure.SecureCookie.pyramid(response, name="pyramid", value="ABC123")
 ```
 
 ##### Example
@@ -380,6 +473,53 @@ async def set_secure_cookie(req, resp):
 . . . 
 ```
 
+## Quart
+
+#### Headers
+`secure.SecureHeaders.quart(response)`
+
+##### Example
+```Python
+from quart import Quart, Response
+from secure import SecureHeaders, SecureCookie
+
+app = Quart(__name__)
+
+. . . 
+
+@app.after_request
+async def set_secure_headers(response):
+    SecureHeaders.quart(response)
+    return response
+
+. . . 
+```
+
+
+#### Cookies
+```Python
+secure.SecureCookie.quart(resp, name="quart", value="ABC123")
+```
+
+##### Example
+```Python
+from quart import Quart, Response
+from secure import SecureHeaders, SecureCookie
+
+app = Quart(__name__)
+
+. . . 
+
+@app.route('/secure')
+async def set_secure_cookie():
+    resp = Response("Secure")
+    SecureCookie.quart(resp, name="quart", value="ABC123")
+    return resp
+    
+. . . 
+```
+
+
 ## Sanic
 
 #### Headers
@@ -388,7 +528,7 @@ async def set_secure_cookie(req, resp):
 ##### Example
 ```Python
 from sanic import Sanic
-from secure import SecureHeaders, SecureCookie
+from secure import SecureHeaders
 
 app = Sanic()
 
@@ -410,8 +550,7 @@ secure.SecureCookie.sanic(response, name="sanic", value="ABC123")
 ```Python
 from sanic import Sanic
 from sanic.response import text
-
-from secure import SecureHeaders, SecureCookie
+from secure import SecureCookie
 
 app = Sanic()
 
@@ -428,17 +567,62 @@ async def set_secure_cookie(request):
 
 *To set  Cross Origin Resource Sharing (CORS) headers, please see [sanic-cors](https://github.com/ashleysommer/sanic-cors).*
 
+## Tornado
+
+#### Headers
+`secure.SecureHeaders.tornado(self)`
+
+##### Example
+```Python
+import tornado.ioloop
+import tornado.web
+from secure import SecureHeaders
+
+. . . 
+
+class BaseHandler(tornado.web.RequestHandler):
+    def set_default_headers(self):
+        SecureHeaders.tornado(self)
+
+. . . 
+```
+
+#### Cookies
+```Python
+secure.SecureCookie.tornado(self, name="tornado", value="ABC123")
+```
+
+##### Example
+```Python
+import tornado.ioloop
+import tornado.web
+from secure import SecureCookie
+
+. . . 
+
+class SetSecureCookie(BaseHandler):
+    def get(self):
+        SecureCookie.tornado(self, name="tornado", value="ABC123")
+        self.write("Secure")
+    
+. . . 
+```
+
 
 
 ## Attribution/References
 
 #### Frameworks
+- [aiohttp](https://github.com/aio-libs/aiohttp) - Asynchronous HTTP client/server framework for asyncio and Python
 - [Bottle](https://github.com/bottlepy/bottle) - A fast and simple micro-framework for python web-applications.
 - [CherryPy](https://github.com/cherrypy/cherrypy) - A pythonic, object-oriented HTTP framework.
 - [Falcon](https://github.com/falconry/falcon) - A bare-metal Python web API framework for building high-performance microservices, app backends, and higher-level frameworks.
+- [hug](https://github.com/timothycrosley/hug) - Embrace the APIs of the future. Hug aims to make developing APIs as simple as possible, but no simpler.
 - [Pyramid](https://github.com/Pylons/pyramid) - A Python web framework
+- [Quart](https://gitlab.com/pgjones/quart) - A Python ASGI web microframework.
 - [Sanic](https://github.com/huge-success/sanic) - An Async Python 3.5+ web server that's written to go fast
 - [Responder](https://python-responder.org/en/latest/) - A familiar HTTP Service Framework
+- [Tornado](https://github.com/tornadoweb/tornado) - A Python web framework and asynchronous networking library, originally developed at FriendFeed.
 
 #### Resources
 - [kennethreitz/setup.py: 📦 A Human’s Ultimate Guide to setup.py.](https://github.com/kennethreitz/setup.py)

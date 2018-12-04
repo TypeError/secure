@@ -89,6 +89,66 @@ class SecureHeaders:
         headers = tuple_headers(server, hsts, xfo, xss, content, csp, referrer, cache)
         return headers
 
+    def hug(
+        response,
+        server=True,
+        hsts=True,
+        xfo=True,
+        xss=True,
+        content=True,
+        csp=False,
+        referrer=True,
+        cache=True,
+    ):
+
+        for header in Security_Headers.secure_headers(
+            server, hsts, xfo, xss, content, csp, referrer, cache
+        ):
+            response.set_header(header.header, header.value)
+
+    def tornado(
+        response,
+        server=True,
+        hsts=True,
+        xfo=True,
+        xss=True,
+        content=True,
+        csp=False,
+        referrer=True,
+        cache=True,
+    ):
+
+        for header in Security_Headers.secure_headers(
+            server, hsts, xfo, xss, content, csp, referrer, cache
+        ):
+            response.set_header(header.header, header.value)
+
+    def aiohttp(
+        resp,
+        server=True,
+        hsts=True,
+        xfo=True,
+        xss=True,
+        content=True,
+        csp=False,
+        referrer=True,
+        cache=True,
+    ):
+        set_headers(resp, server, hsts, xfo, xss, content, csp, referrer, cache)
+
+    def quart(
+        response,
+        server=True,
+        hsts=True,
+        xfo=True,
+        xss=True,
+        content=True,
+        csp=False,
+        referrer=True,
+        cache=True,
+    ):
+        set_headers(response, server, hsts, xfo, xss, content, csp, referrer, cache)
+
 
 class SecureCookie:
     def responder(
@@ -185,3 +245,59 @@ class SecureCookie:
             value, path, secure, httponly, samesite, expires
         )
         header["Set-Cookie"] = "{}={}".format(name, cookie_value)
+
+    def hug(
+        response,
+        name,
+        value,
+        path="/",
+        secure=True,
+        httponly=True,
+        samesite="lax",
+        expires=False,
+    ):
+
+        cookie_value = Cookie.secure_cookie(
+            value, path, secure, httponly, samesite, expires
+        )
+        response.set_header("Set-Cookie", "{}={}".format(name, cookie_value))
+
+    def tornado(
+        response,
+        name,
+        value,
+        path="/",
+        secure=True,
+        httponly=True,
+        samesite="lax",
+        expires=False,
+    ):
+
+        cookie_value = Cookie.secure_cookie(
+            value, path, secure, httponly, samesite, expires
+        )
+        response.set_header("Set-Cookie", "{}={}".format(name, cookie_value))
+
+    def aiohttp(
+        resp,
+        name,
+        value,
+        path="/",
+        secure=True,
+        httponly=True,
+        samesite="lax",
+        expires=False,
+    ):
+        alt_set_cookie(resp, name, value, path, secure, httponly, samesite, expires)
+
+    def quart(
+        resp,
+        name,
+        value,
+        path="/",
+        secure=True,
+        httponly=True,
+        samesite="lax",
+        expires=False,
+    ):
+        alt_set_cookie(resp, name, value, path, secure, httponly, samesite, expires)

@@ -17,7 +17,7 @@ DESCRIPTION = 'A lightweight package that adds optional security headers and coo
 URL = 'https://github.com/cakinney/secure'
 EMAIL = 'cakinney@gmail.com'
 AUTHOR = 'Caleb Kinney'
-REQUIRES_PYTHON = '>=3.6.0'
+REQUIRES_PYTHON = '>=3'
 VERSION = None
 
 # What packages are required for this module to be executed?
