@@ -2,10 +2,11 @@
 
 Secure 🔒 is a lightweight package that adds optional security headers and cookie attributes for Python web frameworks.
 
-Supported Python web frameworks:  
-[aiohttp](https://docs.aiohttp.org), [Bottle](https://bottlepy.org), [CherryPy](https://cherrypy.org), [Falcon](https://falconframework.org), [hug](http://www.hug.rest), [Pyramid](https://trypyramid.com), [Quart](https://pgjones.gitlab.io/quart/), [Responder](https://python-responder.org), [Sanic](https://sanicframework.org), [Tornado](https://www.tornadoweb.org/) 
+### Supported Python web frameworks:
+[aiohttp](https://docs.aiohttp.org), [Bottle](https://bottlepy.org), [CherryPy](https://cherrypy.org), [Falcon](https://falconframework.org), [hug](http://www.hug.rest), [Pyramid](https://trypyramid.com), [Quart](https://pgjones.gitlab.io/quart/), [Responder](https://python-responder.org), [Sanic](https://sanicframework.org), [Starlette](https://www.starlette.io/), [Tornado](https://www.tornadoweb.org/) 
 
 Please see [flask-talisman](https://github.com/GoogleCloudPlatform/flask-talisman) for Flask support and [django-security](https://github.com/sdelements/django-security/) for Django support. 
+
 
 ## Install
 **pip**:
@@ -20,15 +21,25 @@ $ pip install secure
 $ pipenv install secure
 ```
 
-## Headers
+After installing secure:
+
+```Python
+from secure import SecureHeaders, SecureCookie
+```
+
+## Security Headers
 
 Security Headers are HTTP response headers that, when set, can enhance the security of your web application by enabling browser security policies. 
 
+You can assess the security of your HTTP response headers at [securityheaders.com](https://securityheaders.com)
+
 *Recommendations used by Secure 🔒 and more information regarding security headers can be found at the [OWASP Secure Headers Project](https://www.owasp.org/index.php/OWASP_Secure_Headers_Project).*
  
+## Headers  
+
 #### Server
 Contain information about server software   
-**Default Value:** `NULL` *(obfuscate server information)*
+**Default Value:** `NULL` *(obfuscate server information, not included by default)*
 
 #### Strict-Transport-Security (HSTS)
 Ensure application communication is sent over HTTPS   
@@ -58,16 +69,18 @@ Enable full referrer if same origin, remove path for cross origin and disable re
 Prevent cacheable HTTPS response  
 **Default Value:** `no-cache, no-store, must-revalidate` / `no-cache`
 
- **The Content-Security-Policy (CSP) header can break functionality and can (and should) be carefully constructed, use the `csp=True` option to enable default values.*
+#### Feature-Policy
+Disable browser features and APIs  
+**Default Value:** `accelerometer 'none'; ambient-light-sensor 'none'; autoplay 'none'; camera 'none'; encrypted-media 'none'; fullscreen 'none'; geolocation 'none'; gyroscope 'none'; magnetometer 'none'; microphone 'none'; midi 'none'; payment 'none'; picture-in-picture 'none'; speaker 'none'; sync-xhr 'none'; usb 'none'; vr 'none';",` *(not included by default)*
 
+ **The Content-Security-Policy (CSP) header can break functionality and can (and should) be carefully constructed, use the `csp=True` option to enable default values.*
  
  ### Example
-`secure.SecureHeaders.framework(response)`
+`SecureHeaders.framework(response)`
 
  **Default HTTP response headers:** 
  
 ```HTTP
-Server: NULL
 Strict-Transport-Security: max-age=63072000; includeSubdomains
 X-Frame-Options: SAMEORIGIN
 X-XSS-Protection: 1; mode=block
@@ -81,7 +94,7 @@ Pragma: no-cache
 
 You can toggle the setting of headers with default values by passing `True` or `False` and override default values by passing a string to the following options:   
 
-- `server` - set the Server header, e.g. `Server=“Secure”` *(string / bool, default=True)*
+- `server` - set the Server header, e.g. `Server=“Secure”` *(string / bool, default=False)*
 - `hsts` - set the Strict-Transport-Security header *(string / bool, default=True)*  
 - `xfo` - set the X-Frame-Options header *(string / bool, default=True)*  
 - `xss` - set the X-XSS-Protection header *(string / bool, default=True)*  
@@ -89,11 +102,16 @@ You can toggle the setting of headers with default values by passing `True` or `
 - `csp` - set the Content-Security-Policy *(string / bool, default=False)* *  
 - `referrer` - set the Referrer-Policy header *(string / bool, default=True)*  
 - `cache` - set the Cache-control and Pragma headers *(string / bool, default=True)*  
+- `feature` - set the Feature-Policy header *(string / bool, default=False)*  
 
 ####  Example
 
 ```Python
-secure.SecureHeaders.framework(response, hsts=False, csp=True, xfo="DENY")
+from secure import SecureHeaders
+
+. . . 
+
+SecureHeaders.framework(response, hsts=False, csp=True, xfo="DENY")
 ```
 
 ## Cookies
@@ -115,7 +133,7 @@ The Expires attribute sets an expiration date for persistent cookies.
 ### Example
 
 ```Python
-secure.SecureCookie.framework(response, name="framework", value="ABC123")
+SecureCookie.framework(response, name="framework", value="ABC123")
 ```
 
 *Default Set-Cookie HTTP response header:*   
@@ -133,19 +151,37 @@ You can modify default cookie attribute values by passing the following options:
 - `path`  - set the Path attribute, e.g.`path=“/secure”` *(string, default="/")*
 - `secure` - set the Secure flag *(bool, default=True)*
 - `httponly` - set the HttpOnly flag *(bool, default=True)*
-- `samesite` - set the SameSite attribute, e.g. `samesite=“strict”` *(bool / string, options: `"lax"`, `"strict"` or `False`, default="lax")*
+- `samesite` - set the SameSite attribute, e.g. `SecureCookie.SameSite.lax` *(bool / enum, options: `SecureCookie.SameSite.lax`, `SecureCookie.SameSite.lax` or `False`, default=SecureCookie.SameSite.lax)**
 - `expires` - set the Expires attribute with the cookie expiration in hours, e.g.`expires=1` *(number / bool, default=False)*
+
+*You can also import the SameSite options enum from Secure, `from secure import SecureCookie, SameSite`*
 
 #### Example
 ```Python
-secure.SecureCookie.framework(
+from secure import SecureCookie
+
+SecureCookie.framework(
         response,
         name="framework",
         value="ABC123",
-        samesite=False,
-        path="/secure",
-        expires=24,
+        expires=1,
+        samesite=SecureCookie.SameSite.strict,
     )
+```
+
+# Framework Agnostic
+Return Dictionary of Headers:  
+`SecureHeaders.headers()`
+
+##### Example
+```Python
+SecureHeaders.headers(csp=True, feature=True)
+```
+
+Return Value:  
+
+```Python
+{'Strict-Transport-Security': 'max-age=63072000; includeSubdomains', 'X-Frame-Options': 'SAMEORIGIN', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "script-src 'self'; object-src 'self'", 'Referrer-Policy': 'no-referrer, strict-origin-when-cross-origin', 'Cache-control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache', 'Feature-Policy': "accelerometer 'none'; ambient-light-sensor 'none'; autoplay 'none'; camera 'none'; encrypted-media 'none';fullscreen 'none'; geolocation 'none'; gyroscope 'none'; magnetometer 'none'; microphone 'none'; midi 'none';payment 'none'; picture-in-picture 'none'; speaker 'none'; sync-xhr 'none'; usb 'none'; vr 'none';"}
 ```
 
 # Supported Frameworks
@@ -153,7 +189,7 @@ secure.SecureCookie.framework(
 ## aiohttp
 
 #### Headers
-`secure.SecureHeaders.aiohttp(resp)`
+`SecureHeaders.aiohttp(resp)`
 
 ##### Example
 ```Python
@@ -178,7 +214,7 @@ app = web.Application(middlewares=[set_secure_headers])
 
 #### Cookies
 ```Python
-secure.SecureCookie.aiohttp(resp, name="aiohttp", value="ABC123")
+SecureCookie.aiohttp(resp, name="aiohttp", value="ABC123")
 ```
 
 ##### Example
@@ -201,7 +237,7 @@ async def set_secure_cookie(request):
 ## Bottle
 
 #### Headers
-`secure.SecureHeaders.bottle(response)`
+`SecureHeaders.bottle(response)`
 
 ##### Example
 ```Python
@@ -219,7 +255,7 @@ def set_secure_headers():
 
 #### Cookies
 ```Python
-secure.SecureCookie.bottle(response, name="bottle", value="ABC123")
+SecureCookie.bottle(response, name="bottle", value="ABC123")
 ```
 
 ##### Example
@@ -240,7 +276,7 @@ def set_secure_cookie():
 ## CherryPy
 
 #### Headers
-`'tools.response_headers.headers': secure.SecureHeaders.cherrypy()`
+`'tools.response_headers.headers': SecureHeaders.cherrypy()`
 
 ##### Example
 CherryPy [Application Configuration](http://docs.cherrypy.org/en/latest/config.html#application-config):
@@ -264,7 +300,7 @@ config = {
 #### Cookies
 ```Python
 response_headers = cherrypy.response.headers
-secure.SecureCookie.cherrypy(response_headers, name="cherrypy", value="ABC123")
+SecureCookie.cherrypy(response_headers, name="cherrypy", value="ABC123")
 ```
 
 ##### Example
@@ -288,7 +324,7 @@ class SetSecureCookie(object):
 ## Falcon
 
 #### Headers
-`secure.SecureHeaders.falcon(resp)`
+`SecureHeaders.falcon(resp)`
 
 ##### Example
 ```Python
@@ -310,7 +346,7 @@ app = api = falcon.API(middleware=[SetSecureHeaders()])
 
 #### Cookies
 ```Python
-secure.SecureCookie.falcon(resp, name="falcon", value="ABC123")
+SecureCookie.falcon(resp, name="falcon", value="ABC123")
 ```
 
 ##### Example
@@ -331,7 +367,7 @@ class SetSecureCookie(object):
 ## hug
 
 #### Headers
-`secure.SecureHeaders.hug(response)`
+`SecureHeaders.hug(response)`
 
 ##### Example
 ```Python
@@ -349,7 +385,7 @@ def set_secure_headers(request, response, resource):
 
 #### Cookies
 ```Python
-secure.SecureCookie.hug(response, name="hug", value="ABC123")
+SecureCookie.hug(response, name="hug", value="ABC123")
 ```
 
 ##### Example
@@ -377,7 +413,7 @@ Pyramid [Tween](https://docs.pylonsproject.org/projects/pyramid/en/latest/narr/h
 def set_secure_headers(handler, registry):
     def tween(request):
         response = handler(request)
-        secure.SecureHeaders.pyramid(response)
+        SecureHeaders.pyramid(response)
         return response
 ```
 
@@ -408,7 +444,7 @@ config.add_tween(".set_secure_headers")
 #### Cookies
 ```Python
 response = Response("Secure")
-secure.SecureCookie.pyramid(response, name="pyramid", value="ABC123")
+SecureCookie.pyramid(response, name="pyramid", value="ABC123")
 ```
 
 ##### Example
@@ -427,10 +463,56 @@ def set_secure_cookie(request):
 . . . 
 ```
 
+## Quart
+
+#### Headers
+`SecureHeaders.quart(response)`
+
+##### Example
+```Python
+from quart import Quart, Response
+from secure import SecureHeaders, SecureCookie
+
+app = Quart(__name__)
+
+. . . 
+
+@app.after_request
+async def set_secure_headers(response):
+    SecureHeaders.quart(response)
+    return response
+
+. . . 
+```
+
+
+#### Cookies
+```Python
+SecureCookie.quart(resp, name="quart", value="ABC123")
+```
+
+##### Example
+```Python
+from quart import Quart, Response
+from secure import SecureHeaders, SecureCookie
+
+app = Quart(__name__)
+
+. . . 
+
+@app.route('/secure')
+async def set_secure_cookie():
+    resp = Response("Secure")
+    SecureCookie.quart(resp, name="quart", value="ABC123")
+    return resp
+    
+. . . 
+```
+
 ## Responder
 
 #### Headers
-`secure.SecureHeaders.responder(resp)`
+`SecureHeaders.responder(resp)`
 
 ##### Example
 ```Python
@@ -453,7 +535,7 @@ You should use Responder's [built in HSTS](https://python-responder.org/en/lates
 
 #### Cookies
 ```Python
-secure.SecureCookie.responder(resp, name="reponder", value="ABC123")
+SecureCookie.responder(resp, name="reponder", value="ABC123")
 ```
 
 ##### Example
@@ -473,57 +555,11 @@ async def set_secure_cookie(req, resp):
 . . . 
 ```
 
-## Quart
-
-#### Headers
-`secure.SecureHeaders.quart(response)`
-
-##### Example
-```Python
-from quart import Quart, Response
-from secure import SecureHeaders, SecureCookie
-
-app = Quart(__name__)
-
-. . . 
-
-@app.after_request
-async def set_secure_headers(response):
-    SecureHeaders.quart(response)
-    return response
-
-. . . 
-```
-
-
-#### Cookies
-```Python
-secure.SecureCookie.quart(resp, name="quart", value="ABC123")
-```
-
-##### Example
-```Python
-from quart import Quart, Response
-from secure import SecureHeaders, SecureCookie
-
-app = Quart(__name__)
-
-. . . 
-
-@app.route('/secure')
-async def set_secure_cookie():
-    resp = Response("Secure")
-    SecureCookie.quart(resp, name="quart", value="ABC123")
-    return resp
-    
-. . . 
-```
-
 
 ## Sanic
 
 #### Headers
-`secure.SecureHeaders.sanic(response)`
+`SecureHeaders.sanic(response)`
 
 ##### Example
 ```Python
@@ -543,7 +579,7 @@ async def set_secure_headers(request, response):
 
 #### Cookies
 ```Python
-secure.SecureCookie.sanic(response, name="sanic", value="ABC123")
+SecureCookie.sanic(response, name="sanic", value="ABC123")
 ```
 
 ##### Example
@@ -567,10 +603,60 @@ async def set_secure_cookie(request):
 
 *To set  Cross Origin Resource Sharing (CORS) headers, please see [sanic-cors](https://github.com/ashleysommer/sanic-cors).*
 
+## Starlette
+
+#### Headers
+`SecureHeaders.starlette(response)`
+
+##### Example
+```Python
+from starlette.applications import Starlette
+from starlette.responses import PlainTextResponse
+import uvicorn
+from secure import SecureHeaders, SecureCookie
+
+app = Starlette()
+
+. . . 
+
+@app.middleware("http")
+async def set_secure_headers(request, call_next):
+    response = await call_next(request)
+    SecureHeaders.starlette(response)
+    return response
+
+. . . 
+```
+
+#### Cookies
+```Python
+SecureCookie.starlette(response, name="starlette", value="ABC123")
+```
+
+##### Example
+```Python
+from starlette.applications import Starlette
+from starlette.responses import PlainTextResponse
+import uvicorn
+from secure import SecureHeaders, SecureCookie
+
+app = Starlette()
+
+. . . 
+
+@app.route("/secure")
+async def set_secure_cookie(request):
+    response = PlainTextResponse("Secure")
+    SecureCookie.starlette(response, name="starlette", value="ABC123")
+    return response
+    
+. . . 
+```
+
 ## Tornado
 
 #### Headers
-`secure.SecureHeaders.tornado(self)`
+`SecureHeaders.tornado(self)`
 
 ##### Example
 ```Python
@@ -589,7 +675,7 @@ class BaseHandler(tornado.web.RequestHandler):
 
 #### Cookies
 ```Python
-secure.SecureCookie.tornado(self, name="tornado", value="ABC123")
+SecureCookie.tornado(self, name="tornado", value="ABC123")
 ```
 
 ##### Example
@@ -620,16 +706,14 @@ class SetSecureCookie(BaseHandler):
 - [hug](https://github.com/timothycrosley/hug) - Embrace the APIs of the future. Hug aims to make developing APIs as simple as possible, but no simpler.
 - [Pyramid](https://github.com/Pylons/pyramid) - A Python web framework
 - [Quart](https://gitlab.com/pgjones/quart) - A Python ASGI web microframework.
+- [Responder](https://github.com/kennethreitz/responder) - A familiar HTTP Service Framework
 - [Sanic](https://github.com/huge-success/sanic) - An Async Python 3.5+ web server that's written to go fast
-- [Responder](https://python-responder.org/en/latest/) - A familiar HTTP Service Framework
+- [Starlette](https://github.com/encode/starlette) - The little ASGI framework that shines. ✨
 - [Tornado](https://github.com/tornadoweb/tornado) - A Python web framework and asynchronous networking library, originally developed at FriendFeed.
 
 #### Resources
 - [kennethreitz/setup.py: 📦 A Human’s Ultimate Guide to setup.py.](https://github.com/kennethreitz/setup.py)
-- [OWASP -  Application Security FAQ - Browser Cache](https://www.owasp.org/index.php/OWASP_Application_Security_FAQ#Browser_Cache)
-- [OWASP - HttpOnly](https://www.owasp.org/index.php/HttpOnly)
-- [OWASP - SameSite](https://www.owasp.org/index.php/SameSite)
 - [OWASP - Secure Headers Project](https://www.owasp.org/index.php/OWASP_Secure_Headers_Project)
-- [OWASP - SecureFlag](https://www.owasp.org/index.php/SecureFlag)
 - [OWASP - Session Management Cheat Sheet](https://www.owasp.org/index.php/Session_Management_Cheat_Sheet#Cookies)
 - [Mozilla Web Security](https://infosec.mozilla.org/guidelines/web_security)
+- [securityheaders.com](https://securityheaders.com)

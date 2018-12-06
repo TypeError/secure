@@ -51,9 +51,16 @@ class Security_Headers:
 
     pragma = Header("Pragma", "no-cache", "Prevent cacheable HTTPS response")
 
+    feature_policy = Header(
+        "Feature-Policy",
+        "accelerometer 'none'; ambient-light-sensor 'none'; autoplay 'none'; camera 'none'; encrypted-media 'none';"
+        + "fullscreen 'none'; geolocation 'none'; gyroscope 'none'; magnetometer 'none'; microphone 'none'; midi 'none';"
+        + "payment 'none'; picture-in-picture 'none'; speaker 'none'; sync-xhr 'none'; usb 'none'; vr 'none';",
+    )
+
     @staticmethod
     def secure_headers(
-        server=True,
+        server=False,
         hsts=True,
         xfo=True,
         xss=True,
@@ -61,6 +68,7 @@ class Security_Headers:
         csp=False,
         referrer=True,
         cache=True,
+        feature=False,
     ):
         headers = []
         if server:
@@ -98,6 +106,10 @@ class Security_Headers:
             else:
                 headers.append(Security_Headers.cache_control)
                 headers.append(Security_Headers.pragma)
+        if feature:
+            if type(feature) == str:
+                Security_Headers.referrer_policy.value = feature
+            headers.append(Security_Headers.feature_policy)
 
         return headers
 
@@ -110,17 +122,26 @@ def default_headers():
     return headers
 
 
-def tuple_headers(server, hsts, xfo, xss, content, csp, referrer, cache):
+def dict_headers(server, hsts, xfo, xss, content, csp, referrer, cache, feature):
+    headers = {}
+    for header in Security_Headers.secure_headers(
+        server, hsts, xfo, xss, content, csp, referrer, cache, feature
+    ):
+        headers[header.header] = header.value
+    return headers
+
+
+def tuple_headers(server, hsts, xfo, xss, content, csp, referrer, cache, feature):
     headers = []
     for header in Security_Headers.secure_headers(
-        server, hsts, xfo, xss, content, csp, referrer, cache
+        server, hsts, xfo, xss, content, csp, referrer, cache, feature
     ):
         headers.append((header.header, header.value))
     return headers
 
 
-def set_headers(resp, server, hsts, xfo, xss, content, csp, referrer, cache):
+def set_headers(resp, server, hsts, xfo, xss, content, csp, referrer, cache, feature):
     for header in Security_Headers.secure_headers(
-        server, hsts, xfo, xss, content, csp, referrer, cache
+        server, hsts, xfo, xss, content, csp, referrer, cache, feature
     ):
         resp.headers[header.header] = header.value

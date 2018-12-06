@@ -1,4 +1,10 @@
 from datetime import datetime, timedelta
+from enum import Enum
+
+
+class SameSite(Enum):
+    lax = "lax"
+    strict = "strict"
 
 
 class Cookie:
@@ -6,7 +12,7 @@ class Cookie:
         self.value = value
 
     def secure_cookie(
-        self, path="/", secure=True, httponly=True, samesite="lax", expires=False
+        self, path="/", secure=True, httponly=True, samesite=SameSite.lax, expires=False
     ):
         cookie_value = "{}; Path={}".format(self, path)
         if secure:
@@ -14,28 +20,7 @@ class Cookie:
         if httponly:
             cookie_value += "; HttpOnly"
         if samesite:
-            if samesite == "lax":
-                cookie_value += "; SameSite=Lax"
-            elif samesite == "strict":
-                cookie_value += "; SameSite=Strict"
-        if expires:
-            cookie_value += "; Expires={}".format(cookie_expiration(expires))
-
-        return cookie_value
-
-    def secure_cookie_tuple(
-        self, path="/", secure=True, httponly=True, samesite="lax", expires=False
-    ):
-        cookie_value = "{}; Path={}".format(self, path)
-        if secure:
-            cookie_value += "; Secure"
-        if httponly:
-            cookie_value += "; HttpOnly"
-        if samesite:
-            if samesite == "lax":
-                cookie_value += "; SameSite=Lax"
-            elif samesite == "strict":
-                cookie_value += "; SameSite=Strict"
+            cookie_value += "; SameSite={}".format(samesite.value)
         if expires:
             cookie_value += "; Expires={}".format(cookie_expiration(expires))
 
