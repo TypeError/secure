@@ -51,7 +51,7 @@ Disable framing from different origins (clickjacking defense)
 
 #### X-XSS-Protection
 Enable browser cross-site scripting filters  
-**Default Value:** `X-XSS-Protection", "1; mode=block`  
+**Default Value:** `1; mode=block`  
 
 #### X-Content-Type-Options
 Prevent MIME-sniffing  
