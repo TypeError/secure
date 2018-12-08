@@ -1,11 +1,14 @@
 # Secure
 
+[![image](https://img.shields.io/pypi/v/secure.svg)](https://pypi.org/project/secure/)
+[![Python 3](https://img.shields.io/badge/python-3-blue.svg)](https://www.python.org/downloads/)
+[![image](https://img.shields.io/pypi/l/secure.svg)](https://pypi.org/project/secure/)
+[![image](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
+
 Secure 🔒 is a lightweight package that adds optional security headers and cookie attributes for Python web frameworks.
 
 ### Supported Python web frameworks:
-[aiohttp](https://docs.aiohttp.org), [Bottle](https://bottlepy.org), [CherryPy](https://cherrypy.org), [Falcon](https://falconframework.org), [hug](http://www.hug.rest), [Pyramid](https://trypyramid.com), [Quart](https://pgjones.gitlab.io/quart/), [Responder](https://python-responder.org), [Sanic](https://sanicframework.org), [Starlette](https://www.starlette.io/), [Tornado](https://www.tornadoweb.org/) 
-
-Please see [flask-talisman](https://github.com/GoogleCloudPlatform/flask-talisman) for Flask support and [django-security](https://github.com/sdelements/django-security/) for Django support. 
+[aiohttp](https://docs.aiohttp.org), [Bottle](https://bottlepy.org), [CherryPy](https://cherrypy.org), [Django](https://www.djangoproject.com), [Falcon](https://falconframework.org), [Flask](http://flask.pocoo.org), [hug](http://www.hug.rest), [Pyramid](https://trypyramid.com), [Quart](https://pgjones.gitlab.io/quart/), [Responder](https://python-responder.org), [Sanic](https://sanicframework.org), [Starlette](https://www.starlette.io/), [Tornado](https://www.tornadoweb.org/) 
 
 
 ## Install
@@ -25,6 +28,9 @@ After installing secure:
 
 ```Python
 from secure import SecureHeaders, SecureCookie
+
+secure_headers = SecureHeaders()
+secure_cookie = SecureCookie()
 ```
 
 ## Security Headers
@@ -76,7 +82,7 @@ Disable browser features and APIs
  **The Content-Security-Policy (CSP) header can break functionality and can (and should) be carefully constructed, use the `csp=True` option to enable default values.*
  
  ### Example
-`SecureHeaders.framework(response)`
+`secure_headers.framework(response)`
 
  **Default HTTP response headers:** 
  
@@ -109,9 +115,12 @@ You can toggle the setting of headers with default values by passing `True` or `
 ```Python
 from secure import SecureHeaders
 
+secure_headers = SecureHeaders(csp=True, hsts=False, xfo="DENY")
+
 . . . 
 
-SecureHeaders.framework(response, hsts=False, csp=True, xfo="DENY")
+secure_headers.framework(response)
+
 ```
 
 ## Cookies
@@ -133,13 +142,13 @@ The Expires attribute sets an expiration date for persistent cookies.
 ### Example
 
 ```Python
-SecureCookie.framework(response, name="framework", value="ABC123")
+secure_cookie.framework(response, name="spam", value="eggs")
 ```
 
 *Default Set-Cookie HTTP response header:*   
 
 ```HTTP
-Set-Cookie: framework=ABC123; Path=/; secure; HttpOnly; SameSite=lax
+Set-Cookie: spam=eggs; Path=/; secure; HttpOnly; SameSite=lax
 ```
 
 ### Options
@@ -159,37 +168,30 @@ You can modify default cookie attribute values by passing the following options:
 #### Example
 ```Python
 from secure import SecureCookie
+secure_cookie = SecureCookie(expires=1, samesite=SecureCookie.SameSite.strict)
 
-SecureCookie.framework(
-        response,
-        name="framework",
-        value="ABC123",
-        expires=1,
-        samesite=SecureCookie.SameSite.strict,
-    )
+secure_cookie.framework(response, name="spam", value="eggs")
 ```
 
 # Framework Agnostic
 Return Dictionary of Headers:  
-`SecureHeaders.headers()`
+`secure_headers.headers()`
 
 ##### Example
 ```Python
-SecureHeaders.headers(csp=True, feature=True)
+secure_headers.headers(csp=True, feature=True)
 ```
 
 Return Value:  
 
-```Python
-{'Strict-Transport-Security': 'max-age=63072000; includeSubdomains', 'X-Frame-Options': 'SAMEORIGIN', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "script-src 'self'; object-src 'self'", 'Referrer-Policy': 'no-referrer, strict-origin-when-cross-origin', 'Cache-control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache', 'Feature-Policy': "accelerometer 'none'; ambient-light-sensor 'none'; autoplay 'none'; camera 'none'; encrypted-media 'none';fullscreen 'none'; geolocation 'none'; gyroscope 'none'; magnetometer 'none'; microphone 'none'; midi 'none';payment 'none'; picture-in-picture 'none'; speaker 'none'; sync-xhr 'none'; usb 'none'; vr 'none';"}
-```
+`{'Strict-Transport-Security': 'max-age=63072000; includeSubdomains', 'X-Frame-Options': 'SAMEORIGIN', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "script-src 'self'; object-src 'self'", 'Referrer-Policy': 'no-referrer, strict-origin-when-cross-origin', 'Cache-control': 'no-cache, no-store, must-revalidate', 'Pragma': 'no-cache', 'Feature-Policy': "accelerometer 'none'; ambient-light-sensor 'none'; autoplay 'none'; camera 'none'; encrypted-media 'none';fullscreen 'none'; geolocation 'none'; gyroscope 'none'; magnetometer 'none'; microphone 'none'; midi 'none';payment 'none'; picture-in-picture 'none'; speaker 'none'; sync-xhr 'none'; usb 'none'; vr 'none';"}`
 
 # Supported Frameworks
 
 ## aiohttp
 
 #### Headers
-`SecureHeaders.aiohttp(resp)`
+`secure_headers.aiohttp(resp)`
 
 ##### Example
 ```Python
@@ -197,12 +199,14 @@ from aiohttp import web
 from aiohttp.web import middleware
 from secure import SecureHeaders
 
+secure_headers = SecureHeaders()
+
 . . . 
 
 @middleware
 async def set_secure_headers(request, handler):
     resp = await handler(request)
-    SecureHeaders.aiohttp(resp)
+    secure_headers.aiohttp(resp)
     return resp
     
 . . . 
@@ -214,7 +218,7 @@ app = web.Application(middlewares=[set_secure_headers])
 
 #### Cookies
 ```Python
-SecureCookie.aiohttp(resp, name="aiohttp", value="ABC123")
+secure_cookie.aiohttp(resp, name="spam", value="eggs")
 ```
 
 ##### Example
@@ -222,12 +226,14 @@ SecureCookie.aiohttp(resp, name="aiohttp", value="ABC123")
 from aiohttp import web
 from secure import SecureCookie
 
+secure_cookie = SecureCookie()
+
 . . . 
 
 @routes.get("/secure")
 async def set_secure_cookie(request):
     resp = web.Response(text="Secure")
-    SecureCookie.aiohttp(resp, name="aiohttp", value="ABC123")
+    secure_cookie.aiohttp(resp, name="spam", value="eggs")
     return resp
     
 . . . 
@@ -237,25 +243,27 @@ async def set_secure_cookie(request):
 ## Bottle
 
 #### Headers
-`SecureHeaders.bottle(response)`
+`secure_headers.bottle(response)`
 
 ##### Example
 ```Python
 from bottle import route, run, response, hook
 from secure import SecureHeaders
 
+secure_headers = SecureHeaders()
+
 . . . 
 
 @hook("after_request")
 def set_secure_headers():
-    SecureHeaders.bottle(response)
+    secure_headers.bottle(response)
     
 . . . 
 ```
 
 #### Cookies
 ```Python
-SecureCookie.bottle(response, name="bottle", value="ABC123")
+secure_cookie.bottle(response, name="spam", value="eggs")
 ```
 
 ##### Example
@@ -263,11 +271,13 @@ SecureCookie.bottle(response, name="bottle", value="ABC123")
 from bottle import route, run, response, hook
 from secure import SecureCookie
 
+secure_cookie = SecureCookie()
+
 . . . 
 
 @route("/secure")
 def set_secure_cookie():
-    SecureCookie.bottle(response, name="bottle", value="ABC123")
+    secure_cookie.bottle(response, name="spam", value="eggs")
     return "Secure"
     
 . . . 
@@ -276,7 +286,7 @@ def set_secure_cookie():
 ## CherryPy
 
 #### Headers
-`'tools.response_headers.headers': SecureHeaders.cherrypy()`
+`"tools.response_headers.headers": secure_headers.cherrypy()`
 
 ##### Example
 CherryPy [Application Configuration](http://docs.cherrypy.org/en/latest/config.html#application-config):
@@ -285,12 +295,14 @@ CherryPy [Application Configuration](http://docs.cherrypy.org/en/latest/config.h
 import cherrypy
 from secure import SecureHeaders
 
+secure_headers = SecureHeaders()
+
 . . . 
 
 config = {
-    '/': {
-        'tools.response_headers.on': True,
-        'tools.response_headers.headers': SecureHeaders.cherrypy(),
+    "/": {
+        "tools.response_headers.on": True,
+        "tools.response_headers.headers": secure_headers.cherrypy(),
     }
 }
 
@@ -300,7 +312,7 @@ config = {
 #### Cookies
 ```Python
 response_headers = cherrypy.response.headers
-SecureCookie.cherrypy(response_headers, name="cherrypy", value="ABC123")
+secure_cookie.cherrypy(response_headers, name="spam", value="eggs")
 ```
 
 ##### Example
@@ -308,34 +320,99 @@ SecureCookie.cherrypy(response_headers, name="cherrypy", value="ABC123")
 import cherrypy
 from secure import SecureCookie
 
+secure_cookie = SecureCookie()
+
 . . . 
 
 class SetSecureCookie(object):
     @cherrypy.expose
     def set_secure_cookie(self):
         response_headers = cherrypy.response.headers
-        SecureCookie.cherrypy(response_headers, name="cherrypy", value="ABC123")
+        secure_cookie.cherrypy(response_headers, name="spam", value="eggs")
         return "Secure"
     
 . . . 
 ```
 
+## Django
+
+#### Headers
+`secure_headers.django(response)`
+
+##### Example
+Django [Middleware Documentation](https://docs.djangoproject.com/en/2.1/topics/http/middleware/):
+
+
+```Python
+# securemiddleware.py
+from secure import SecureHeaders
+
+secure_headers = SecureHeaders()
+
+. . . 
+
+def set_secure_headers(get_response):
+    def middleware(request):
+        response = get_response(request)
+        secure_headers.django(response)
+        return response
+
+    return middleware
+    
+. . . 
+```
+
+```Python
+# settings.py
+
+...
+
+MIDDLEWARE = [
+    'app.securemiddleware.set_secure_headers'
+]
+
+```
+
+#### Cookies
+```Python
+secure_cookie.django(response, name="spam", value="eggs")
+```
+
+##### Example
+```Python
+from django.http import HttpResponse
+from secure import SecureCookie
+
+secure_cookie = SecureCookie()
+
+. . . 
+
+def set_secure_cookie(request):
+    response = HttpResponse("Secure")
+    secure_cookie.django(response, name="spam", value="eggs")
+    return response
+    
+. . . 
+    
+```
 
 ## Falcon
 
 #### Headers
-`SecureHeaders.falcon(resp)`
+`secure_headers.falcon(resp)`
 
 ##### Example
 ```Python
 import falcon
 from secure import SecureHeaders
 
+secure_headers = SecureHeaders()
+
 . . . 
 
 class SetSecureHeaders(object):
     def process_request(self, req, resp):
-        SecureHeaders.falcon(resp)
+        secure_headers.falcon(resp)
 
 . . . 
 
@@ -346,7 +423,7 @@ app = api = falcon.API(middleware=[SetSecureHeaders()])
 
 #### Cookies
 ```Python
-SecureCookie.falcon(resp, name="falcon", value="ABC123")
+secure_cookie.falcon(resp, name="spam", value="eggs")
 ```
 
 ##### Example
@@ -354,12 +431,61 @@ SecureCookie.falcon(resp, name="falcon", value="ABC123")
 import falcon
 from secure import SecureCookie
 
+secure_cookie = SecureCookie()
+
 . . . 
 
 class SetSecureCookie(object):
     def on_get(self, req, resp):
         resp.body = "Secure"
-        SecureCookie.falcon(resp, name="falcon", value="ABC123")
+        secure_cookie.falcon(resp, name="spam", value="eggs")
+        
+. . . 
+```
+
+## Flask
+
+#### Headers
+`secure_headers.flask(response)`
+
+##### Example
+```Python
+from flask import Flask, Response
+from secure import SecureHeaders
+
+secure_headers = SecureHeaders()
+
+app = Flask(__name__)
+
+. . . 
+
+@app.after_request
+def set_secure_headers(response):
+    secure_headers.flask(response)
+    return response
+    
+. . . 
+```
+
+#### Cookies
+```Python
+secure_cookie.flask(resp, name="spam", value="eggs")
+```
+
+##### Example
+```Python
+from flask import Flask, Response
+from secure import SecureCookie
+
+secure_cookie = SecureCookie()
+
+. . . 
+
+@app.route("/secure")
+def set_secure_cookie():
+    resp = Response("Secure")
+    secure_cookie.flask(resp, name="spam", value="eggs")
+    return resp
         
 . . . 
 ```
@@ -368,6 +494,7 @@ class SetSecureCookie(object):
 
 #### Headers
 `SecureHeaders.hug(response)`
+*Pass response and options directly to SecureHeaders*
 
 ##### Example
 ```Python
@@ -378,7 +505,7 @@ from secure import SecureHeaders
 
 @hug.response_middleware()
 def set_secure_headers(request, response, resource):
-      SecureHeaders.hug(response)
+    SecureHeaders.hug(response)
 
 . . . 
 ```
@@ -387,6 +514,7 @@ def set_secure_headers(request, response, resource):
 ```Python
 SecureCookie.hug(response, name="hug", value="ABC123")
 ```
+*Pass response and options directly to SecureCookie*
 
 ##### Example
 ```Python
@@ -395,9 +523,9 @@ from secure import SecureCookie
 
 . . . 
 
-@hug.get('/secure')
+@hug.get("/secure")
 def set_secure_cookie(response=None):
-    SecureCookie.hug(response, name="hug", value="ABC123")
+    SecureCookie.hug(response, name="spam", value="eggs")
     return "Secure"
         
 . . . 
@@ -413,8 +541,10 @@ Pyramid [Tween](https://docs.pylonsproject.org/projects/pyramid/en/latest/narr/h
 def set_secure_headers(handler, registry):
     def tween(request):
         response = handler(request)
-        SecureHeaders.pyramid(response)
+        secure_headers.pyramid(response)
         return response
+
+    return tween
 ```
 
 ##### Example
@@ -423,12 +553,14 @@ from pyramid.config import Configurator
 from pyramid.response import Response
 from secure import SecureHeaders
 
+secure_headers = SecureHeaders()
+
 . . . 
 
 def set_secure_headers(handler, registry):
     def tween(request):
         response = handler(request)
-        SecureHeaders.pyramid(response)
+        secure_headers.pyramid(response)
         return response
 
     return tween
@@ -444,7 +576,7 @@ config.add_tween(".set_secure_headers")
 #### Cookies
 ```Python
 response = Response("Secure")
-SecureCookie.pyramid(response, name="pyramid", value="ABC123")
+secure_cookie.pyramid(response, name="spam", value="eggs")
 ```
 
 ##### Example
@@ -453,11 +585,13 @@ from pyramid.config import Configurator
 from pyramid.response import Response
 from secure import SecureCookie
 
+secure_cookie = SecureCookie()
+
 . . . 
 
 def set_secure_cookie(request):
     response = Response("Secure")
-    SecureCookie.pyramid(response, name="pyramid", value="ABC123")
+    secure_cookie.pyramid(response, name="spam", value="eggs")
     return response
     
 . . . 
@@ -466,12 +600,14 @@ def set_secure_cookie(request):
 ## Quart
 
 #### Headers
-`SecureHeaders.quart(response)`
+`secure_headers.quart(response)`
 
 ##### Example
 ```Python
 from quart import Quart, Response
-from secure import SecureHeaders, SecureCookie
+from secure import SecureHeaders
+
+secure_headers = SecureHeaders()
 
 app = Quart(__name__)
 
@@ -479,7 +615,7 @@ app = Quart(__name__)
 
 @app.after_request
 async def set_secure_headers(response):
-    SecureHeaders.quart(response)
+    secure_headers.quart(response)
     return response
 
 . . . 
@@ -488,22 +624,24 @@ async def set_secure_headers(response):
 
 #### Cookies
 ```Python
-SecureCookie.quart(resp, name="quart", value="ABC123")
+secure_cookie.quart(resp, name="spam", value="eggs")
 ```
 
 ##### Example
 ```Python
 from quart import Quart, Response
-from secure import SecureHeaders, SecureCookie
+from secure import SecureCookie
+
+secure_cookie = SecureCookie()
 
 app = Quart(__name__)
 
 . . . 
 
-@app.route('/secure')
+@app.route("/secure")
 async def set_secure_cookie():
     resp = Response("Secure")
-    SecureCookie.quart(resp, name="quart", value="ABC123")
+    secure_cookie.quart(resp, name="spam", value="eggs")
     return resp
     
 . . . 
@@ -512,12 +650,14 @@ async def set_secure_cookie():
 ## Responder
 
 #### Headers
-`SecureHeaders.responder(resp)`
+`secure_headers.responder(resp)`
 
 ##### Example
 ```Python
 import responder
 from secure import SecureHeaders
+
+secure_headers = SecureHeaders()
 
 api = responder.API()
 
@@ -525,7 +665,7 @@ api = responder.API()
 
 @api.route(before_request=True)
 def set_secure_headers(req, resp):
-    SecureHeaders.responder(resp)
+    secure_headers.responder(resp)
 
 . . . 
 ```
@@ -535,7 +675,7 @@ You should use Responder's [built in HSTS](https://python-responder.org/en/lates
 
 #### Cookies
 ```Python
-SecureCookie.responder(resp, name="reponder", value="ABC123")
+secure_cookie.responder(resp, name="spam", value="eggs")
 ```
 
 ##### Example
@@ -543,14 +683,16 @@ SecureCookie.responder(resp, name="reponder", value="ABC123")
 import responder
 from secure import SecureCookie
 
-api = responder.API(cors=True)
+secure_cookie = SecureCookie()
+
+api = responder.API()
 
 . . . 
 
 @api.route("/secure")
 async def set_secure_cookie(req, resp):
     resp.text = "Secure"
-    SecureCookie.responder(resp, name="reponder", value="ABC123")
+    secure_cookie.responder(resp, name="spam", value="eggs")
     
 . . . 
 ```
@@ -559,27 +701,29 @@ async def set_secure_cookie(req, resp):
 ## Sanic
 
 #### Headers
-`SecureHeaders.sanic(response)`
+`secure_headers.sanic(response)`
 
 ##### Example
 ```Python
 from sanic import Sanic
 from secure import SecureHeaders
 
+secure_headers = SecureHeaders()
+
 app = Sanic()
 
 . . . 
 
-@app.middleware('response')
+@app.middleware("response")
 async def set_secure_headers(request, response):
-    SecureHeaders.sanic(response)
+    secure_headers.sanic(response)
 
 . . . 
 ```
 
 #### Cookies
 ```Python
-SecureCookie.sanic(response, name="sanic", value="ABC123")
+secure_cookie.sanic(response, name="spam", value="eggs")
 ```
 
 ##### Example
@@ -588,6 +732,8 @@ from sanic import Sanic
 from sanic.response import text
 from secure import SecureCookie
 
+secure_cookie = SecureCookie()
+
 app = Sanic()
 
 . . . 
@@ -595,7 +741,7 @@ app = Sanic()
 @app.route("/secure")
 async def set_secure_cookie(request):
     response = text("Secure")
-    SecureCookie.sanic(response, name="sanic", value="ABC123")
+    secure_cookie.sanic(response, name="spam", value="eggs")
     return response
     
 . . . 
@@ -606,14 +752,15 @@ async def set_secure_cookie(request):
 ## Starlette
 
 #### Headers
-`SecureHeaders.starlette(response)`
+`secure_headers.starlette(response)`
 
 ##### Example
 ```Python
 from starlette.applications import Starlette
-from starlette.responses import PlainTextResponse
 import uvicorn
-from secure import SecureHeaders, SecureCookie
+from secure import SecureHeaders
+
+secure_headers = SecureHeaders()
 
 app = Starlette()
 
@@ -622,7 +769,7 @@ app = Starlette()
 @app.middleware("http")
 async def set_secure_headers(request, call_next):
     response = await call_next(request)
-    SecureHeaders.starlette(response)
+    secure_headers.starlette(response)
     return response
 
 . . . 
@@ -630,7 +777,7 @@ async def set_secure_headers(request, call_next):
 
 #### Cookies
 ```Python
-SecureCookie.starlette(response, name="starlette", value="ABC123")
+secure_cookie.starlette(response, name="spam", value="eggs")
 ```
 
 ##### Example
@@ -640,6 +787,8 @@ from starlette.responses import PlainTextResponse
 import uvicorn
 from secure import SecureHeaders, SecureCookie
 
+secure_cookie = SecureCookie()
+
 app = Starlette()
 
 . . . 
@@ -647,16 +796,16 @@ app = Starlette()
 @app.route("/secure")
 async def set_secure_cookie(request):
     response = PlainTextResponse("Secure")
-    SecureCookie.starlette(response, name="starlette", value="ABC123")
+    secure_cookie.starlette(response, name="spam", value="eggs")
     return response
-    
+
 . . . 
 ```
 
 ## Tornado
 
 #### Headers
-`SecureHeaders.tornado(self)`
+`secure_headers.tornado(self)`
 
 ##### Example
 ```Python
@@ -664,18 +813,20 @@ import tornado.ioloop
 import tornado.web
 from secure import SecureHeaders
 
+secure_headers = SecureHeaders()
+
 . . . 
 
 class BaseHandler(tornado.web.RequestHandler):
     def set_default_headers(self):
-        SecureHeaders.tornado(self)
+        secure_headers.tornado(self)
 
 . . . 
 ```
 
 #### Cookies
 ```Python
-SecureCookie.tornado(self, name="tornado", value="ABC123")
+secure_cookie.tornado(self, name="spam", value="eggs")
 ```
 
 ##### Example
@@ -684,11 +835,13 @@ import tornado.ioloop
 import tornado.web
 from secure import SecureCookie
 
+secure_cookie = SecureCookie()
+
 . . . 
 
 class SetSecureCookie(BaseHandler):
     def get(self):
-        SecureCookie.tornado(self, name="tornado", value="ABC123")
+        secure_cookie.tornado(self, name="spam", value="eggs")
         self.write("Secure")
     
 . . . 
@@ -702,7 +855,9 @@ class SetSecureCookie(BaseHandler):
 - [aiohttp](https://github.com/aio-libs/aiohttp) - Asynchronous HTTP client/server framework for asyncio and Python
 - [Bottle](https://github.com/bottlepy/bottle) - A fast and simple micro-framework for python web-applications.
 - [CherryPy](https://github.com/cherrypy/cherrypy) - A pythonic, object-oriented HTTP framework.
+- [Django](https://github.com/django/django/) - The Web framework for perfectionists with deadlines.
 - [Falcon](https://github.com/falconry/falcon) - A bare-metal Python web API framework for building high-performance microservices, app backends, and higher-level frameworks.
+- [Flask](https://github.com/pallets/flask) - The Python micro framework for building web applications.
 - [hug](https://github.com/timothycrosley/hug) - Embrace the APIs of the future. Hug aims to make developing APIs as simple as possible, but no simpler.
 - [Pyramid](https://github.com/Pylons/pyramid) - A Python web framework
 - [Quart](https://gitlab.com/pgjones/quart) - A Python ASGI web microframework.

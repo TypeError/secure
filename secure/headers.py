@@ -140,8 +140,19 @@ def tuple_headers(server, hsts, xfo, xss, content, csp, referrer, cache, feature
     return headers
 
 
-def set_headers(resp, server, hsts, xfo, xss, content, csp, referrer, cache, feature):
+def set_header_dict(
+    response, server, hsts, xfo, xss, content, csp, referrer, cache, feature
+):
     for header in Security_Headers.secure_headers(
         server, hsts, xfo, xss, content, csp, referrer, cache, feature
     ):
-        resp.headers[header.header] = header.value
+        response.headers[header.header] = header.value
+
+
+def set_header_tuple(
+    response, server, hsts, xfo, xss, content, csp, referrer, cache, feature
+):
+    for header in Security_Headers.secure_headers(
+        server, hsts, xfo, xss, content, csp, referrer, cache, feature
+    ):
+        response.set_header(header.header, header.value)

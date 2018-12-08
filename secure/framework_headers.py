@@ -1,8 +1,15 @@
-from .headers import Security_Headers, set_headers, tuple_headers, dict_headers
+from .headers import (
+    Security_Headers,
+    set_header_dict,
+    set_header_tuple,
+    tuple_headers,
+    dict_headers,
+)
 
 
 class SecureHeaders:
-    def headers(
+    def __init__(
+        self,
         server=False,
         hsts=True,
         xfo=True,
@@ -13,110 +20,50 @@ class SecureHeaders:
         cache=True,
         feature=False,
     ):
-        headers = dict_headers(
-            server, hsts, xfo, xss, content, csp, referrer, cache, feature
-        )
+        self.server = server
+        self.hsts = hsts
+        self.xfo = xfo
+        self.xss = xss
+        self.content = content
+        self.csp = csp
+        self.referrer = referrer
+        self.cache = cache
+        self.feature = feature
+        self.options = {
+            "server": server,
+            "hsts": hsts,
+            "xfo": xfo,
+            "xss": xss,
+            "content": content,
+            "csp": csp,
+            "referrer": referrer,
+            "cache": cache,
+            "feature": feature,
+        }
+
+    def headers(self):
+        headers = dict_headers(**self.options)
         return headers
 
-    def responder(
-        resp,
-        server=False,
-        hsts=True,
-        xfo=True,
-        xss=True,
-        content=True,
-        csp=False,
-        referrer=True,
-        cache=True,
-        feature=False,
-    ):
-        set_headers(
-            resp, server, hsts, xfo, xss, content, csp, referrer, cache, feature
-        )
+    def aiohttp(self, response):
+        set_header_dict(response, **self.options)
 
-    def bottle(
-        response,
-        server=False,
-        hsts=True,
-        xfo=True,
-        xss=True,
-        content=True,
-        csp=False,
-        referrer=True,
-        cache=True,
-        feature=False,
-    ):
-        set_headers(
-            response, server, hsts, xfo, xss, content, csp, referrer, cache, feature
-        )
+    def bottle(self, response):
+        set_header_dict(response, **self.options)
 
-    def sanic(
-        response,
-        server=False,
-        hsts=True,
-        xfo=True,
-        xss=True,
-        content=True,
-        csp=False,
-        referrer=True,
-        cache=True,
-        feature=False,
-    ):
-        set_headers(
-            response, server, hsts, xfo, xss, content, csp, referrer, cache, feature
-        )
-
-    def falcon(
-        resp,
-        server=False,
-        hsts=True,
-        xfo=True,
-        xss=True,
-        content=True,
-        csp=False,
-        referrer=True,
-        cache=True,
-        feature=False,
-    ):
-
-        for header in Security_Headers.secure_headers(
-            server, hsts, xfo, xss, content, csp, referrer, cache, feature
-        ):
-            resp.set_header(header.header, header.value)
-
-    def pyramid(
-        response,
-        server=False,
-        hsts=True,
-        xfo=True,
-        xss=True,
-        content=True,
-        csp=False,
-        referrer=True,
-        cache=True,
-        feature=False,
-    ):
-
-        for header in Security_Headers.secure_headers(
-            server, hsts, xfo, xss, content, csp, referrer, cache, feature
-        ):
-            response.headers.add(header.header, header.value)
-
-    def cherrypy(
-        server=False,
-        hsts=True,
-        xfo=True,
-        xss=True,
-        content=True,
-        csp=False,
-        referrer=True,
-        cache=True,
-        feature=False,
-    ):
-        headers = tuple_headers(
-            server, hsts, xfo, xss, content, csp, referrer, cache, feature
-        )
+    def cherrypy(self):
+        headers = tuple_headers(**self.options)
         return headers
+
+    def django(self, response):
+        for header in Security_Headers.secure_headers(**self.options):
+            response[header.header] = header.value
+
+    def falcon(self, response):
+        set_header_tuple(response, **self.options)
+
+    def flask(self, response):
+        set_header_dict(response, **self.options)
 
     def hug(
         response,
@@ -130,74 +77,25 @@ class SecureHeaders:
         cache=True,
         feature=False,
     ):
-
-        for header in Security_Headers.secure_headers(
-            server, hsts, xfo, xss, content, csp, referrer, cache, feature
-        ):
-            response.set_header(header.header, header.value)
-
-    def tornado(
-        response,
-        server=False,
-        hsts=True,
-        xfo=True,
-        xss=True,
-        content=True,
-        csp=False,
-        referrer=True,
-        cache=True,
-        feature=False,
-    ):
-
-        for header in Security_Headers.secure_headers(
-            server, hsts, xfo, xss, content, csp, referrer, cache, feature
-        ):
-            response.set_header(header.header, header.value)
-
-    def aiohttp(
-        resp,
-        server=False,
-        hsts=True,
-        xfo=True,
-        xss=True,
-        content=True,
-        csp=False,
-        referrer=True,
-        cache=True,
-        feature=False,
-    ):
-        set_headers(
-            resp, server, hsts, xfo, xss, content, csp, referrer, cache, feature
-        )
-
-    def quart(
-        response,
-        server=False,
-        hsts=True,
-        xfo=True,
-        xss=True,
-        content=True,
-        csp=False,
-        referrer=True,
-        cache=True,
-        feature=False,
-    ):
-        set_headers(
+        set_header_tuple(
             response, server, hsts, xfo, xss, content, csp, referrer, cache, feature
         )
 
-    def starlette(
-        response,
-        server=False,
-        hsts=True,
-        xfo=True,
-        xss=True,
-        content=True,
-        csp=False,
-        referrer=True,
-        cache=True,
-        feature=False,
-    ):
-        set_headers(
-            response, server, hsts, xfo, xss, content, csp, referrer, cache, feature
-        )
+    def pyramid(self, response):
+        for header in Security_Headers.secure_headers(**self.options):
+            response.headers.add(header.header, header.value)
+
+    def quart(self, response):
+        set_header_dict(response, **self.options)
+
+    def responder(self, response):
+        set_header_dict(response, **self.options)
+
+    def sanic(self, response):
+        set_header_dict(response, **self.options)
+
+    def starlette(self, response):
+        set_header_dict(response, **self.options)
+
+    def tornado(self, response):
+        set_header_tuple(response, **self.options)

@@ -1,103 +1,59 @@
-from .cookie import Cookie, set_cookie, alt_set_cookie, cookie_expiration, SameSite
+from .cookie import (
+    Cookie,
+    set_cookie_dict,
+    set_header_dict,
+    set_header_tuple,
+    cookie_expiration,
+    SameSite,
+)
 
 
 class SecureCookie:
+    def __init__(
+        self, path="/", secure=True, httponly=True, samesite=SameSite.lax, expires=False
+    ):
+        self.path = path
+        self.secure = secure
+        self.httponly = httponly
+        self.samesite = samesite
+        self.expires = expires
+        self.options = {
+            "path": path,
+            "secure": secure,
+            "httponly": httponly,
+            "samesite": samesite,
+            "expires": expires,
+        }
+
     SameSite = SameSite
 
-    def responder(
-        resp,
-        name,
-        value,
-        path="/",
-        secure=True,
-        httponly=True,
-        samesite=SameSite.lax,
-        expires=False,
-    ):
-        set_cookie(resp, name, value, path, secure, httponly, samesite, expires)
+    def aiohttp(self, response, name, value):
+        set_header_dict(response, name, value, **self.options)
 
-    def bottle(
-        response,
-        name,
-        value,
-        path="/",
-        secure=True,
-        httponly=True,
-        samesite=SameSite.lax,
-        expires=False,
-    ):
-        cookie_value = Cookie.secure_cookie(
-            value, path, secure, httponly, samesite, expires
-        )
+    def bottle(self, response, name, value):
+        cookie_value = Cookie.secure_cookie(value, **self.options)
         response.add_header("Set-Cookie", "{}={}".format(name, cookie_value))
 
-    def sanic(
-        response,
-        name,
-        value,
-        path="/",
-        secure=True,
-        httponly=True,
-        samesite=SameSite.lax,
-        expires=False,
-    ):
-        alt_set_cookie(response, name, value, path, secure, httponly, samesite, expires)
+    def cherrypy(self, header, name, value):
+        cookie_value = Cookie.secure_cookie(value, **self.options)
+        header["Set-Cookie"] = "{}={}".format(name, cookie_value)
 
-    def falcon(
-        resp,
-        name,
-        value,
-        path="/",
-        secure=True,
-        httponly=True,
-        samesite=SameSite.lax,
-        expires=False,
-    ):
-
-        cookie_value = Cookie.secure_cookie(
-            value, path, secure, httponly, samesite, expires
-        )
-        resp.set_header("Set-Cookie", "{}={}".format(name, cookie_value))
-
-    def pyramid(
-        response,
-        name,
-        value,
-        path="/",
-        secure=True,
-        httponly=True,
-        samesite=SameSite.lax,
-        expires=False,
-    ):
-        if expires:
-            expires = cookie_expiration(expires, timedelta_obj=True)
-        else:
-            expires = None
-
+    def django(self, response, name, value):
         response.set_cookie(
             name,
-            value,
-            path=path,
-            secure=secure,
-            httponly=httponly,
-            expires=expires,
-            samesite=samesite.value,
+            value=value,
+            expires=self.expires,
+            path=self.path,
+            secure=self.secure,
+            httponly=self.httponly,
+            samesite=self.samesite.value,
         )
 
-    def cherrypy(
-        header,
-        name,
-        value,
-        path="/",
-        secure=True,
-        httponly=True,
-        samesite=SameSite.lax,
-        expires=False,
-    ):
-        cookie_value = Cookie.secure_cookie(
-            value, path, secure, httponly, samesite, expires
-        )
-        header["Set-Cookie"] = "{}={}".format(name, cookie_value)
+    def falcon(self, response, name, value):
+        set_header_tuple(response, name, value, **self.options)
+
+    def flask(self, response, name, value):
+        set_header_dict(response, name, value, **self.options)
 
     def hug(
         response,
@@ -109,60 +65,37 @@ class SecureCookie:
         samesite=SameSite.lax,
         expires=False,
     ):
-
-        cookie_value = Cookie.secure_cookie(
-            value, path, secure, httponly, samesite, expires
+        set_header_tuple(
+            response, name, value, path, secure, httponly, samesite, expires
         )
-        response.set_header("Set-Cookie", "{}={}".format(name, cookie_value))
 
-    def tornado(
-        response,
-        name,
-        value,
-        path="/",
-        secure=True,
-        httponly=True,
-        samesite=SameSite.lax,
-        expires=False,
-    ):
+    def pyramid(self, response, name, value):
+        if self.expires:
+            expires = cookie_expiration(self.expires, timedelta_obj=True)
+        else:
+            expires = None
 
-        cookie_value = Cookie.secure_cookie(
-            value, path, secure, httponly, samesite, expires
+        response.set_cookie(
+            name,
+            value,
+            path=self.path,
+            secure=self.secure,
+            httponly=self.httponly,
+            expires=expires,
+            samesite=self.samesite.value,
         )
-        response.set_header("Set-Cookie", "{}={}".format(name, cookie_value))
 
-    def aiohttp(
-        resp,
-        name,
-        value,
-        path="/",
-        secure=True,
-        httponly=True,
-        samesite=SameSite.lax,
-        expires=False,
-    ):
-        alt_set_cookie(resp, name, value, path, secure, httponly, samesite, expires)
+    def quart(self, response, name, value):
+        set_header_dict(response, name, value, **self.options)
 
-    def quart(
-        resp,
-        name,
-        value,
-        path="/",
-        secure=True,
-        httponly=True,
-        samesite=SameSite.lax,
-        expires=False,
-    ):
-        alt_set_cookie(resp, name, value, path, secure, httponly, samesite, expires)
+    def responder(self, response, name, value):
+        set_cookie_dict(response, name, value, **self.options)
 
-    def starlette(
-        resp,
-        name,
-        value,
-        path="/",
-        secure=True,
-        httponly=True,
-        samesite=SameSite.lax,
-        expires=False,
-    ):
-        alt_set_cookie(resp, name, value, path, secure, httponly, samesite, expires)
+    def sanic(self, response, name, value):
+        set_header_dict(response, name, value, **self.options)
+
+    def starlette(self, response, name, value):
+        set_header_dict(response, name, value, **self.options)
+
+    def tornado(self, response, name, value):
+        set_header_tuple(response, name, value, **self.options)

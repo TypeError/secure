@@ -36,14 +36,21 @@ def cookie_expiration(hours, timedelta_obj=False):
         return expire_time
 
 
-def set_cookie(resp, name, value, path, secure, httponly, samesite, expires):
-    resp.cookies[name] = Cookie.secure_cookie(
+def set_cookie_dict(response, name, value, path, secure, httponly, samesite, expires):
+    response.cookies[name] = Cookie.secure_cookie(
         value, path, secure, httponly, samesite, expires
     )
 
 
-def alt_set_cookie(resp, name, value, path, secure, httponly, samesite, expires):
+def set_header_dict(response, name, value, path, secure, httponly, samesite, expires):
     cookie_value = Cookie.secure_cookie(
         value, path, secure, httponly, samesite, expires
     )
-    resp.headers["Set-Cookie"] = "{}={}".format(name, cookie_value)
+    response.headers["Set-Cookie"] = "{}={}".format(name, cookie_value)
+
+
+def set_header_tuple(response, name, value, path, secure, httponly, samesite, expires):
+    cookie_value = Cookie.secure_cookie(
+        value, path, secure, httponly, samesite, expires
+    )
+    response.set_header("Set-Cookie", "{}={}".format(name, cookie_value))
