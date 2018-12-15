@@ -53,7 +53,20 @@ class SecureCookie:
         set_header_tuple(response, name, value, **self.options)
 
     def flask(self, response, name, value):
-        set_header_dict(response, name, value, **self.options)
+        if self.expires:
+            expires = cookie_expiration(self.expires, timedelta_obj=False)
+        else:
+            expires = None
+
+        response.set_cookie(
+            name,
+            value,
+            expires=expires,
+            path=self.path,
+            secure=self.secure,
+            httponly=self.httponly,
+            samesite=self.samesite.value,
+        )
 
     def hug(
         response,

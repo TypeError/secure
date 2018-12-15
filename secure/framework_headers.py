@@ -13,7 +13,7 @@ class SecureHeaders:
         server=False,
         hsts=True,
         xfo=True,
-        xss=True,
+        xxp=True,
         content=True,
         csp=False,
         referrer=True,
@@ -23,7 +23,7 @@ class SecureHeaders:
         self.server = server
         self.hsts = hsts
         self.xfo = xfo
-        self.xss = xss
+        self.xxp = xxp
         self.content = content
         self.csp = csp
         self.referrer = referrer
@@ -33,7 +33,7 @@ class SecureHeaders:
             "server": server,
             "hsts": hsts,
             "xfo": xfo,
-            "xss": xss,
+            "xxp": xxp,
             "content": content,
             "csp": csp,
             "referrer": referrer,
@@ -70,7 +70,7 @@ class SecureHeaders:
         server=False,
         hsts=True,
         xfo=True,
-        xss=True,
+        xxp=True,
         content=True,
         csp=False,
         referrer=True,
@@ -78,7 +78,7 @@ class SecureHeaders:
         feature=False,
     ):
         set_header_tuple(
-            response, server, hsts, xfo, xss, content, csp, referrer, cache, feature
+            response, server, hsts, xfo, xxp, content, csp, referrer, cache, feature
         )
 
     def pyramid(self, response):
