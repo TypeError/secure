@@ -4,60 +4,60 @@ class SecurePolicies:
             self.csp_policy = True
             self.policy = []
 
-        def base_uri(self, *options):
-            self.policy.append(("base-uri", options))
+        def base_uri(self, *sources):
+            self.policy.append(("base-uri", sources))
             return self
 
         def block_all_mixed_content(self):
             self.policy.append(("block-all-mixed-content", False))
             return self
 
-        def connect_src(self, *options):
-            self.policy.append(("connect-src", options))
+        def connect_src(self, *sources):
+            self.policy.append(("connect-src", sources))
             return self
 
-        def default_src(self, *options):
-            self.policy.append(("default-src", options))
+        def default_src(self, *sources):
+            self.policy.append(("default-src", sources))
             return self
 
-        def font_src(self, *options):
-            self.policy.append(("font-src", options))
+        def font_src(self, *sources):
+            self.policy.append(("font-src", sources))
             return self
 
-        def form_action(self, *options):
-            self.policy.append(("form-action", options))
+        def form_action(self, *sources):
+            self.policy.append(("form-action", sources))
             return self
 
-        def frame_ancestors(self, *options):
-            self.policy.append(("frame-ancestors", options))
+        def frame_ancestors(self, *sources):
+            self.policy.append(("frame-ancestors", sources))
             return self
 
-        def frame_src(self):
-            self.policy.append(("frame-src", False))
+        def frame_src(self, *sources):
+            self.policy.append(("frame-src", sources))
             return self
 
-        def img_src(self, *options):
-            self.policy.append(("img-src", options))
+        def img_src(self, *sources):
+            self.policy.append(("img-src", sources))
             return self
 
-        def manifest_src(self, *options):
-            self.policy.append(("manifest-src", options))
+        def manifest_src(self, *sources):
+            self.policy.append(("manifest-src", sources))
             return self
 
-        def media_src(self, *options):
-            self.policy.append(("media-src", options))
+        def media_src(self, *sources):
+            self.policy.append(("media-src", sources))
             return self
 
-        def object_src(self, *options):
-            self.policy.append(("object-src", options))
+        def object_src(self, *sources):
+            self.policy.append(("object-src", sources))
             return self
 
-        def plugin_types(self, *options):
-            self.policy.append(("plugin-types", options))
+        def plugin_types(self, *types):
+            self.policy.append(("plugin-types", types))
             return self
 
-        def require_sri_for(self, *options):
-            self.policy.append(("require-sri-for", options))
+        def require_sri_for(self, *values):
+            self.policy.append(("require-sri-for", values))
             return self
 
         def report_to(self, json_object):
@@ -68,28 +68,24 @@ class SecurePolicies:
             self.policy.append(("report-uri", uri))
             return self
 
-        def sandbox(self, *options):
-            self.policy.append(("sandbox", options))
+        def sandbox(self, *values):
+            self.policy.append(("sandbox", values))
             return self
 
-        def script_nonce(self, *options):
-            self.policy.append(("script-nonce", options))
+        def script_src(self, *sources):
+            self.policy.append(("script-src", sources))
             return self
 
-        def script_src(self, *options):
-            self.policy.append(("script-src", options))
-            return self
-
-        def style_src(self, *options):
-            self.policy.append(("style-src", options))
+        def style_src(self, *sources):
+            self.policy.append(("style-src", sources))
             return self
 
         def upgrade_insecure_requests(self):
             self.policy.append(("upgrade-insecure-requests", False))
             return self
 
-        def worker_src(self, *options):
-            self.policy.append(("worker-src", options))
+        def worker_src(self, *sources):
+            self.policy.append(("worker-src", sources))
             return self
 
         class Values:
@@ -98,9 +94,10 @@ class SecurePolicies:
             unsafe_inline = "'unsafe-inline'"
             unsafe_eval = "'unsafe-eval'"
             strict_dynamic = "'strict-dynamic'"
+            all = "*"
 
             @staticmethod
-            def Nonce(nonce_value):
+            def nonce(nonce_value):
                 value = "'nonce-<{}>'".format(nonce_value)
                 return value
 
@@ -191,7 +188,7 @@ class SecurePolicies:
             self.hsts_policy = True
             self.policy = []
 
-        def include_subDomains(self):
+        def include_subdomains(self):
             self.policy.append("includeSubDomains")
             return self
 
@@ -273,76 +270,80 @@ class SecurePolicies:
             self.feature_policy = True
             self.policy = []
 
-        def accelerometer(self, *options):
-            self.policy.append(("accelerometer", options))
+        def accelerometer(self, *allowlist):
+            self.policy.append(("accelerometer", allowlist))
             return self
 
-        def ambient_light_sensor(self, *options):
-            self.policy.append(("ambient-light-sensor ", options))
+        def ambient_light_sensor(self, *allowlist):
+            self.policy.append(("ambient-light-sensor ", allowlist))
             return self
 
-        def autoplay(self, *options):
-            self.policy.append(("autoplay", options))
+        def autoplay(self, *allowlist):
+            self.policy.append(("autoplay", allowlist))
             return self
 
-        def camera(self, *options):
-            self.policy.append(("camera", options))
+        def camera(self, *allowlist):
+            self.policy.append(("camera", allowlist))
             return self
 
-        def document_domain(self, *options):
-            self.policy.append(("document-domain", options))
+        def document_domain(self, *allowlist):
+            self.policy.append(("document-domain", allowlist))
             return self
 
-        def encrypted_media(self, *options):
-            self.policy.append(("encrypted-media", options))
+        def encrypted_media(self, *allowlist):
+            self.policy.append(("encrypted-media", allowlist))
             return self
 
-        def fullscreen(self, *options):
-            self.policy.append(("fullscreen", options))
+        def fullscreen(self, *allowlist):
+            self.policy.append(("fullscreen", allowlist))
             return self
 
-        def geolocation(self, *options):
-            self.policy.append(("geolocation", options))
+        def geolocation(self, *allowlist):
+            self.policy.append(("geolocation", allowlist))
             return self
 
-        def gyroscope(self, *options):
-            self.policy.append(("gyroscope", options))
+        def gyroscope(self, *allowlist):
+            self.policy.append(("gyroscope", allowlist))
             return self
 
-        def magnetometer(self, *options):
-            self.policy.append(("magnetometer", options))
+        def magnetometer(self, *allowlist):
+            self.policy.append(("magnetometer", allowlist))
             return self
 
-        def microphone(self, *options):
-            self.policy.append(("microphone", options))
+        def microphone(self, *allowlist):
+            self.policy.append(("microphone", allowlist))
             return self
 
-        def midi(self, *options):
-            self.policy.append(("midi", options))
+        def midi(self, *allowlist):
+            self.policy.append(("midi", allowlist))
             return self
 
-        def payment(self, *options):
-            self.policy.append(("payment", options))
+        def payment(self, *allowlist):
+            self.policy.append(("payment", allowlist))
             return self
 
-        def picture_in_picture(self, *options):
-            self.policy.append(("picture-in-picture", options))
+        def picture_in_picture(self, *allowlist):
+            self.policy.append(("picture-in-picture", allowlist))
             return self
 
-        def speaker(self, *options):
-            self.policy.append(("speaker", options))
+        def speaker(self, *allowlist):
+            self.policy.append(("speaker", allowlist))
             return self
 
-        def sync_xhr(self, *options):
-            self.policy.append(("sync-xhr", options))
+        def sync_xhr(self, *allowlist):
+            self.policy.append(("sync-xhr", allowlist))
             return self
 
-        def usb(self, *options):
-            self.policy.append(("usb", options))
+        def usb(self, *allowlist):
+            self.policy.append(("usb", allowlist))
             return self
 
-        def vr(self, *options):
-            self.policy.append(("vr", options))
+        def vibrate(self, *allowlist):
+            self.policy.append(("vibrate", allowlist))
+            return self
+
+        def vr(self, *allowlist):
+            self.policy.append(("vr", allowlist))
             return self
 
         class Values:
@@ -365,7 +366,7 @@ def get_policy_multi_opt(policy):
     for option in policy.policy:
         directive = option[0]
         if option[1]:
-            if option[1] is list:
+            if type(option[1]) is tuple:
                 resources = " ".join(option[1])
             else:
                 resources = option[1]
