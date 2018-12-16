@@ -71,9 +71,9 @@ Prevent cross-site injections
 Enable full referrer if same origin, remove path for cross origin and disable referrer in unsupported browsers  
 **Default Value:** `no-referrer, strict-origin-when-cross-origin`
 
-#### Cache-control / Pragma
+#### Cache-control / Pragma / Expires
 Prevent cacheable HTTPS response  
-**Default Value:** `no-cache, no-store, must-revalidate` / `no-cache`
+**Default Value:** `no-cache, no-store, must-revalidate, max-age=0` / `no-cache` / `0`
 
 #### Feature-Policy
 Disable browser features and APIs  
@@ -92,8 +92,9 @@ X-Frame-Options: SAMEORIGIN
 X-XSS-Protection: 1; mode=block
 X-Content-Type-Options: nosniff
 Referrer-Policy: no-referrer, strict-origin-when-cross-origin
-Cache-control: no-cache, no-store, must-revalidate
+Cache-control: no-cache, no-store, must-revalidate, max-age=0
 Pragma: no-cache
+Expires: 0
 ```
 
 ### Options
