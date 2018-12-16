@@ -8,6 +8,10 @@ class SecurePolicies:
             self.policy.append(("base-uri", options))
             return self
 
+        def block_all_mixed_content(self):
+            self.policy.append(("block-all-mixed-content", False))
+            return self
+
         def connect_src(self, *options):
             self.policy.append(("connect-src", options))
             return self
@@ -24,12 +28,20 @@ class SecurePolicies:
             self.policy.append(("form-action", options))
             return self
 
-        def frame_src(self, *options):
-            self.policy.append(("frame-src", options))
+        def frame_ancestors(self, *options):
+            self.policy.append(("frame-ancestors", options))
+            return self
+
+        def frame_src(self):
+            self.policy.append(("frame-src", False))
             return self
 
         def img_src(self, *options):
             self.policy.append(("img-src", options))
+            return self
+
+        def manifest_src(self, *options):
+            self.policy.append(("manifest-src", options))
             return self
 
         def media_src(self, *options):
@@ -44,16 +56,16 @@ class SecurePolicies:
             self.policy.append(("plugin-types", options))
             return self
 
-        def reflected_xss(self, *options):
-            self.policy.append(("reflected-xxp", options))
+        def require_sri_for(self, *options):
+            self.policy.append(("require-sri-for", options))
             return self
 
-        def report_to(self, json_option):
-            self.policy.append(("report-to", [json_option]))
+        def report_to(self, json_object):
+            self.policy.append(("report-to", json_object))
             return self
 
-        def report_uri(self, *options):
-            self.policy.append(("report-uri", options))
+        def report_uri(self, uri):
+            self.policy.append(("report-uri", uri))
             return self
 
         def sandbox(self, *options):
@@ -70,6 +82,14 @@ class SecurePolicies:
 
         def style_src(self, *options):
             self.policy.append(("style-src", options))
+            return self
+
+        def upgrade_insecure_requests(self):
+            self.policy.append(("upgrade-insecure-requests", False))
+            return self
+
+        def worker_src(self, *options):
+            self.policy.append(("worker-src", options))
             return self
 
         class Values:
@@ -344,7 +364,13 @@ def get_policy_multi_opt(policy):
     values = []
     for option in policy.policy:
         directive = option[0]
-        resources = " ".join(option[1])
-        values.append("{} {}".format(directive, resources))
+        if option[1]:
+            if option[1] is list:
+                resources = " ".join(option[1])
+            else:
+                resources = option[1]
+            values.append("{} {}".format(directive, resources))
+        else:
+            values.append(directive)
     value = "; ".join(values)
     return value
