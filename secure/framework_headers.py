@@ -81,6 +81,13 @@ class SecureHeaders:
             response, server, hsts, xfo, xxp, content, csp, referrer, cache, feature
         )
 
+    def masonite(self, request):
+        """Update Secure Headers to Masonite request object.
+        Arguments:
+            request {masonite.request.Request} -- The Masonite request object.
+        """
+        request.header(dict_headers(**self.options))
+    
     def pyramid(self, response):
         for header in Security_Headers.secure_headers(**self.options):
             response.headers.add(header.header, header.value)
