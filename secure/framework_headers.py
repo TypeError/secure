@@ -106,34 +106,12 @@ class SecureHeaders:
         """
         set_header_dict(response, **self.options)
 
-    def hug(
-        response,
-        server=False,
-        hsts=True,
-        xfo=True,
-        xxp=True,
-        content=True,
-        csp=False,
-        referrer=True,
-        cache=True,
-        feature=False,
-    ):
+    def hug(self, response):
         """Update Secure Headers to hug response object.
 
         :param response: The hug response object.
-        :param server: Server header options
-        :param hsts: Strict-Transport-Security (HSTS) header options
-        :param xfo: X-Frame-Options (XFO) header options
-        :param xxp: X-XSS-Protection (XXP) header options
-        :param content: X-Content-Type-Options header options
-        :param csp: Content-Security-Policy (CSP) header options
-        :param referrer: Referrer-Policy header options
-        :param cache: Cache-control, Pragma and Expires headers options
-        :param feature: Feature-Policy header options
         """
-        set_header_tuple(
-            response, server, hsts, xfo, xxp, content, csp, referrer, cache, feature
-        )
+        set_header_tuple(response, **self.options)
 
     def masonite(self, request):
         """Update Secure Headers to Masonite request object.

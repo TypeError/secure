@@ -112,30 +112,14 @@ class SecureCookie:
             samesite=self.samesite.value,
         )
 
-    def hug(
-        response,
-        name,
-        value,
-        path="/",
-        secure=True,
-        httponly=True,
-        samesite=SameSite.LAX,
-        expires=False,
-    ):
+    def hug(self, response, name, value):
         """Update Secure Cookie to hug response object.
 
         :param response: The hug response object.
         :param name: Cookie name
         :param value: Cookie value
-        :param path: Cookie Path option (default = "/")
-        :param secure: Cookie Secure option (default = True)
-        :param httponly: Cookie HttpOnly option (default = True)
-        :param samesite: Cookie SameSite option (default = LAX)
-        :param expires: Cookie Expires option (default = False)
         """
-        set_header_tuple(
-            response, name, value, path, secure, httponly, samesite, expires
-        )
+        set_header_tuple(response, name, value, **self.options)
 
     def masonite(self, request, name, value):
         """Update Secure Cookies to Masonite request object.
