@@ -10,7 +10,7 @@ from .cookie import (
 
 class SecureCookie:
     def __init__(
-        self, path="/", secure=True, httponly=True, samesite=SameSite.lax, expires=False
+        self, path="/", secure=True, httponly=True, samesite=SameSite.LAX, expires=False
     ):
         """Set Secure Cookie options.
 
@@ -119,7 +119,7 @@ class SecureCookie:
         path="/",
         secure=True,
         httponly=True,
-        samesite=SameSite.lax,
+        samesite=SameSite.LAX,
         expires=False,
     ):
         """Update Secure Cookie to hug response object.

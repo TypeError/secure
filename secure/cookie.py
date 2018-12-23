@@ -12,7 +12,7 @@ class Cookie:
         self.value = value
 
     def secure_cookie(
-        self, path="/", secure=True, httponly=True, samesite=SameSite.lax, expires=False
+        self, path="/", secure=True, httponly=True, samesite=SameSite.LAX, expires=False
     ):
         cookie_value = "{}; Path={}".format(self, path)
         if secure:
