@@ -12,6 +12,14 @@ class SecureCookie:
     def __init__(
         self, path="/", secure=True, httponly=True, samesite=SameSite.lax, expires=False
     ):
+        """Set Secure Cookie options.
+
+        :param path: Cookie Path option (default = "/")
+        :param secure: Cookie Secure option (default = True)
+        :param httponly: Cookie HttpOnly option (default = True)
+        :param samesite: Cookie SameSite option (default = LAX)
+        :param expires: Cookie Expires option (default = False)
+        """
         self.path = path
         self.secure = secure
         self.httponly = httponly
@@ -28,17 +36,45 @@ class SecureCookie:
     SameSite = SameSite
 
     def aiohttp(self, response, name, value):
+        """Update Secure Cookie to aiohttp response object.
+
+        :param response: The aiohttp response object.
+        :param name: Cookie name
+        :param value: Cookie value
+        :return:
+        """
         set_header_dict(response, name, value, **self.options)
 
     def bottle(self, response, name, value):
+        """Update Secure Cookie to Bottle response object.
+
+        :param response: The Bottle response object (bottle.response).
+        :param name: Cookie name
+        :param value: Cookie value
+        :return:
+        """
         cookie_value = Cookie.secure_cookie(value, **self.options)
         response.add_header("Set-Cookie", "{}={}".format(name, cookie_value))
 
     def cherrypy(self, header, name, value):
+        """Update Secure Cookie to CherryPy header object.
+
+        :param header: CherryPy header object (cherrypy.response.headers)
+        :param name: Cookie name
+        :param value: Cookie value
+        :return:
+        """
         cookie_value = Cookie.secure_cookie(value, **self.options)
         header["Set-Cookie"] = "{}={}".format(name, cookie_value)
 
     def django(self, response, name, value):
+        """Update Secure Cookie to Django response object.
+
+        :param response: The Django response object (django.http.HttpResponse).
+        :param name: Cookie name
+        :param value: Cookie value
+        :return:
+        """
         response.set_cookie(
             name,
             value=value,
@@ -50,9 +86,23 @@ class SecureCookie:
         )
 
     def falcon(self, response, name, value):
+        """Update Secure Cookie to Falcon response object.
+
+        :param response: The Falcon response object (falcon.Response).
+        :param name:
+        :param value:
+        :return:
+        """
         set_header_tuple(response, name, value, **self.options)
 
     def flask(self, response, name, value):
+        """Update Secure Cookie to Flask response object.
+
+        :param response: The Flask response object (flask.Response).
+        :param name: Cookie name
+        :param value: Cookie value
+        :return:
+        """
         if self.expires:
             expires = cookie_expiration(self.expires, timedelta_obj=False)
         else:
@@ -78,11 +128,30 @@ class SecureCookie:
         samesite=SameSite.lax,
         expires=False,
     ):
+        """Update Secure Cookie to hug response object.
+
+        :param response: The hug response object.
+        :param name: Cookie name
+        :param value: Cookie value
+        :param path: Cookie Path option (default = "/")
+        :param secure: Cookie Secure option (default = True)
+        :param httponly: Cookie HttpOnly option (default = True)
+        :param samesite: Cookie SameSite option (default = LAX)
+        :param expires: Cookie Expires option (default = False)
+        :return:
+        """
         set_header_tuple(
             response, name, value, path, secure, httponly, samesite, expires
         )
 
     def pyramid(self, response, name, value):
+        """Update Secure Cookie to Pyramid response object.
+
+        :param response: The Pyramid response object (pyramid.response).
+        :param name: Cookie name
+        :param value: Cookie value
+        :return:
+        """
         if self.expires:
             expires = cookie_expiration(self.expires, timedelta_obj=True)
         else:
@@ -99,16 +168,51 @@ class SecureCookie:
         )
 
     def quart(self, response, name, value):
+        """Update Secure Cookie to Quart response object.
+
+        :param response: The Quart response object (quart.wrappers.response.Response).
+        :param name: Cookie name
+        :param value: Cookie value
+        :return:
+        """
         set_header_dict(response, name, value, **self.options)
 
     def responder(self, response, name, value):
+        """Update Secure Cookie to Responder response object.
+
+        :param response: The Responder response object.
+        :param name: Cookie name
+        :param value: Cookie value
+        :return:
+        """
         set_cookie_dict(response, name, value, **self.options)
 
     def sanic(self, response, name, value):
+        """Update Secure Cookie to Sanic response object.
+
+        :param response: The Sanic response object (sanic.response).
+        :param name: Cookie name
+        :param value: Cookie value
+        :return:
+        """
         set_header_dict(response, name, value, **self.options)
 
     def starlette(self, response, name, value):
+        """Update Secure Cookie to Starlette response object.
+
+        :param response: The Starlette response object.
+        :param name: Cookie name
+        :param value: Cookie value
+        :return:
+        """
         set_header_dict(response, name, value, **self.options)
 
     def tornado(self, response, name, value):
+        """Update Secure Cookie to Tornado RequestHandler object.
+
+        :param response: The Tornado RequestHandler object (tornado.web.RequestHandler).
+        :param name: Cookie name
+        :param value: Cookie value
+        :return:
+        """
         set_header_tuple(response, name, value, **self.options)
