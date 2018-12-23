@@ -3,8 +3,8 @@ from enum import Enum
 
 
 class SameSite(Enum):
-    lax = "lax"
-    strict = "strict"
+    LAX = "lax"
+    STRICT = "strict"
 
 
 class Cookie:
