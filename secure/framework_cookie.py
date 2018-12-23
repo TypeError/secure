@@ -41,7 +41,6 @@ class SecureCookie:
         :param response: The aiohttp response object.
         :param name: Cookie name
         :param value: Cookie value
-        :return:
         """
         set_header_dict(response, name, value, **self.options)
 
@@ -51,7 +50,6 @@ class SecureCookie:
         :param response: The Bottle response object (bottle.response).
         :param name: Cookie name
         :param value: Cookie value
-        :return:
         """
         cookie_value = Cookie.secure_cookie(value, **self.options)
         response.add_header("Set-Cookie", "{}={}".format(name, cookie_value))
@@ -62,7 +60,6 @@ class SecureCookie:
         :param header: CherryPy header object (cherrypy.response.headers)
         :param name: Cookie name
         :param value: Cookie value
-        :return:
         """
         cookie_value = Cookie.secure_cookie(value, **self.options)
         header["Set-Cookie"] = "{}={}".format(name, cookie_value)
@@ -73,7 +70,6 @@ class SecureCookie:
         :param response: The Django response object (django.http.HttpResponse).
         :param name: Cookie name
         :param value: Cookie value
-        :return:
         """
         response.set_cookie(
             name,
@@ -91,7 +87,6 @@ class SecureCookie:
         :param response: The Falcon response object (falcon.Response).
         :param name:
         :param value:
-        :return:
         """
         set_header_tuple(response, name, value, **self.options)
 
@@ -101,7 +96,6 @@ class SecureCookie:
         :param response: The Flask response object (flask.Response).
         :param name: Cookie name
         :param value: Cookie value
-        :return:
         """
         if self.expires:
             expires = cookie_expiration(self.expires, timedelta_obj=False)
@@ -138,11 +132,20 @@ class SecureCookie:
         :param httponly: Cookie HttpOnly option (default = True)
         :param samesite: Cookie SameSite option (default = LAX)
         :param expires: Cookie Expires option (default = False)
-        :return:
         """
         set_header_tuple(
             response, name, value, path, secure, httponly, samesite, expires
         )
+
+    def masonite(self, request, name, value):
+        """Update Secure Cookies to Masonite request object.
+
+        :param request: The Masonite request object (masonite.request.Request).
+        :param name: Cookie name
+        :param value: Cookie value
+        """
+        cookie_value = Cookie.secure_cookie(value, **self.options)
+        request.header("Set-Cookie", "{}={}".format(name, cookie_value))
 
     def pyramid(self, response, name, value):
         """Update Secure Cookie to Pyramid response object.
@@ -150,7 +153,6 @@ class SecureCookie:
         :param response: The Pyramid response object (pyramid.response).
         :param name: Cookie name
         :param value: Cookie value
-        :return:
         """
         if self.expires:
             expires = cookie_expiration(self.expires, timedelta_obj=True)
@@ -173,7 +175,6 @@ class SecureCookie:
         :param response: The Quart response object (quart.wrappers.response.Response).
         :param name: Cookie name
         :param value: Cookie value
-        :return:
         """
         set_header_dict(response, name, value, **self.options)
 
@@ -183,7 +184,6 @@ class SecureCookie:
         :param response: The Responder response object.
         :param name: Cookie name
         :param value: Cookie value
-        :return:
         """
         set_cookie_dict(response, name, value, **self.options)
 
@@ -193,7 +193,6 @@ class SecureCookie:
         :param response: The Sanic response object (sanic.response).
         :param name: Cookie name
         :param value: Cookie value
-        :return:
         """
         set_header_dict(response, name, value, **self.options)
 
@@ -203,7 +202,6 @@ class SecureCookie:
         :param response: The Starlette response object.
         :param name: Cookie name
         :param value: Cookie value
-        :return:
         """
         set_header_dict(response, name, value, **self.options)
 
@@ -213,6 +211,5 @@ class SecureCookie:
         :param response: The Tornado RequestHandler object (tornado.web.RequestHandler).
         :param name: Cookie name
         :param value: Cookie value
-        :return:
         """
         set_header_tuple(response, name, value, **self.options)
