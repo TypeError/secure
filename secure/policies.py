@@ -350,7 +350,7 @@ class SecurePolicies:
             self_ = "'self'"
             none = "'none'"
             src = "'src'"
-            all = "*"
+            all_ = "*"
 
 
 def get_policy(policy, separator):
