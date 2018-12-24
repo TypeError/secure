@@ -67,7 +67,7 @@ class Security_Headers:
         value="accelerometer 'none'; ambient-light-sensor 'none'; autoplay 'none'; camera 'none'; "
         + "encrypted-media 'none'; fullscreen 'none'; geolocation 'none'; gyroscope 'none'; magnetometer 'none'; "
         + "microphone 'none'; midi 'none'; payment 'none'; picture-in-picture 'none'; speaker 'none'; "
-        + "sync-xhr 'none'; usb 'none'; vr 'none';",
+        + "sync-xhr 'none'; usb 'none'; vr 'none'",
         info="Disable browser features and APIs",
     )
 
