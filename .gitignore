@@ -3,3 +3,5 @@
 /secure.egg-info
 .DS_Store
 __pycache__
+/docs/build
+.idea
