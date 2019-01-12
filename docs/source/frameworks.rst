@@ -62,6 +62,9 @@ Headers
 Cookies
 ~~~~~~~
 
+Cookies
+~~~~~~~
+
 .. code:: python
 
    secure_cookie.aiohttp(resp, name="spam", value="eggs")

@@ -73,8 +73,8 @@ Feature-Policy
   *(not included by default)*    
 
 
-**Addtional information:**
-  - The ``Strict-Transport-Security`` (HSTS) header will tell the browser to **only** utilize secure HTTPS connections for the domain, and in the default configuration, including all subdomains. The HSTS header requires trusted certificates and users will unable to connect to the site if using self-signed or expired certificates.  The browser will honor the HSTS header for the time directed in the ``max-age`` attribute *(default = 1 year)*, and setting the ``max-age`` to ``0`` will disable an already set HSTS header. Use the ``hsts=False`` option to not include the HSTS header in Secure Headers.
+**Additional information:**
+  - The ``Strict-Transport-Security`` (HSTS) header will tell the browser to **only** utilize secure HTTPS connections for the domain, and in the default configuration, including all subdomains. The HSTS header requires trusted certificates and users will unable to connect to the site if using self-signed or expired certificates.  The browser will honor the HSTS header for the time directed in the ``max-age`` attribute *(default = 2 years)*, and setting the ``max-age`` to ``0`` will disable an already set HSTS header. Use the ``hsts=False`` option to not include the HSTS header in Secure Headers.
   - The ``Content-Security-Policy`` (CSP) header can break functionality and can (and should) be carefully constructed, use the ``csp=True`` option to enable default values.
 
 Usage
