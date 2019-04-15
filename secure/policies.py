@@ -94,7 +94,7 @@ class SecurePolicies:
             unsafe_inline = "'unsafe-inline'"
             unsafe_eval = "'unsafe-eval'"
             strict_dynamic = "'strict-dynamic'"
-            all = "*"
+            all_ = "*"
 
             @staticmethod
             def nonce(nonce_value):
@@ -178,6 +178,7 @@ class SecurePolicies:
 
     class Seconds:
         five_minutes = "300"
+        one_day = "86400"
         one_week = "604800"
         one_month = "2592000"
         one_year = "31536000"
