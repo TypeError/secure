@@ -5,10 +5,11 @@ CSP()
 ^^^^^^^
 
 **Directives:** ``base_uri(sources)``, ``block_all_mixed_content()``,
-``connect_src(sources)``, ``default_src(sources)``,
-``font_src(sources)``, ``form_action(sources)``,
-``frame_ancestors(sources)``, ``frame_src(sources)``,
-``img_src(sources)``, ``manifest_src(sources)``, ``media_src(sources)``,
+``child_src(sources)``, ``connect_src(sources)``,
+``default_src(sources)``, ``font_src(sources)``,
+``form_action(sources)``, ``frame_ancestors(sources)``,
+``frame_src(sources)``, ``img_src(sources)``,
+``manifest_src(sources)``, ``media_src(sources)``,
 ``object_src(sources)``, ``plugin_types(types)``,
 ``report_to(json_object)``, ``report_uri(uri)``,
 ``require_sri_for(values)``, ``sandbox(values)``,
