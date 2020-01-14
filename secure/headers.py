@@ -71,6 +71,12 @@ class Security_Headers:
         info="Disable browser features and APIs",
     )
 
+    report_to_policy = Header(
+        header="Report-To",
+        value="{}",
+        info="Store reporting endpoints",
+    )
+
     @staticmethod
     def secure_headers(
         server=False,
@@ -82,6 +88,7 @@ class Security_Headers:
         referrer=True,
         cache=True,
         feature=False,
+        report_to=False,
     ):
         headers = []
         if server:
@@ -135,7 +142,6 @@ class Security_Headers:
                 headers.append(Security_Headers.pragma)
                 headers.append(Security_Headers.expires)
             headers.append(Security_Headers.cache_control)
-
         if feature:
             if type(feature) == str:
                 Security_Headers.feature_policy.value = feature
@@ -143,6 +149,9 @@ class Security_Headers:
                 policy_value = get_policy_multi_opt(feature)
                 Security_Headers.feature_policy.value = policy_value
             headers.append(Security_Headers.feature_policy)
+        if report_to:
+            Security_Headers.report_to_policy.value = report_to
+            headers.append(Security_Headers.report_to_policy)
 
         return headers
 
