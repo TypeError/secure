@@ -32,6 +32,7 @@ class SecureHeaders:
         referrer=True,
         cache=True,
         feature=False,
+        report_to=False,
     ):
         self.server = server
         self.hsts = hsts
@@ -42,6 +43,7 @@ class SecureHeaders:
         self.referrer = referrer
         self.cache = cache
         self.feature = feature
+        self.report_to = report_to,
         self.options = {
             "server": server,
             "hsts": hsts,
@@ -52,6 +54,7 @@ class SecureHeaders:
             "referrer": referrer,
             "cache": cache,
             "feature": feature,
+            "report_to": report_to,
         }
 
     def headers(self):
