@@ -192,9 +192,9 @@ def set_header_dict(
 
 
 def set_header_tuple(
-    response, server, hsts, xfo, xxp, content, csp, referrer, cache, feature
+    response, server, hsts, xfo, xxp, content, csp, referrer, cache, feature, report_to
 ):
     for header in Security_Headers.secure_headers(
-        server, hsts, xfo, xxp, content, csp, referrer, cache, feature
+        server, hsts, xfo, xxp, content, csp, referrer, cache, feature, report_to
     ):
         response.set_header(header.header, header.value)
