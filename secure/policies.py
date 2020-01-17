@@ -12,6 +12,10 @@ class SecurePolicies:
             self.policy.append(("block-all-mixed-content", False))
             return self
 
+        def child_src(self, *sources):
+            self.policy.append(("child-src", sources))
+            return self
+
         def connect_src(self, *sources):
             self.policy.append(("connect-src", sources))
             return self
