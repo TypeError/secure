@@ -173,10 +173,10 @@ def dict_headers(server, hsts, xfo, xxp, content, csp, referrer, cache, feature)
     return headers
 
 
-def tuple_headers(server, hsts, xfo, xxp, content, csp, referrer, cache, feature):
+def tuple_headers(server, hsts, xfo, xxp, content, csp, referrer, cache, feature, report_to):
     headers = []
     for header in Security_Headers.secure_headers(
-        server, hsts, xfo, xxp, content, csp, referrer, cache, feature
+        server, hsts, xfo, xxp, content, csp, referrer, cache, feature, report_to
     ):
         headers.append((header.header, header.value))
     return headers
