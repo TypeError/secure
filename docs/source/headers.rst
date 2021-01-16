@@ -34,7 +34,7 @@ X-Frame-Options (XFO)
 X-XSS-Protection
 ^^^^^^^^^^^^^^^^^^
 
-| Disable browser cross-site scripting filters
+| Enable browser cross-site scripting filters
 | **Default Value:** ``0``
 
 X-Content-Type-Options
