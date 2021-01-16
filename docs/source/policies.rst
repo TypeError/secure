@@ -224,7 +224,7 @@ Response Headers:
 
    Strict-Transport-Security: includeSubDomains; preload; max-age=2592000
    X-Frame-Options: deny
-   X-XSS-Protection: 1; mode=block
+   X-XSS-Protection: 0
    X-Content-Type-Options: nosniff
    Content-Security-Policy: default-src 'none'; base-uri 'self'; block-all-mixed-content; connect-src 'self' api.spam.com; frame-src 'none'; img-src 'self' static.spam.com
    Referrer-Policy: no-referrer

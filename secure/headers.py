@@ -28,8 +28,8 @@ class Security_Headers:
 
     x_xss_protection = Header(
         header="X-XSS-Protection",
-        value="1; mode=block",
-        info="Enable Cross-Site Scripting filters",
+        value="0",
+        info="Disable browser Cross-Site Scripting filters",
     )
 
     x_content_type_options = Header(
