@@ -1,1 +1,11 @@
-from .core import *
+from secure.headers import CacheControl as CacheControl
+from secure.headers import ContentSecurityPolicy as ContentSecurityPolicy
+from secure.headers import PermissionsPolicy as PermissionsPolicy
+from secure.headers import ReferrerPolicy as ReferrerPolicy
+from secure.headers import ReportTo as ReportTo
+from secure.headers import Server as Server
+from secure.headers import StrictTransportSecurity as StrictTransportSecurity
+from secure.headers import XContentTypeOptions as XContentTypeOptions
+from secure.headers import XFrameOptions as XFrameOptions
+from secure.headers import XXSSProtection as XXSSProtection
+from secure.secure import Secure as Secure
