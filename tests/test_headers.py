@@ -26,7 +26,7 @@ class TestDefaultHeaders(unittest.TestCase):
             "no-referrer, strict-origin-when-cross-origin",
         )
         self.assertEqual(
-            secure_headers["Cache-control"],
+            secure_headers["Cache-Control"],
             "no-store",
         )
 

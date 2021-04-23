@@ -670,7 +670,7 @@ class CacheControl:
 
     def __init__(self):
         self.__policy: List[str] = []
-        self.header = "Cache-control"
+        self.header = "Cache-Control"
         self.value = "no-store"
 
     def _build(self, directive: str):
