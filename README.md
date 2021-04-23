@@ -3,72 +3,115 @@
 [![image](https://img.shields.io/pypi/v/secure.svg)](https://pypi.org/project/secure/)
 [![Python 3](https://img.shields.io/badge/python-3-blue.svg)](https://www.python.org/downloads/)
 [![image](https://img.shields.io/pypi/l/secure.svg)](https://pypi.org/project/secure/)
-[![image](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
+[![image](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-secure.py 🔒 is a lightweight package that adds optional security headers and cookie attributes for Python web frameworks.
+secure.py 🔒 is a lightweight package that adds optional security headers for Python web frameworks.
 
-### Supported Python web frameworks:
-[aiohttp](https://docs.aiohttp.org), [Bottle](https://bottlepy.org), [CherryPy](https://cherrypy.org), [Django](https://www.djangoproject.com), [Falcon](https://falconframework.org), [Flask](http://flask.pocoo.org), [hug](http://www.hug.rest), [Masonite](https://docs.masoniteproject.com), [Pyramid](https://trypyramid.com), [Quart](https://pgjones.gitlab.io/quart/), [Responder](https://python-responder.org), [Sanic](https://sanicframework.org), [Starlette](https://www.starlette.io/), [Tornado](https://www.tornadoweb.org/) 
+## Supported Python web frameworks
 
+[aiohttp](https://docs.aiohttp.org), [Bottle](https://bottlepy.org), [CherryPy](https://cherrypy.org), [Django](https://www.djangoproject.com), [Falcon](https://falconframework.org), [FastAPI](https://fastapi.tiangolo.com), [Flask](http://flask.pocoo.org), [hug](http://www.hug.rest), [Masonite](https://docs.masoniteproject.com), [Pyramid](https://trypyramid.com), [Quart](https://pgjones.gitlab.io/quart/), [Responder](https://python-responder.org), [Sanic](https://sanicframework.org), [Starlette](https://www.starlette.io/), [Tornado](https://www.tornadoweb.org/)
 
 ## Install
+
 **pip**:
 
 ```console
-$ pip install secure
+pip install secure
 ```
 
 **Pipenv**:
 
 ```console
-$ pipenv install secure
+pipenv install secure
 ```
 
 After installing secure:
 
 ```Python
-from secure import SecureHeaders, SecureCookie
+import secure
 
-secure_headers = SecureHeaders()
-secure_cookie = SecureCookie()
+secure_headers = secure.Secure()
 ```
 
 ## Secure Headers
- 
- ### Example
-`secure_headers.framework(response)`
-
- **Default HTTP response headers:** 
- 
-```HTTP
-Strict-Transport-Security: max-age=63072000; includeSubdomains
-X-Frame-Options: SAMEORIGIN
-X-XSS-Protection: 0
-X-Content-Type-Options: nosniff
-Referrer-Policy: no-referrer, strict-origin-when-cross-origin
-Cache-control: no-cache, no-store, must-revalidate, max-age=0
-Pragma: no-cache
-Expires: 0
-```
-
-## Secure Cookie
 
 ### Example
 
-```Python
-secure_cookie.framework(response, name="spam", value="eggs")
-```
+`secure_headers.framework(response)`
 
-**Default Set-Cookie HTTP response header:**   
+**Default HTTP response headers:**
 
 ```HTTP
-Set-Cookie: spam=eggs; Path=/; secure; HttpOnly; SameSite=lax
+strict-transport-security: max-age=63072000; includeSubdomains
+x-frame-options: SAMEORIGIN
+x-xss-protection: 0
+x-content-type-options: nosniff
+referrer-policy: no-referrer, strict-origin-when-cross-origin
+cache-control: no-store
 ```
 
 ## Documentation
+
 Please see the full set of documentation at [https://secure.readthedocs.io](https://secure.readthedocs.io)
 
+## FastAPI Example
+
+```python
+import uvicorn
+from fastapi import FastAPI
+import secure
+
+app = FastAPI()
+
+server = secure.Server().set("Secure")
+
+csp = (
+    secure.ContentSecurityPolicy()
+    .default_src("'none'")
+    .base_uri("'self'")
+    .connect_src("'self'" "api.spam.com")
+    .frame_src("'none'")
+    .img_src("'self'", "static.spam.com")
+)
+
+hsts = secure.StrictTransportSecurity().include_subdomains().preload().max_age(2592000)
+
+referrer = secure.ReferrerPolicy().no_referrer()
+
+permissions_value = (
+    secure.PermissionsPolicy().geolocation("self", "'spam.com'").vibrate()
+)
+
+cache_value = secure.CacheControl().must_revalidate()
+
+secure_headers = secure.Secure(
+    server=server,
+    csp=csp,
+    hsts=hsts,
+    referrer=referrer,
+    permissions=permissions_value,
+    cache=cache_value,
+)
+
+
+@app.middleware("http")
+async def set_secure_headers(request, call_next):
+    response = await call_next(request)
+    secure_headers.framework.fastapi(response)
+    return response
+
+
+@app.get("/")
+async def root():
+    return {"message": "Secure"}
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, port=8081, host="localhost")
+```
+
 ## Resources
+
 - [kennethreitz/setup.py: 📦 A Human’s Ultimate Guide to setup.py.](https://github.com/kennethreitz/setup.py)
 - [OWASP - Secure Headers Project](https://www.owasp.org/index.php/OWASP_Secure_Headers_Project)
 - [OWASP - Session Management Cheat Sheet](https://www.owasp.org/index.php/Session_Management_Cheat_Sheet#Cookies)
