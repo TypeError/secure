@@ -47,10 +47,9 @@ After installing secure.py:
 
 .. code:: python
 
-   from secure import SecureHeaders, SecureCookie
+   import secure
 
-   secure_headers = SecureHeaders()
-   secure_cookie = SecureCookie()
+   secure_headers = secure.Secure() 
 
 Documentation
 -------------
