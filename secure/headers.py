@@ -1,200 +1,857 @@
-from .policies import get_policy, get_policy_multi_opt
+import json
+from typing import Dict, List, Optional, Protocol, Union
+import warnings
 
 
-class Header:
-    def __init__(self, header, value, info="N/A"):
-        self.header = header
+class SecurityHeader(Protocol):
+    header: str
+    value: str
+
+
+class Server:
+    """Replace server header"""
+
+    def __init__(self):
+        self.header = "Server"
+        self.value = "NULL"
+
+    def set(self, value: str):
+        """Set custom value for `Server` header
+
+        :param value: custom header value
+        :type value: str
+        :return: Server class
+        :rtype: Server
+        """
         self.value = value
-        self.info = info
+        return self
 
 
-class Security_Headers:
-    # Header recommendations from the OWASP Secure Headers Project
-    # (https://www.owasp.org/index.php/OWASP_Secure_Headers_Project)
+class XContentTypeOptions:
+    """Prevent MIME-sniffing
 
-    server = Header("Server", "NULL")
+    Resources:
+    https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Content-Type-Options
+    https://owasp.org/www-project-secure-headers/#x-content-type-options
+    """
 
-    http_strict_transport_security = Header(
-        header="Strict-Transport-Security",
-        value="max-age=63072000; includeSubdomains",
-        info="Ensure application communication is sent over HTTPS",
-    )
+    def __init__(self):
+        self.header = "X-Content-Type-Options"
+        self.value = "nosniff"
 
-    x_frame_options = Header(
-        header="X-Frame-Options",
-        value="SAMEORIGIN",
-        info="Disable framing from different origins (clickjacking defense)",
-    )
+    def set(self, value: str):
+        """Set custom value for `X-Content-Type-Options` header
 
-    x_xss_protection = Header(
-        header="X-XSS-Protection",
-        value="0",
-        info="Enable browser Cross-Site Scripting filters",
-    )
+        :param value: custom header value
+        :type value: str
+        :return: XContentTypeOptions class
+        :rtype: XContentTypeOptions
+        """
+        self.value = value
+        return self
 
-    x_content_type_options = Header(
-        header="X-Content-Type-Options", value="nosniff", info="Prevent MIME-sniffing"
-    )
 
-    content_security_policy = Header(
-        header="Content-Security-Policy",
-        value="script-src 'self'; object-src 'self'",
-        info="Prevent Cross-site injections",
-    )
+class ReportTo:
+    """Configure reporting endpoints
 
-    referrer_policy = Header(
-        header="Referrer-Policy",
-        value="no-referrer, strict-origin-when-cross-origin",
-        info="Enable full referrer if same origin, remove path for cross origin and disable referrer in unsupported browsers",
-    )
+    Resources:
+    https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/report-to
+    https://developers.google.com/web/updates/2018/09/reportingapi
 
-    cache_control = Header(
-        header="Cache-control",
-        value="no-cache, no-store, must-revalidate, max-age=0",
-        info="Prevent cacheable HTTPS response",
-    )
+    :param max_age: endpoint TIL in seconds
+    :type max_age: int
+    :param include_subdomains: enable for subdomains, defaults to False
+    :type include_subdomains: bool, optional
+    :param group: endpoint name, defaults to None
+    :type group: Optional[str], optional
+    :param endpoints: variable number of endpoints
+    :type endpoints: List[Dict[str, Union[str, int]]]
+    """
 
-    pragma = Header(
-        header="Pragma", value="no-cache", info="Prevent cacheable HTTPS response"
-    )
+    def __init__(
+        self,
+        max_age: int,
+        include_subdomains: bool = False,
+        group: Optional[str] = None,
+        *endpoints: List[Dict[str, Union[str, int]]],
+    ):
+        self.header = "Report-To"
 
-    expires = Header(
-        header="Expires", value="0", info="Prevent cacheable HTTPS response"
-    )
+        report_to_endpoints = json.dumps(endpoints)
 
-    feature_policy = Header(
-        header="Feature-Policy",
-        value="accelerometer 'none'; ambient-light-sensor 'none'; autoplay 'none'; camera 'none'; "
-        + "encrypted-media 'none'; fullscreen 'none'; geolocation 'none'; gyroscope 'none'; magnetometer 'none'; "
-        + "microphone 'none'; midi 'none'; payment 'none'; picture-in-picture 'none'; speaker 'none'; "
-        + "sync-xhr 'none'; usb 'none'; vr 'none'",
-        info="Disable browser features and APIs",
-    )
+        report_to_object: Dict[str, Union[str, int]] = {
+            "max_age": max_age,
+            "endpoints": report_to_endpoints,
+        }
 
-    report_to_policy = Header(
-        header="Report-To",
-        value="{}",
-        info="Store reporting endpoints",
-    )
+        if group:
+            report_to_object["group"] = group
+
+        if include_subdomains:
+            report_to_object["include_subdomains"] = include_subdomains
+
+        self.value = json.dumps(report_to_object)
+
+    def set(self, value: str):
+        """Set custom value for `Report-To` header
+
+        :param value: custom header value
+        :type value: str
+        :return: ReportTo class
+        :rtype: ReportTo
+        """
+        self.value = value
+        return self
+
+
+class ContentSecurityPolicy:
+    """
+    Prevent Cross-site injections
+
+    Resources:
+    https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy
+    https://developers.google.com/web/fundamentals/security/csp
+
+    """
+
+    def __init__(self):
+        self.__policy: List[str] = []
+        self.header = "Content-Security-Policy"
+        self.value = "script-src 'self'; object-src 'self'"
+
+    def _build(self, directive: str, *sources: str):
+        if len(sources) == 0:
+            self.__policy.append(directive)
+        else:
+            self.__policy.append(f"{directive} {' '.join(sources)}")
+        self.value = "; ".join(self.__policy)
+
+    def set(self, value: str):
+        """Set custom value for `Content-Security-Policy` header
+
+        :param value: custom header value
+        :type value: str
+        :return: ContentSecurityPolicy class
+        :rtype: ContentSecurityPolicy
+        """
+        self._build(value)
+        return self
+
+    def custom_directive(self, directive: str, *sources: str):
+        """Set custom directive and sources
+
+        :param directive: custom directive
+        :type directive: str
+        :param sources: variable number of sources
+        :type sources: str
+        :return: ContentSecurityPolicy class
+        :rtype: ContentSecurityPolicy
+        """
+        self._build(directive, *sources)
+        return self
+
+    def report_only(self):
+        """Set Content-Security-Policy header to Content-Security-Policy-Report-Only"""
+        self.header = "Content-Security-Policy-Report-Only"
+
+    def base_uri(self, *sources: str):
+        """Sets valid origins for `<base>`
+
+        Resources:
+        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/base-uri
+
+        :param sources: variable number of sources
+        :type sources: str
+        :return: ContentSecurityPolicy class
+        :rtype: ContentSecurityPolicy
+        """
+        self._build("base-uri", *sources)
+        return self
+
+    def child_src(self, *sources: str):
+        """Sets valid origins for web workers
+
+        Resources:
+        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/child-src
+
+        :param sources: variable number of sources
+        :type sources: str
+        :return: ContentSecurityPolicy class
+        :rtype: ContentSecurityPolicy
+        """
+        self._build("child-src", *sources)
+        return self
+
+    def connect_src(self, *sources: str):
+        """Sets valid origins for script interfaces
+
+        Resources:
+        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/connect-src
+
+        :param sources: variable number of sources
+        :type sources: str
+        :return: ContentSecurityPolicy class
+        :rtype: ContentSecurityPolicy
+        """
+        self._build("connect-src", *sources)
+        return self
+
+    def default_src(self, *sources: str):
+        """Sets fallback valid orgins for other directives
+
+        Resouces:
+        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/default-src
+
+        :param sources: variable number of sources
+        :type sources: str
+        :return: ContentSecurityPolicy class
+        :rtype: ContentSecurityPolicy
+        """
+        self._build("default-src", *sources)
+        return self
+
+    def font_src(self, *sources: str):
+        """Set valid origins for `@font-face`
+
+        Resouces:
+        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/font-src
+
+        :param sources: variable number of sources
+        :type sources: str
+        :return: ContentSecurityPolicy class
+        :rtype: ContentSecurityPolicy
+        """
+        self._build("font-src", *sources)
+        return self
+
+    def form_action(self, *sources: str):
+        """Set valid origins for form submissions
+
+        Resouces:
+        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/form-action
+
+        :param sources: variable number of sources
+        :type sources: str
+        :return: ContentSecurityPolicy class
+        :rtype: ContentSecurityPolicy
+        """
+        self._build("form-action", *sources)
+        return self
+
+    def frame_ancestors(self, *sources: str):
+        """Set valid origins that can embed the resource
+
+        Resouces:
+        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/frame-ancestors
+
+        :param sources: variable number of sources
+        :type sources: str
+        :return: ContentSecurityPolicy class
+        :rtype: ContentSecurityPolicy
+        """
+        self._build("frame-ancestors", *sources)
+        return self
+
+    def frame_src(self, *sources: str):
+        """Set valid origins for frames
+
+        Resouces:
+        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/frame-src
+
+        :param sources: variable number of sources
+        :type sources: str
+        :return: ContentSecurityPolicy class
+        :rtype: ContentSecurityPolicy
+        """
+        self._build("frame-src", *sources)
+        return self
+
+    def img_src(self, *sources: str):
+        """Set valid origins for images
+
+        Resouces:
+        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/img-src
+
+        :param sources: variable number of sources
+        :type sources: str
+        :return: ContentSecurityPolicy class
+        :rtype: ContentSecurityPolicy
+        """
+        self._build("img-src", *sources)
+        return self
+
+    def manifest_src(self, *sources: str):
+        """Set valid origins for manifest files
+
+        Resouces:
+        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/manifest-src
+
+        :param sources: variable number of sources
+        :type sources: str
+        :return: ContentSecurityPolicy class
+        :rtype: ContentSecurityPolicy
+        """
+        self._build("manifest-src", *sources)
+        return self
+
+    def media_src(self, *sources: str):
+        """Set valid origins for media
+
+        Resouces:
+        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/media-src
+
+        :param sources: variable number of sources
+        :type sources: str
+        :return: ContentSecurityPolicy class
+        :rtype: ContentSecurityPolicy
+        """
+        self._build("media-src", *sources)
+        return self
+
+    def object_src(self, *sources: str):
+        """Set valid origins for plugins
+
+        Resouces:
+        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/object-src
+
+        :param sources: variable number of sources
+        :type sources: str
+        :return: ContentSecurityPolicy class
+        :rtype: ContentSecurityPolicy
+        """
+        self._build("object-src", *sources)
+        return self
+
+    def report_to(self, report_to: ReportTo):
+        """Configure reporting endpoints
+
+        Resouces:
+        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/report-to
+
+        :param report_to: ReportTo class
+        :type report_to: ReportTo
+        :return: ContentSecurityPolicy class
+        :rtype: ContentSecurityPolicy
+        """
+        self._build("report-to", report_to.value)
+        return self
+
+    def sandbox(self, *values: str):
+        """Enables sandbox restrictions
+
+        Resouces:
+        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/sandbox
+
+        :param values: variable number of types
+        :type values: str
+        :return: ContentSecurityPolicy class
+        :rtype: ContentSecurityPolicy
+        """
+        self._build("sandbox", *values)
+        return self
+
+    def script_src(self, *sources: str):
+        """Set valid origins for JavaScript
+
+        Resouces:
+        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src
+
+        :param sources: variable number of types
+        :type sources: str
+        :return: ContentSecurityPolicy class
+        :rtype: ContentSecurityPolicy
+        """
+        self._build("script-src", *sources)
+        return self
+
+    def style_src(self, *sources: str):
+        """Set valid origins for styles
+
+        Resouces:
+        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/style-src
+
+        :param sources: variable number of types
+        :type sources: str
+        :return: ContentSecurityPolicy class
+        :rtype: ContentSecurityPolicy
+        """
+        self._build("style-src", *sources)
+        return self
+
+    def upgrade_insecure_requests(self):
+        """Upgrade HTTP URLs to HTTPS
+
+        Resouces:
+        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/upgrade-insecure-requests
+
+        :return: ContentSecurityPolicy class
+        :rtype: ContentSecurityPolicy
+        """
+        self._build("upgrade-insecure-requests")
+        return self
+
+    def worker_src(self, *sources: str):
+        """Set valid origins for worker scripts
+
+        Resouces:
+        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/worker-src
+
+        :param sources: variable number of types
+        :type sources: str
+        :return: ContentSecurityPolicy class
+        :rtype: ContentSecurityPolicy
+        """
+        self._build("worker-src", *sources)
+        return self
 
     @staticmethod
-    def secure_headers(
-        server=False,
-        hsts=True,
-        xfo=True,
-        xxp=True,
-        content=True,
-        csp=False,
-        referrer=True,
-        cache=True,
-        feature=False,
-        report_to=False,
-    ):
-        headers = []
-        if server:
-            if type(server) == str:
-                Security_Headers.server.value = server
-            headers.append(Security_Headers.server)
-        if hsts:
-            if type(hsts) == str:
-                Security_Headers.http_strict_transport_security.value = hsts
-            elif hasattr(hsts, "hsts_policy"):
-                policy_value = get_policy(hsts, "; ")
-                Security_Headers.http_strict_transport_security.value = policy_value
-            headers.append(Security_Headers.http_strict_transport_security)
-        if xfo:
-            if type(xfo) == str:
-                Security_Headers.x_frame_options.value = xfo
-            elif hasattr(xfo, "xfo_policy"):
-                Security_Headers.x_frame_options.value = xfo.policy
-            headers.append(Security_Headers.x_frame_options)
-        if xxp:
-            if type(xxp) == str:
-                Security_Headers.x_xss_protection.value = xxp
-            elif hasattr(xxp, "xxp_policy"):
-                Security_Headers.x_xss_protection.value = xxp.policy
-            headers.append(Security_Headers.x_xss_protection)
-        if content:
-            if type(content) == str:
-                Security_Headers.x_content_type_options.value = content
-            headers.append(Security_Headers.x_content_type_options)
-        if csp:
-            if type(csp) == str:
-                Security_Headers.content_security_policy.value = csp
-            elif hasattr(csp, "csp_policy"):
-                policy_value = get_policy_multi_opt(csp)
-                Security_Headers.content_security_policy.value = policy_value
-            headers.append(Security_Headers.content_security_policy)
-        if referrer:
-            if type(referrer) == str:
-                Security_Headers.referrer_policy.value = referrer
-            elif hasattr(referrer, "referrer_policy"):
-                policy_value = get_policy(referrer, ", ")
-                Security_Headers.referrer_policy.value = policy_value
-            headers.append(Security_Headers.referrer_policy)
-        if cache:
-            if type(cache) == str:
-                Security_Headers.cache_control.value = cache
-            elif hasattr(cache, "cache_policy"):
-                policy_value = get_policy(cache, ", ")
-                Security_Headers.cache_control.value = policy_value
-            else:
-                headers.append(Security_Headers.pragma)
-                headers.append(Security_Headers.expires)
-            headers.append(Security_Headers.cache_control)
-        if feature:
-            if type(feature) == str:
-                Security_Headers.feature_policy.value = feature
-            elif hasattr(feature, "feature_policy"):
-                policy_value = get_policy_multi_opt(feature)
-                Security_Headers.feature_policy.value = policy_value
-            headers.append(Security_Headers.feature_policy)
-        if report_to:
-            Security_Headers.report_to_policy.value = report_to
-            headers.append(Security_Headers.report_to_policy)
+    def nonce(value: str):
+        """Creates a nonce format
 
-        return headers
+        :param value: nounce value
+        :type value: str
+        :return: ContentSecurityPolicy class
+        :rtype: ContentSecurityPolicy
+        """
+        value = "'nonce-<{}>'".format(value)
+        return value
 
 
-def default_headers():
-    headers = {}
-    for header in Security_Headers.secure_headers():
-        headers[header.header] = header.value
+class XFrameOptions:
+    """
+    Disable framing from different origins (clickjacking defense)
 
-    return headers
+    Resources:
+    https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options
+    """
+
+    def __init__(self):
+        self.header = "X-Frame-Options"
+        self.value = "SAMEORIGIN"
+
+    def set(self, value: str):
+        """Set custom value for X-Frame-Options header
+
+        :param value: custom header value
+        :type value: str
+        :return: XFrameOptions class
+        :rtype: XFrameOptions
+        """
+        self.value = value
+        return self
+
+    def deny(self):
+        """Disable rending site in a frame
+
+        :return: XFrameOptions class
+        :rtype: XFrameOptions
+        """
+        self.value = "deny"
+        return self
+
+    def sameorigin(self):
+        """Disable rending site in a frame if not same origin
+
+        :return: XFrameOptions class
+        :rtype: XFrameOptions
+        """
+        self.value = "sameorigin"
+        return self
 
 
-def dict_headers(server, hsts, xfo, xxp, content, csp, referrer, cache, feature):
-    headers = {}
-    for header in Security_Headers.secure_headers(
-        server, hsts, xfo, xxp, content, csp, referrer, cache, feature
-    ):
-        headers[header.header] = header.value
-    return headers
+class XXSSProtection:
+    """
+    Enable browser Cross-Site Scripting filters
+
+    **Depreciated**
+
+    Recommended to utilize `Content-Security-Policy`
+    instead of the legacy `X-XSS-Protection` header.
+
+    Resources:
+    https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-XSS-Protection
+    https://owasp.org/www-project-secure-headers/#x-xss-protection
+    """
+
+    def __init__(self):
+        self.header = "X-XSS-Protection"
+        self.value = "0"
+
+    def set(self, value: str):
+        """Set custom value for `X-XSS-Protection` header
+
+        :param value: custom header value
+        :type value: str
+        :return: XXSSProtection class
+        :rtype: XXSSProtection
+        """
+        warnings.warn(
+            "Recommended to utilize Content-Security-Policy",
+            DeprecationWarning,
+        )
+        self.value = value
+        return self
 
 
-def tuple_headers(server, hsts, xfo, xxp, content, csp, referrer, cache, feature, report_to):
-    headers = []
-    for header in Security_Headers.secure_headers(
-        server, hsts, xfo, xxp, content, csp, referrer, cache, feature, report_to
-    ):
-        headers.append((header.header, header.value))
-    return headers
+class ReferrerPolicy:
+    """
+    Enable full referrer if same origin, remove path for cross origin and
+    disable referrer in unsupported browsers
+
+    Resources:
+    https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy
+    https://owasp.org/www-project-secure-headers/#referrer-policy
+    """
+
+    def __init__(self):
+        self.__policy: List[str] = []
+        self.header = "Referrer-Policy"
+        self.value = "no-referrer, strict-origin-when-cross-origin"
+
+    def _build(self, directive: str):
+        self.__policy.append(directive)
+        self.value = ", ".join(self.__policy)
+
+    def set(self, value: str):
+        """Set custom value for `Referrer-Policy` header
+
+        :param value: custom header value
+        :type value: str
+        :return: ReferrerPolicy class
+        :rtype: ReferrerPolicy
+        """
+        self._build(value)
+        return self
+
+    def no_referrer(self):
+        """The `Referer` header will not be sent
+
+        :return: ReferrerPolicy class
+        :rtype: ReferrerPolicy
+        """
+        self._build("no-referrer")
+        return self
+
+    def no_referrer_when_downgrade(self):
+        """The `Referer` header will not be sent if HTTPS -> HTTP
+
+        :return: ReferrerPolicy class
+        :rtype: ReferrerPolicy
+        """
+        self._build("no-referrer-when-downgrade")
+        return self
+
+    def origin(self):
+        """The `Referer` header will contain only the origin
+
+        :return: ReferrerPolicy class
+        :rtype: ReferrerPolicy
+        """
+        self._build("origin")
+        return self
+
+    def origin_when_cross_origin(self):
+        """The `Referer` header will contain the full URL
+        but only the origin if cross-origin
+
+        :return: ReferrerPolicy class
+        :rtype: ReferrerPolicy
+        """
+        self._build("origin-when-cross-origin")
+        return self
+
+    def same_origin(self):
+        """The `Referer` header will be sent with the full URL if same-origin
+
+        :return: ReferrerPolicy class
+        :rtype: ReferrerPolicy
+        """
+        self._build("same-origin")
+        return self
+
+    def strict_origin(self):
+        """The `Referer` header will be sent only for same-origin
+
+        :return: ReferrerPolicy class
+        :rtype: ReferrerPolicy
+        """
+        self._build("strict-origin")
+        return self
+
+    def strict_origin_when_cross_origin(self):
+        """The `Referer` header will only contain the origin if HTTPS -> HTTP
+
+        :return: ReferrerPolicy class
+        :rtype: ReferrerPolicy
+        """
+        self._build("strict-origin-when-cross-origin")
+        return self
+
+    def unsafe_url(self):
+        """The `Referer` header will contain the full URL
+
+        :return: ReferrerPolicy class
+        :rtype: ReferrerPolicy
+        """
+        self._build("unsafe-url")
+        return self
 
 
-def set_header_dict(
-    response, server, hsts, xfo, xxp, content, csp, referrer, cache, feature
-):
-    for header in Security_Headers.secure_headers(
-        server, hsts, xfo, xxp, content, csp, referrer, cache, feature
-    ):
-        response.headers[header.header] = header.value
+class StrictTransportSecurity:
+    """
+    Ensure application communication is sent over HTTPS
+
+    Resources:
+    https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security
+    https://owasp.org/www-project-secure-headers/#http-strict-transport-security
+    """
+
+    def __init__(self):
+        self.__policy: List[str] = []
+        self.header = "Strict-Transport-Security"
+        self.value = "max-age=63072000; includeSubdomains"
+
+    def _build(self, directive: str):
+        self.__policy.append(directive)
+        self.value = "; ".join(self.__policy)
+
+    def set(self, value: str):
+        """Set custom value for `Strict-Transport-Security` header
+
+        :param value: custom header value
+        :type value: str
+        :return: StrictTransportSecurity class
+        :rtype: StrictTransportSecurity
+        """
+        self._build(value)
+        return self
+
+    def include_subdomains(self):
+        """Include subdomains to HSTS policy [Optional]
+
+        :return: [description]
+        :rtype: [type]
+        """
+        self._build("includeSubDomains")
+        return self
+
+    def max_age(self, seconds: int):
+        """Instruct the browser to remember HTTPS preference
+        until time (seconds) expires.
+
+        :param seconds: time in seconds
+        :type seconds: str
+        :return: StrictTransportSecurity class
+        :rtype: StrictTransportSecurity
+        """
+        self._build("max-age={}".format(seconds))
+        return self
+
+    def preload(self):
+        """Instruct browser to always use HTTPS [Optional]
+
+        Please see:
+        https://hstspreload.org
+
+        :return: StrictTransportSecurity class
+        :rtype: StrictTransportSecurity
+        """
+        self._build("preload")
+        return self
 
 
-def set_header_tuple(
-    response, server, hsts, xfo, xxp, content, csp, referrer, cache, feature, report_to
-):
-    for header in Security_Headers.secure_headers(
-        server, hsts, xfo, xxp, content, csp, referrer, cache, feature, report_to
-    ):
-        response.set_header(header.header, header.value)
+class CacheControl:
+    """
+    Prevent cacheable HTTPS response
+
+    Resources:
+    https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control
+    """
+
+    def __init__(self):
+        self.__policy: List[str] = []
+        self.header = "Cache-control"
+        self.value = "no-store"
+
+    def _build(self, directive: str):
+        self.__policy.append(directive)
+        self.value = ", ".join(self.__policy)
+
+    def set(self, value: str):
+        """Set custom value for `Cache-control` header
+
+        :param value: custom header value
+        :type value: str
+        :return: CacheControl class
+        :rtype: CacheControl
+        """
+        self._build(value)
+        return self
+
+    def immutable(self):
+        self._build("immutable")
+        return self
+
+    def max_age(self, seconds: int):
+        self._build("max-age={}".format(seconds))
+        return self
+
+    def max_stale(self, seconds: int):
+        self._build("max-stale={}".format(seconds))
+        return self
+
+    def min_fresh(self, seconds: int):
+        self._build("min-fresh={}".format(seconds))
+        return self
+
+    def must_revalidate(self):
+        self._build("must-revalidate")
+        return self
+
+    def no_cache(self):
+        self._build("no-cache")
+        return self
+
+    def no_store(self):
+        self._build("no-store")
+        return self
+
+    def no_transform(self):
+        self._build("no-transform")
+        return self
+
+    def only_if_cached(self):
+        self._build("only-if-cached")
+        return self
+
+    def private(self):
+        self._build("private")
+        return self
+
+    def proxy_revalidate(self):
+        self._build("proxy-revalidate")
+        return self
+
+    def public(self):
+        self._build("public")
+        return self
+
+    def s_maxage(self, seconds: int):
+        self._build("s-maxage={}".format(seconds))
+        return self
+
+    def stale_if_error(self, seconds: int):
+        self._build("stale-if-error={}".format(seconds))
+        return self
+
+    def stale_while_revalidate(self, seconds: int):
+        self._build("stale-while-revalidate={}".format(seconds))
+        return self
+
+
+class PermissionsPolicy:
+    """
+    Disable browser features and APIs
+
+    Replaces the `Feature-Policy` header
+
+    Resources:
+    https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Feature-Policy
+    https://github.com/w3c/webappsec-permissions-policy/blob/main/permissions-policy-explainer.md
+    """
+
+    def __init__(self):
+        self.__policy: List[str] = []
+        self.header = "Permissions-Policy"
+        self.value = (
+            "accelerometer=(), ambient-light-sensor=(), autoplay=(),"
+            "camera=(), encrypted-media=(), fullscreen=(),"
+            "geolocation=(), gyroscope=(), magnetometer=(),"
+            "microphone=(); midi=(), payment=(),"
+            "picture-in-picture=(), speaker=(), sync-xhr=(), usb=(),"
+            "vr=()"
+        )
+
+    def _build(self, directive: str, *sources: str):
+        self.__policy.append(f"{directive}=({' '.join(sources)})")
+        self.value = ", ".join(self.__policy)
+
+    def set(self, value: str):
+        self._build(value)
+        return self
+
+    def accelerometer(self, *allowlist: str):
+        self._build("accelerometer", *allowlist)
+        return self
+
+    def ambient_light_sensor(self, *allowlist: str):
+        self._build("ambient-light-sensor ", *allowlist)
+        return self
+
+    def autoplay(self, *allowlist: str):
+        self._build("autoplay", *allowlist)
+        return self
+
+    def camera(self, *allowlist: str):
+        self._build("camera", *allowlist)
+        return self
+
+    def document_domain(self, *allowlist: str):
+        self._build("document-domain", *allowlist)
+        return self
+
+    def encrypted_media(self, *allowlist: str):
+        self._build("encrypted-media", *allowlist)
+        return self
+
+    def fullscreen(self, *allowlist: str):
+        self._build("fullscreen", *allowlist)
+        return self
+
+    def geolocation(self, *allowlist: str):
+        self._build("geolocation", *allowlist)
+        return self
+
+    def gyroscope(self, *allowlist: str):
+        self._build("gyroscope", *allowlist)
+        return self
+
+    def magnetometer(self, *allowlist: str):
+        self._build("magnetometer", *allowlist)
+        return self
+
+    def microphone(self, *allowlist: str):
+        self._build("microphone", *allowlist)
+        return self
+
+    def midi(self, *allowlist: str):
+        self._build("midi", *allowlist)
+        return self
+
+    def payment(self, *allowlist: str):
+        self._build("payment", *allowlist)
+        return self
+
+    def picture_in_picture(self, *allowlist: str):
+        self._build("picture-in-picture", *allowlist)
+        return self
+
+    def speaker(self, *allowlist: str):
+        self._build("speaker", *allowlist)
+        return self
+
+    def sync_xhr(self, *allowlist: str):
+        self._build("sync-xhr", *allowlist)
+        return self
+
+    def usb(self, *allowlist: str):
+        self._build("usb", *allowlist)
+        return self
+
+    def vibrate(self, *allowlist: str):
+        self._build("vibrate", *allowlist)
+        return self
+
+    def vr(self, *allowlist: str):
+        self._build("vr", *allowlist)
+        return self
