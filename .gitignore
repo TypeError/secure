@@ -3,5 +3,9 @@
 /secure.egg-info
 .DS_Store
 __pycache__
-/docs/build
+docs/build
+docs/source/_build
 .idea
+.vscode
+.flake8
+*.pyc
