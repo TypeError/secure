@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from .headers import (
     CacheControl,
@@ -6,7 +6,6 @@ from .headers import (
     PermissionsPolicy,
     ReferrerPolicy,
     ReportTo,
-    SecurityHeader,
     Server,
     StrictTransportSecurity,
     XContentTypeOptions,
@@ -60,7 +59,22 @@ class Secure:
             [f"{header}:{value}" for header, value in self.headers().items()]
         )
 
-    def _header_list(self) -> List[SecurityHeader]:
+    def _header_list(
+        self,
+    ) -> List[
+        Union[
+            CacheControl,
+            ContentSecurityPolicy,
+            PermissionsPolicy,
+            ReferrerPolicy,
+            ReportTo,
+            Server,
+            StrictTransportSecurity,
+            XContentTypeOptions,
+            XFrameOptions,
+            XXSSProtection,
+        ]
+    ]:
         headers = [
             self.server,
             self.hsts,

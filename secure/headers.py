@@ -1,11 +1,6 @@
 import json
-from typing import Dict, List, Optional, Protocol, Union
+from typing import Dict, List, Optional, Union
 import warnings
-
-
-class SecurityHeader(Protocol):
-    header: str
-    value: str
 
 
 class Server:
