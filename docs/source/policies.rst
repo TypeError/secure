@@ -1,7 +1,7 @@
 Policy Builder
 ----------------
 
-CSP()
+ContentSecurityPolicy()
 ^^^^^^^
 
 **Directives:** ``base_uri(sources)``,
