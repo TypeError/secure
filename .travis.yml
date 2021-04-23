@@ -1,11 +1,10 @@
 language: python
 python:
-- '3.5'
-- '3.6'
+  - "3.5"
+  - "3.6"
 cache:
-- pip
+  - pip
 install:
-- pip install -r dev-requirements.txt
+  - pip install -r dev-requirements.txt
 script:
-- python -m pytest
-
+  - python -m pytest
