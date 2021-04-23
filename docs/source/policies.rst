@@ -4,7 +4,7 @@ Policy Builder
 CSP()
 ^^^^^^^
 
-**Directives:** ``base_uri(sources)``, ``block_all_mixed_content()``,
+**Directives:** ``base_uri(sources)``,
 ``child_src(sources)``, ``connect_src(sources)``,
 ``default_src(sources)``, ``font_src(sources)``,
 ``form_action(sources)``, ``frame_ancestors(sources)``,
@@ -16,29 +16,27 @@ CSP()
 ``script_src(sources)``, ``style_src(sources)``,
 ``upgrade_insecure_requests()``, ``worker_src(sources)``
 
-**Values()**: ``self_``, ``none``, ``unsafe_inline``, ``unsafe_eval``,
-``strict_dynamic``, ``nonce(nonce_value)``, ``all`` = "*"
-
 **Example:**
 
 .. code:: python
 
-   csp_value = (
-       SecurePolicies.CSP()
-       .default_src(SecurePolicies.CSP().Values.none)
-       .base_uri(SecurePolicies.CSP().Values.self_)
-       .block_all_mixed_content()
-       .connect_src(SecurePolicies.CSP().Values.self_, "api.spam.com")
-       .frame_src(SecurePolicies.CSP().Values.none)
-       .img_src(SecurePolicies.CSP().Values.self_, "static.spam.com")
+   csp_policy = (
+   secure.ContentSecurityPolicy()
+   .default_src("'none'")
+   .base_uri("'self'")
+   .connect_src("'self'", "api.spam.com")
+   .frame_src("'none'")
+   .img_src("'self'", "static.spam.com")
    )
 
-   # default-src 'none'; base-uri 'self'; block-all-mixed-content; connect-src 'self' api.spam.com; frame-src 'none'; img-src 'self' static.spam.com
+   secure_headers = secure.Secure(csp=csp_policy)
+
+   # default-src 'none'; base-uri 'self'; connect-src 'self' api.spam.com; frame-src 'none'; img-src 'self' static.spam.com
 
 *You can check the effectiveness of your CSP Policy at the* `CSP
 Evaluator <https://csp-evaluator.withgoogle.com>`__
 
-HSTS()
+StrictTransportSecurity()
 ^^^^^^^
 
 **Directives:** ``include_subDomains()``, ``max_age(seconds)``,
@@ -49,30 +47,17 @@ HSTS()
 .. code:: python
 
    hsts_value = (
-       SecurePolicies.HSTS()
-       .include_subdomains()
-       .preload()
-       .max_age(SecurePolicies.Seconds.one_month)
+   secure.StrictTransportSecurity()
+   .include_subdomains()
+   .preload()
+   .max_age(2592000)
    )
+
+   secure_headers = secure.Secure(hsts=hsts_value)
 
    # includeSubDomains; preload; max-age=2592000
 
-XXP()
-^^^^^^
-
-**Directives:** ``disabled()`` = 0, ``enabled()`` = 1,
-``enabled_block()`` = 1; mode=block, ``enabled_report(uri)`` = 1;
-report=uri
-
-**Example:**
-
-.. code:: python
-
-   xxp_value = SecurePolicies.XXP().enabled_block()
-
-   # 1; mode=block
-
-XFO()
+XFrameOptions()
 ^^^^^^
 
 **Directives:** ``allow_from(uri)``, ``deny()``, ``sameorigin()``
@@ -81,11 +66,13 @@ XFO()
 
 .. code:: python
 
-   xfo_value = SecurePolicies.XFO().deny()
+   xfo_value = secure.XFrameOptions().deny()
+
+   secure_headers = secure.Secure(xfo=xfo_value)
 
    # deny
 
-Referrer()
+ReferrerPolicy()
 ^^^^^^^^^^^
 
 **Directives:** ``no_referrer()``, ``no_referrer_when_downgrade()``,
@@ -97,11 +84,13 @@ Referrer()
 
 .. code:: python
 
-   referrer_value = SecurePolicies.Referrer().no_referrer()
+   referrer = secure.ReferrerPolicy().strict_origin()
 
-   # no-referrer
+   secure_headers = secure.Secure(referrer=referrer).headers()
+  
+   # strict-origin
 
-Feature()
+PermissionsPolicy()
 ^^^^^^^^^^
 
 **Directives:** ``accelerometer(allowlist)``,
@@ -115,21 +104,19 @@ Feature()
 ``sync_xhr(allowlist)``, ``usb(allowlist)``, ``Values(allowlist)``,
 ``vr(allowlist)``
 
-**Values()**: ``self_``, ``none``, ``src``, ``all_`` = "*"
-
 **Example:**
 
 .. code:: python
 
-   feature_value = (
-       SecurePolicies.Feature()
-       .geolocation(SecurePolicies.Feature.Values.self_, "spam.com")
-       .vibrate(SecurePolicies.Feature.Values.none)
+   permissions = (
+   secure.PermissionsPolicy().geolocation("self", '"spam.com"').vibrate()
    )
 
-   # geolocation 'self' spam.com; vibrate 'none'
+   secure_headers = secure.Secure(permissions=permissions).headers()
 
-Cache()
+   # geolocation=(self "spam.com"), vibrate=()
+
+CacheControl()
 ^^^^^^^^
 
 **Directives:** ``immutable()``, ``max_age(seconds)``,
@@ -143,16 +130,12 @@ Cache()
 
 .. code:: python
 
-   cache_value = SecurePolicies.Cache().no_store().must_revalidate().proxy_revalidate()
+   cache = secure.CacheControl().no_cache()
 
-   # no-store, must-revalidate, proxy-revalidate
+   secure_headers = secure.Secure(cache=cache).headers()
 
-Seconds
-^^^^^^^
+   # no-store
 
-**Values:** ``five_minutes`` = “300”, ``one_week`` = “604800”,
-``one_month`` = “2592000”, ``one_year`` = “31536000”, ``two_years`` =
-“63072000”
 
 Usage
 ^^^^^^
@@ -163,70 +146,70 @@ Usage
 
 .. code:: python
 
-   from sanic import Sanic
-   from secure import SecureHeaders, SecurePolicies
-
-   csp_value = (
-       SecurePolicies.CSP()
-       .default_src(SecurePolicies.CSP().Values.none)
-       .base_uri(SecurePolicies.CSP().Values.self_)
-       .block_all_mixed_content()
-       .connect_src(SecurePolicies.CSP().Values.self_, "api.spam.com")
-       .frame_src(SecurePolicies.CSP().Values.none)
-       .img_src(SecurePolicies.CSP().Values.self_, "static.spam.com")
+   import uvicorn
+   from fastapi import FastAPI
+   import secure
+   
+   app = FastAPI()
+   
+   server = secure.Server().set("Secure")
+   
+   csp = (
+       secure.ContentSecurityPolicy()
+       .default_src("'none'")
+       .base_uri("'self'")
+       .connect_src("'self'" "api.spam.com")
+       .frame_src("'none'")
+       .img_src("'self'", "static.spam.com")
    )
-
-   hsts_value = (
-       SecurePolicies.HSTS()
-       .include_subdomains()
-       .preload()
-       .max_age(SecurePolicies.Seconds.one_month)
+   
+   hsts = secure.StrictTransportSecurity().include_subdomains().preload().max_age(2592000)
+   
+   referrer = secure.ReferrerPolicy().no_referrer()
+   
+   permissions_value = (
+       secure.PermissionsPolicy().geolocation("self", "'spam.com'").vibrate()
    )
-
-   xxp_value = SecurePolicies.XXP().enabled_block()
-
-   xfo_value = SecurePolicies.XFO().deny()
-
-   referrer_value = SecurePolicies.Referrer().no_referrer()
-
-   feature_value = (
-       SecurePolicies.Feature()
-       .geolocation(SecurePolicies.Feature.Values.self_, "spam.com")
-       .vibrate(SecurePolicies.Feature.Values.none)
-   )
-
-   cache_value = SecurePolicies.Cache().no_store().must_revalidate().proxy_revalidate()
-
-   secure_headers = SecureHeaders(
-       csp=csp_value,
-       hsts=hsts_value,
-       xfo=xfo_value,
-       xxp=xxp_value,
-       referrer=referrer_value,
-       feature=feature_value,
+   
+   cache_value = secure.CacheControl().must_revalidate()
+   
+   secure_headers = secure.Secure(
+       server=server,
+       csp=csp,
+       hsts=hsts,
+       referrer=referrer,
+       permissions=permissions_value,
        cache=cache_value,
    )
-   secure_cookie = SecureCookie()
-
-   app = Sanic()
-
-   . . . 
-
-   @app.middleware("response")
-   async def set_secure_headers(request, response):
-       secure_headers.sanic(response)
-
+   
+   
+   @app.middleware("http")
+   async def set_secure_headers(request, call_next):
+       response = await call_next(request)
+       secure_headers.framework.fastapi(response)
+       return response
+   
+   
+   @app.get("/")
+   async def root():
+       return {"message": "Secure"}
+   
+   
+   if __name__ == "__main__":
+       uvicorn.run(app, port=8081, host="localhost")
+   
    . . . 
 
 Response Headers:
 
 .. code:: http
 
-   Strict-Transport-Security: includeSubDomains; preload; max-age=2592000
-   X-Frame-Options: deny
-   X-XSS-Protection: 0
-   X-Content-Type-Options: nosniff
-   Content-Security-Policy: default-src 'none'; base-uri 'self'; block-all-mixed-content; connect-src 'self' api.spam.com; frame-src 'none'; img-src 'self' static.spam.com
-   Referrer-Policy: no-referrer
-   Cache-control: no-store, must-revalidate, proxy-revalidate
-   Feature-Policy: geolocation 'self' spam.com; vibrate 'none'
+   server: Secure
+   strict-transport-security: includeSubDomains; preload; max-age=2592000
+   x-frame-options: SAMEORIGIN
+   x-xss-protection: 0
+   x-content-type-options: nosniff
+   content-security-policy: default-src 'none'; base-uri 'self'; connect-src 'self'api.spam.com; frame-src 'none'; img-src 'self' static.spam.com
+   referrer-policy: no-referrer
+   cache-control: must-revalidate
+   permissions-policy: geolocation=(self 'spam.com'), vibrate=()

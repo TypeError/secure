@@ -55,22 +55,19 @@ Referrer-Policy
 
 | Enable full referrer if same origin, remove path for cross origin and
   disable referrer in unsupported browsers
-| **Default Value:** ``no-referrer, strict-origin-when-cross-origin``
+| **Default Value:** ``no-referrer``
 
-Cache-control / Pragma / Expires
+Cache-control
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 | Prevent cacheable HTTPS response
-| **Default Value:** ``no-cache, no-store, must-revalidate, max-age=0``
-  / ``no-cache`` / ``0``
+| **Default Value:** ``no-cache``
 
-Feature-Policy
+Permissions-Policy
 ^^^^^^^^^^^^^^^
 
 | Disable browser features and APIs
-| **Default Value:**
-  ``accelerometer 'none'; ambient-light-sensor 'none'; autoplay 'none'; camera 'none'; encrypted-media 'none'; fullscreen 'none'; geolocation 'none'; gyroscope 'none'; magnetometer 'none'; microphone 'none'; midi 'none'; payment 'none'; picture-in-picture 'none'; speaker 'none'; sync-xhr 'none'; usb 'none'; vr 'none';``
-  *(not included by default)*    
+| **Default Value:** accelerometer=(), ambient-light-sensor=(), autoplay=(),camera=(), encrypted-media=(), fullscreen=(),geolocation=(), gyroscope=(), magnetometer=(),microphone=(); midi=(), payment=(), picture-in-picture=(), speaker=(), sync-xhr=(), usb=(), vr=()"  *(not included by default)*    
 
 
 **Additional information:**

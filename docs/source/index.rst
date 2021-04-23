@@ -8,8 +8,7 @@ secure.py
 
 |version| |Python 3| |license| |black|
 
-secure.py 🔒 is a lightweight package that adds optional security headers
-and cookie attributes for Python web frameworks.
+secure.py 🔒 is a lightweight package that adds optional security headers for Python web frameworks.
 
 Supported Python web frameworks:
 --------------------------------
@@ -18,6 +17,7 @@ Supported Python web frameworks:
 `Bottle <https://bottlepy.org>`__, `CherryPy <https://cherrypy.org>`__,
 `Django <https://www.djangoproject.com>`__,
 `Falcon <https://falconframework.org>`__,
+`FastAPI <https://fastapi.tiangolo.com>`__,
 `Flask <http://flask.pocoo.org>`__,
 `hug <http://www.hug.rest>`__,
 `Masonite <https://docs.masoniteproject.com>`__,
@@ -60,7 +60,6 @@ Documentation
    :caption: Contents:
 
    headers
-   cookies
    policies
    frameworks
    resources
