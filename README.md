@@ -66,7 +66,7 @@ csp = (
         .frame_src("'none'")
         .img_src("'self'", "static.spam.com")
     )
-    secure_headers = secure.Secure(csp=csp)
+secure_headers = secure.Secure(csp=csp)
 ```
 
 **HTTP response headers:**
