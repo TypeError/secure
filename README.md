@@ -51,6 +51,36 @@ referrer-policy: no-referrer, strict-origin-when-cross-origin
 cache-control: no-store
 ```
 
+## Policy Builders
+
+### Policy Builder Example
+
+**Content Security Policy builder:**
+
+```python
+    csp = (
+            secure.ContentSecurityPolicy()
+            .default_src("'none'")
+            .base_uri("'self'")
+            .connect_src("'self'", "api.spam.com")
+            .frame_src("'none'")
+            .img_src("'self'", "static.spam.com")
+        )
+        secure_headers = secure.Secure(csp=csp)
+```
+
+**HTTP response headers:**
+
+```HTTP
+strict-transport-security: max-age=63072000; includeSubdomains
+x-frame-options: SAMEORIGIN
+x-xss-protection: 0
+x-content-type-options: nosniff
+referrer-policy: no-referrer, strict-origin-when-cross-origin
+cache-control: no-store
+content-security-policy: default-src 'none'; base-uri 'self'; connect-src 'self' api.spam.com; frame-src 'none'; img-src 'self' static.spam.com"
+```
+
 ## Documentation
 
 Please see the full set of documentation at [https://secure.readthedocs.io](https://secure.readthedocs.io)
@@ -115,6 +145,8 @@ if __name__ == "__main__":
 
 - [kennethreitz/setup.py: 📦 A Human’s Ultimate Guide to setup.py.](https://github.com/kennethreitz/setup.py)
 - [OWASP - Secure Headers Project](https://www.owasp.org/index.php/OWASP_Secure_Headers_Project)
-- [OWASP - Session Management Cheat Sheet](https://www.owasp.org/index.php/Session_Management_Cheat_Sheet#Cookies)
 - [Mozilla Web Security](https://infosec.mozilla.org/guidelines/web_security)
 - [securityheaders.com](https://securityheaders.com)
+- [MDN Web Docs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers#security)
+- [web.dev](https://web.dev)
+- [The World Wide Web Consortium (W3C)](https://www.w3.org)
