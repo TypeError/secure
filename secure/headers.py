@@ -1,3 +1,9 @@
+# Header information and recommendations are adapted from:
+# - OWASP Secure Headers Project (https://owasp.org/www-project-secure-headers/)
+# - MDN Web Docs (https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers#security)
+# - web.dev (https://web.dev)
+# - The World Wide Web Consortium (W3C) (https://www.w3.org)
+
 import json
 from typing import Dict, List, Optional, Union
 import warnings
