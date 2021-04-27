@@ -15,9 +15,7 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath(".."))
-
-import secure
+sys.path.append(os.path.abspath("../secure"))
 
 
 # -- Project information -----------------------------------------------------
