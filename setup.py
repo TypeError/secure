@@ -4,6 +4,14 @@
 # Note: To use the 'upload' functionality of this file, you must:
 #   $ pip install twine
 
+# Credits:
+# https://github.com/kennethreitz/setup.py
+
+# Copyright <YEAR> <COPYRIGHT HOLDER>
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 import io
 import os
 import sys
@@ -19,7 +27,7 @@ DESCRIPTION = (
 URL = "https://github.com/TypeError/secure"
 EMAIL = "caleb@derail.io"
 AUTHOR = "Caleb Kinney"
-REQUIRES_PYTHON = ">=3.5"
+REQUIRES_PYTHON = ">=3.6"
 VERSION = "0.3.0"
 
 # What packages are required for this module to be executed?
@@ -113,6 +121,9 @@ setup(
     install_requires=REQUIRED,
     extras_require=EXTRAS,
     include_package_data=True,
+    package_data={
+        "secure": ["*.pyi", "py.typed"],
+    },
     license="MIT",
     classifiers=[
         # Trove classifiers
