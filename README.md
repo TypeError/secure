@@ -141,6 +141,20 @@ if __name__ == "__main__":
     uvicorn.run(app, port=8081, host="localhost")
 ```
 
+**HTTP response headers:**
+
+```HTTP
+server: Secure
+strict-transport-security: includeSubDomains; preload; max-age=2592000
+x-frame-options: SAMEORIGIN
+x-xss-protection: 0
+x-content-type-options: nosniff
+content-security-policy: default-src 'none'; base-uri 'self'; connect-src 'self'api.spam.com; frame-src 'none'; img-src 'self' static.spam.com
+referrer-policy: no-referrer
+cache-control: must-revalidate
+permissions-policy: geolocation=(self 'spam.com'), vibrate=()
+```
+
 ## Resources
 
 - [kennethreitz/setup.py: 📦 A Human’s Ultimate Guide to setup.py.](https://github.com/kennethreitz/setup.py)
