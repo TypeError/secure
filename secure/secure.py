@@ -28,6 +28,8 @@ class Secure:
     :param feature: Feature-Policy header options
     """
 
+    framework: "Framework"
+
     def __init__(
         self,
         server: Optional[Server] = None,
@@ -40,7 +42,7 @@ class Secure:
         cache: Optional[CacheControl] = CacheControl(),
         permissions: Optional[PermissionsPolicy] = None,
         report_to: Optional[ReportTo] = None,
-    ):
+    ) -> None:
         self.server = server
         self.hsts = hsts
         self.xfo = xfo
@@ -90,7 +92,7 @@ class Secure:
 
         return [header for header in headers if header is not None]
 
-    def headers(self):
+    def headers(self) -> Dict[str, str]:
         """Dictionary of secure headers
 
         :return: dictionary containing security headers
@@ -103,7 +105,7 @@ class Secure:
 
         return headers
 
-    def headers_tuple(self):
+    def headers_tuple(self) -> List[Tuple[str, str]]:
         """List of a tuple containing secure headers
 
         :return: list of tuples containing security headers
@@ -114,11 +116,11 @@ class Secure:
             headers.append((header.header, header.value))
         return headers
 
-    def _set_header_dict(self, response: Any):
+    def _set_header_dict(self, response: Any) -> None:
         for header in self._header_list():
             response.headers[header.header] = header.value
 
-    def _set_header_tuple(self, response: Any):
+    def _set_header_tuple(self, response: Any) -> None:
         for header in self._header_list():
             response.set_header(header.header, header.value)
 
@@ -130,28 +132,28 @@ class Secure:
         def __init__(self, secure: "Secure") -> None:
             self.secure = secure
 
-        def aiohttp(self, response: Any):
+        def aiohttp(self, response: Any) -> None:
             """Update Secure Headers to aiohttp response object.
 
             :param response: aiohttp response object.
             """
             self.secure._set_header_dict(response)
 
-        def bottle(self, response: Any):
+        def bottle(self, response: Any) -> None:
             """Update Secure Headers to Bottle response object.
 
             :param response: Bottle response object (bottle.response).
             """
             self.secure._set_header_dict(response)
 
-        def cherrypy(self):
+        def cherrypy(self) -> List[Tuple[str, str]]:
             """Return tuple of Secure Headers for CherryPy (tools.response_headers.headers).
 
             :return: A list with a tuple of Secure Headers.
             """
             return self.secure.headers_tuple()
 
-        def django(self, response: Any):
+        def django(self, response: Any) -> None:
             """Update Secure Headers to Django response object.
 
             :param response: Django response object (django.http.HttpResponse)
@@ -159,77 +161,77 @@ class Secure:
             for header, value in self.secure.headers().items():
                 response[header] = value
 
-        def falcon(self, response: Any):
+        def falcon(self, response: Any) -> None:
             """Update Secure Headers to Falcon response object.
 
             :param response: Falcon response object (falcon.Response)
             """
             self.secure._set_header_tuple(response)
 
-        def flask(self, response: Any):
+        def flask(self, response: Any) -> None:
             """Update Secure Headers to Flask response object.
 
             :param response: Flask response object (flask.Response)
             """
             self.secure._set_header_dict(response)
 
-        def fastapi(self, response: Any):
+        def fastapi(self, response: Any) -> None:
             """Update Secure Headers to FastAPI response object.
 
             :param response: FastAPI response object.
             """
             self.secure._set_header_dict(response)
 
-        def hug(self, response: Any):
+        def hug(self, response: Any) -> None:
             """Update Secure Headers to hug response object.
 
             :param response: hug response object
             """
             self.secure._set_header_tuple(response)
 
-        def masonite(self, request: Any):
+        def masonite(self, request: Any) -> None:
             """Update Secure Headers to Masonite request object.
 
             :param request: Masonite request object (masonite.request.Request)
             """
             request.header(self.secure.headers())
 
-        def pyramid(self, response: Any):
+        def pyramid(self, response: Any) -> None:
             """Update Secure Headers to Pyramid response object.
 
             :param response: Pyramid response object (pyramid.response).
             """
             self.secure._set_header_dict(response)
 
-        def quart(self, response: Any):
+        def quart(self, response: Any) -> None:
             """Update Secure Headers to Quart response object.
 
             :param response: Quart response object (quart.wrappers.response.Response)
             """
             self.secure._set_header_dict(response)
 
-        def responder(self, response: Any):
+        def responder(self, response: Any) -> None:
             """Update Secure Headers to Responder response object.
 
             :param response: Responder response object.
             """
             self.secure._set_header_dict(response)
 
-        def sanic(self, response: Any):
+        def sanic(self, response: Any) -> None:
             """Update Secure Headers to Sanic response object.
 
             :param response: Sanic response object (sanic.response).
             """
             self.secure._set_header_dict(response)
 
-        def starlette(self, response: Any):
+        def starlette(self, response: Any) -> None:
             """Update Secure Headers to Starlette response object.
 
             :param response: Starlette response object.
             """
             self.secure._set_header_dict(response)
 
-        def tornado(self, response: Any):
+        def tornado(self, response: Any) -> None:
             """Update Secure Headers to Tornado RequestHandler object.
 
             :param response: Tornado RequestHandler object (tornado.web.RequestHandler).
