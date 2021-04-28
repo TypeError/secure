@@ -155,7 +155,7 @@ Documentation <https://docs.djangoproject.com/en/2.1/topics/http/middleware/>`__
 FastAPI
 ------
 
-``secure_headers.framework.falcon(resp)``
+``secure_headers.framework.fastapi(resp)``
 
 .. _example-13:
 
