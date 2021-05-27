@@ -55,7 +55,7 @@ Referrer-Policy
 
 | Enable full referrer if same origin, remove path for cross origin and
   disable referrer in unsupported browsers
-| **Default Value:** ``no-referrer``
+| **Default Value:** ``no-referrer, strict-origin-when-cross-origin``
 
 Cache-control
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -67,17 +67,20 @@ Permissions-Policy
 ^^^^^^^^^^^^^^^
 
 | Disable browser features and APIs
-| **Default Value:** accelerometer=(), ambient-light-sensor=(), autoplay=(),camera=(), encrypted-media=(), fullscreen=(),geolocation=(), gyroscope=(), magnetometer=(),microphone=(); midi=(), payment=(), picture-in-picture=(), speaker=(), sync-xhr=(), usb=(), vr=()"  *(not included by default)*    
+| **Default Value:** ``accelerometer=(), ambient-light-sensor=(), autoplay=(),camera=(), encrypted-media=(), fullscreen=(),geolocation=(), gyroscope=(), magnetometer=(),microphone=(); midi=(), payment=(),picture-in-picture=(), speaker=(), sync-xhr=(), usb=(),vr=()``  *(not included by default)*    
 
 
 **Additional information:**
   - The ``Strict-Transport-Security`` (HSTS) header will tell the browser to **only** utilize secure HTTPS connections for the domain, and in the default configuration, including all subdomains. The HSTS header requires trusted certificates and users will unable to connect to the site if using self-signed or expired certificates.  The browser will honor the HSTS header for the time directed in the ``max-age`` attribute *(default = 2 years)*, and setting the ``max-age`` to ``0`` will disable an already set HSTS header. Use the ``hsts=False`` option to not include the HSTS header in Secure Headers.
-  - The ``Content-Security-Policy`` (CSP) header can break functionality and can (and should) be carefully constructed, use the ``csp=True`` option to enable default values.
+  - The ``Content-Security-Policy`` (CSP) header can break functionality and can (and should) be carefully constructed, use the ``csp=secure.ContentSecurityPolicy()`` option to enable default values.
 
 Usage
 ^^^^^^^
 
-``secure_headers.framework(response)``
+.. code:: python
+
+   secure_headers = secure.Secure()
+   secure_headers.framework.[framework](response)
 
 **Default HTTP response headers:**
 
@@ -95,38 +98,42 @@ Usage
 Options
 ^^^^^^^^
 
-You can toggle the setting of headers with default values by passing
-``True`` or ``False`` and override default values by passing a string to
+You can toggle the setting of headers with default and override default values by passing a class to
 the following options:
 
--  ``server`` - set the Server header, e.g. ``Server=“Secure”``
-   *(string / bool / SecurePolicies, default=False)*
--  ``hsts`` - set the Strict-Transport-Security header *(string / bool /
-   SecurePolicies, default=True)*
--  ``xfo`` - set the X-Frame-Options header *(string / bool /
-   SecurePolicies, default=True)*
--  ``xxp`` - set the X-XSS-Protection header *(string / bool /
-   SecurePolicies, default=True)*
--  ``content`` - set the X-Content-Type-Options header *(string / bool /
-   SecurePolicies, default=True)*
--  ``csp`` - set the Content-Security-Policy *(string / bool /
-   SecurePolicies, default=False)* \*
--  ``referrer`` - set the Referrer-Policy header *(string / bool /
-   SecurePolicies, default=True)*
--  ``cache`` - set the Cache-control and Pragma headers *(string / bool
-   / SecurePolicies, default=True)*
--  ``feature`` - set the Feature-Policy header *(SecurePolicies / string
-   / bool / SecurePolicies, default=False)*
+-  ``server`` - set the Server header, ``secure.Secure(server=secure.Server())`` *(default=False)*
+-  ``hsts`` - set the Strict-Transport-Security header ``secure.Secure(hsts=secure.StrictTransportSecurity())``  *(default=True)*
+-  ``xfo`` - set the X-Frame-Options header ``secure.Secure(xfo=secure.XFrameOptions())``  *(default=True)*
+-  ``xxp`` - set the X-XSS-Protection header ``secure.Secure(xxp=secure.XXSSProtection())``  *(default=True)*
+-  ``content`` - set the X-Content-Type-Options header  ``secure.Secure(content=secure.XContentTypeOptions())`` *(default=True)*
+-  ``csp`` - set the Content-Security-Policy  ``secure.Secure(csp=secure.ContentSecurityPolicy())`` *(default=False)* \*
+-  ``referrer`` - set the Referrer-Policy header  ``secure.Secure(referrer=secure.ReferrerPolicy())``  *(default=True)*
+-  ``cache`` - set the Cache-control header  ``secure.Secure(cache=secure.CacheControl())`` *(default=True)*
+-  ``permissions`` - set the Permissions-Policy header  ``secure.Secure(permissions=secure.PermissionsPolicy())``  *(default=False)*
 
 **Example:**
 
 .. code:: python
 
-   from secure import SecureHeaders
+   import secure
 
-   secure_headers = SecureHeaders(csp=True, hsts=False, xfo="DENY")
+   csp = secure.ContentSecurityPolicy()
+   xfo = secure.XFrameOptions().deny()
+
+   secure_headers = secure.Secure(csp=csp, hsts=None, xfo=xfo)
 
    . . . 
 
-   secure_headers.framework(response)
+   secure_headers.framework.[framework](response)
+
    
+   **HTTP response headers:**
+
+.. code:: http
+
+   x-frame-options: deny
+   x-xss-protection: 0
+   x-content-type-options: nosniff
+   content-security-policy: script-src 'self'; object-src 'self'
+   referrer-policy: no-referrer, strict-origin-when-cross-origin
+   cache-control: no-store
