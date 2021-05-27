@@ -127,7 +127,7 @@ the following options:
    secure_headers.framework.[framework](response)
 
    
-   **HTTP response headers:**
+**HTTP response headers:**
 
 .. code:: http
 

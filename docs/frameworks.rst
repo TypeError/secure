@@ -16,8 +16,9 @@ Framework Agnostic
 
     csp = secure.ContentSecurityPolicy()
     secure_headers = secure.Secure(csp=csp)
+    print(secure_headers.headers())
 
-**Return Value:**
+**Printed Value:**
 
 ``{'Strict-Transport-Security': 'max-age=63072000; includeSubdomains', 'X-Frame-Options': 'SAMEORIGIN', 'X-XSS-Protection': '0', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "script-src 'self'; object-src 'self'", 'Referrer-Policy': 'no-referrer, strict-origin-when-cross-origin', 'Cache-Control': 'no-store'}``
 
