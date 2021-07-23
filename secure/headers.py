@@ -325,6 +325,20 @@ class ContentSecurityPolicy:
         self._build("object-src", *sources)
         return self
 
+    def prefetch_src(self, *sources: str) -> "ContentSecurityPolicy":
+        """Set valid resources that may prefetched or prerendered
+
+        Resouces:
+        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/prefetch-src
+
+        :param sources: variable number of sources
+        :type sources: str
+        :return: ContentSecurityPolicy class
+        :rtype: ContentSecurityPolicy
+        """
+        self._build("prefetch-src", *sources)
+        return self
+
     def report_to(self, report_to: ReportTo) -> "ContentSecurityPolicy":
         """Configure reporting endpoints
 
