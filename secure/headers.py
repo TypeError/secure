@@ -339,6 +339,25 @@ class ContentSecurityPolicy:
         self._build("report-to", report_to.value)
         return self
 
+    def report_uri(self, *values: str) -> "ContentSecurityPolicy":
+        """Configure reporting endpoints in an older format
+
+        **Deprecated**
+        This header has been deprecated in favor of report-to.
+        However, as it is not yet supported in most browsers, it is recommended to set both headers.
+        Browsers that support report-to will ignore report-uri if both headers are set.
+
+        Resouces:
+        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/report-uri
+
+        :param values: variable number of URIs
+        :type values: str
+        :return: ContentSecurityPolicy class
+        :rtype: ContentSecurityPolicy
+        """
+        self._build("report-uri", *values)
+        return self
+
     def sandbox(self, *values: str) -> "ContentSecurityPolicy":
         """Enables sandbox restrictions
 
@@ -466,7 +485,7 @@ class XXSSProtection:
     """
     Enable browser Cross-Site Scripting filters
 
-    **Depreciated**
+    **Deprecated**
 
     Recommended to utilize `Content-Security-Policy`
     instead of the legacy `X-XSS-Protection` header.
