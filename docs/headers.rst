@@ -66,8 +66,8 @@ Cache-control
 Permissions-Policy
 ^^^^^^^^^^^^^^^
 
-| Disable browser features and APIs
-| **Default Value:** ``accelerometer=(), ambient-light-sensor=(), autoplay=(),camera=(), encrypted-media=(), fullscreen=(),geolocation=(), gyroscope=(), magnetometer=(),microphone=(); midi=(), payment=(),picture-in-picture=(), speaker=(), sync-xhr=(), usb=(),vr=()``  *(not included by default)*    
+| Limit browser features and APIs to specific origins. Empty list means that a feature is disabled.
+| **Default Value:** ``accelerometer=(), ambient-light-sensor=(), autoplay=(), battery=(), camera=(), clipboard-read=(), clipboard-write=(), cross-origin-isolated=(), display-capture=(), document-domain=(), encrypted-media=(), execution-while-not-rendered=(), execution-while-out-of-viewport=(), fullscreen=(), gamepad=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), navigation-override=(), payment=(), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), speaker=(), speaker-selection=(), sync-xhr=(), usb=(), web-share=(), xr-spatial-tracking=()``  *(not included by default)*    
 
 
 **Additional information:**
