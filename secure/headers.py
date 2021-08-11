@@ -325,6 +325,20 @@ class ContentSecurityPolicy:
         self._build("object-src", *sources)
         return self
 
+    def prefetch_src(self, *sources: str) -> "ContentSecurityPolicy":
+        """Set valid resources that may prefetched or prerendered
+
+        Resouces:
+        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/prefetch-src
+
+        :param sources: variable number of sources
+        :type sources: str
+        :return: ContentSecurityPolicy class
+        :rtype: ContentSecurityPolicy
+        """
+        self._build("prefetch-src", *sources)
+        return self
+
     def report_to(self, report_to: ReportTo) -> "ContentSecurityPolicy":
         """Configure reporting endpoints
 
@@ -786,12 +800,15 @@ class PermissionsPolicy:
         self.__policy: List[str] = []
         self.header = "Permissions-Policy"
         self.value = (
-            "accelerometer=(), ambient-light-sensor=(), autoplay=(),"
-            "camera=(), encrypted-media=(), fullscreen=(),"
-            "geolocation=(), gyroscope=(), magnetometer=(),"
-            "microphone=(); midi=(), payment=(),"
-            "picture-in-picture=(), speaker=(), sync-xhr=(), usb=(),"
-            "vr=()"
+            "accelerometer=(), ambient-light-sensor=(), autoplay=(), battery=(), "
+            "camera=(), clipboard-read=(), clipboard-write=(), cross-origin-isolated=(), "
+            "display-capture=(), document-domain=(), encrypted-media=(), "
+            "execution-while-not-rendered=(), execution-while-out-of-viewport=(), "
+            "fullscreen=(), gamepad=(), geolocation=(), gyroscope=(), magnetometer=(), "
+            "microphone=(), midi=(), navigation-override=(), payment=(), "
+            "picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), "
+            "speaker-selection=(), sync-xhr=(), usb=(), web-share=(), "
+            "xr-spatial-tracking=()"
         )
 
     def _build(self, directive: str, *sources: str) -> None:
@@ -807,15 +824,35 @@ class PermissionsPolicy:
         return self
 
     def ambient_light_sensor(self, *allowlist: str) -> "PermissionsPolicy":
-        self._build("ambient-light-sensor ", *allowlist)
+        self._build("ambient-light-sensor", *allowlist)
         return self
 
     def autoplay(self, *allowlist: str) -> "PermissionsPolicy":
         self._build("autoplay", *allowlist)
         return self
 
+    def battery(self, *allowlist: str) -> "PermissionsPolicy":
+        self._build("battery", *allowlist)
+        return self
+
     def camera(self, *allowlist: str) -> "PermissionsPolicy":
         self._build("camera", *allowlist)
+        return self
+
+    def clipboard_read(self, *allowlist: str) -> "PermissionsPolicy":
+        self._build("clipboard-read", *allowlist)
+        return self
+
+    def clipboard_write(self, *allowlist: str) -> "PermissionsPolicy":
+        self._build("clipboard-write", *allowlist)
+        return self
+
+    def cross_origin_isolated(self, *allowlist: str) -> "PermissionsPolicy":
+        self._build("cross-origin-isolated", *allowlist)
+        return self
+
+    def display_capture(self, *allowlist: str) -> "PermissionsPolicy":
+        self._build("display-capture", *allowlist)
         return self
 
     def document_domain(self, *allowlist: str) -> "PermissionsPolicy":
@@ -826,8 +863,20 @@ class PermissionsPolicy:
         self._build("encrypted-media", *allowlist)
         return self
 
+    def execution_while_not_rendered(self, *allowlist: str) -> "PermissionsPolicy":
+        self._build("execution-while-not-rendered", *allowlist)
+        return self
+
+    def execution_while_out_of_viewport(self, *allowlist: str) -> "PermissionsPolicy":
+        self._build("execution-while-out-of-viewport", *allowlist)
+        return self
+
     def fullscreen(self, *allowlist: str) -> "PermissionsPolicy":
         self._build("fullscreen", *allowlist)
+        return self
+
+    def gamepad(self, *allowlist: str) -> "PermissionsPolicy":
+        self._build("gamepad", *allowlist)
         return self
 
     def geolocation(self, *allowlist: str) -> "PermissionsPolicy":
@@ -850,6 +899,10 @@ class PermissionsPolicy:
         self._build("midi", *allowlist)
         return self
 
+    def navigation_override(self, *allowlist: str) -> "PermissionsPolicy":
+        self._build("navigation-override", *allowlist)
+        return self
+
     def payment(self, *allowlist: str) -> "PermissionsPolicy":
         self._build("payment", *allowlist)
         return self
@@ -858,8 +911,24 @@ class PermissionsPolicy:
         self._build("picture-in-picture", *allowlist)
         return self
 
+    def publickey_credentials_get(self, *allowlist: str) -> "PermissionsPolicy":
+        self._build("publickey-credentials-get", *allowlist)
+        return self
+
+    def screen_wake_lock(self, *allowlist: str) -> "PermissionsPolicy":
+        self._build("screen-wake-lock", *allowlist)
+        return self
+
     def speaker(self, *allowlist: str) -> "PermissionsPolicy":
+        warnings.warn(
+            "'speaker' feature was removed in favor of 'speaker_selection'",
+            DeprecationWarning,
+        )
         self._build("speaker", *allowlist)
+        return self
+
+    def speaker_selection(self, *allowlist: str) -> "PermissionsPolicy":
+        self._build("speaker-selection", *allowlist)
         return self
 
     def sync_xhr(self, *allowlist: str) -> "PermissionsPolicy":
@@ -870,10 +939,24 @@ class PermissionsPolicy:
         self._build("usb", *allowlist)
         return self
 
+    def web_share(self, *allowlist: str) -> "PermissionsPolicy":
+        self._build("web-share", *allowlist)
+        return self
+
     def vibrate(self, *allowlist: str) -> "PermissionsPolicy":
-        self._build("vibrate", *allowlist)
+        warnings.warn(
+            "'vibrate' feature has been removed without ever actually having been implemented",
+            DeprecationWarning,
+        )
         return self
 
     def vr(self, *allowlist: str) -> "PermissionsPolicy":
+        warnings.warn(
+            "'vr' feature was renamed to 'xr_spatial_tracking'", DeprecationWarning
+        )
         self._build("vr", *allowlist)
+        return self
+
+    def xr_spatial_tracking(self, *allowlist: str) -> "PermissionsPolicy":
+        self._build("xr-spatial-tracking", *allowlist)
         return self

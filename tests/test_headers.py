@@ -82,12 +82,12 @@ class TestReferrerHeader(unittest.TestCase):
 class TestPermissionsHeader(unittest.TestCase):
     def test_header(self):
         permissions = (
-            secure.PermissionsPolicy().geolocation("self", '"spam.com"').vibrate()
+            secure.PermissionsPolicy().geolocation("self", '"spam.com"').fullscreen()
         )
         secure_headers = secure.Secure(permissions=permissions).headers()
         self.assertEqual(
             secure_headers["Permissions-Policy"],
-            'geolocation=(self "spam.com"), vibrate=()',
+            'geolocation=(self "spam.com"), fullscreen=()',
         )
 
 
