@@ -444,12 +444,15 @@ class ContentSecurityPolicy:
     def nonce(value: str) -> str:
         """Creates a nonce format
 
+        Resources:
+        https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/nonce
+
         :param value: nounce value
         :type value: str
         :return: ContentSecurityPolicy class
         :rtype: ContentSecurityPolicy
         """
-        value = "'nonce-<{}>'".format(value)
+        value = "'nonce-{}'".format(value)
         return value
 
 
