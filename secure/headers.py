@@ -993,7 +993,7 @@ class ClearSiteData:
         self._build("Cookies")
         return self
 
-    def clear_executionContext(self) -> "ClearSiteData":
+    def clear_execution_context(self) -> "ClearSiteData":
         self._build("executionContexts")
         return self
 
