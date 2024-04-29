@@ -452,7 +452,7 @@ class ContentSecurityPolicy:
         :return: ContentSecurityPolicy class
         :rtype: ContentSecurityPolicy
         """
-        value = "'nonce-{}'".format(value)
+        value = f"'nonce-{value}'"
         return value
 
 
@@ -683,7 +683,7 @@ class StrictTransportSecurity:
         :return: StrictTransportSecurity class
         :rtype: StrictTransportSecurity
         """
-        self._build("max-age={}".format(seconds))
+        self._build(f"max-age={seconds}")
         return self
 
     def preload(self) -> "StrictTransportSecurity":
@@ -732,15 +732,15 @@ class CacheControl:
         return self
 
     def max_age(self, seconds: int) -> "CacheControl":
-        self._build("max-age={}".format(seconds))
+        self._build(f"max-age={seconds}")
         return self
 
     def max_stale(self, seconds: int) -> "CacheControl":
-        self._build("max-stale={}".format(seconds))
+        self._build(f"max-stale={seconds}")
         return self
 
     def min_fresh(self, seconds: int) -> "CacheControl":
-        self._build("min-fresh={}".format(seconds))
+        self._build(f"min-fresh={seconds}")
         return self
 
     def must_revalidate(self) -> "CacheControl":
@@ -776,15 +776,15 @@ class CacheControl:
         return self
 
     def s_maxage(self, seconds: int) -> "CacheControl":
-        self._build("s-maxage={}".format(seconds))
+        self._build(f"s-maxage={seconds}")
         return self
 
     def stale_if_error(self, seconds: int) -> "CacheControl":
-        self._build("stale-if-error={}".format(seconds))
+        self._build(f"stale-if-error={seconds}")
         return self
 
     def stale_while_revalidate(self, seconds: int) -> "CacheControl":
-        self._build("stale-while-revalidate={}".format(seconds))
+        self._build(f"stale-while-revalidate={seconds}")
         return self
 
 
