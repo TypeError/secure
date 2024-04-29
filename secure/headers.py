@@ -946,7 +946,7 @@ class PermissionsPolicy:
         self._build("web-share", *allowlist)
         return self
 
-    def vibrate(self, *allowlist: str) -> "PermissionsPolicy":
+    def vibrate(self) -> "PermissionsPolicy":
         warnings.warn(
             "'vibrate' feature has been removed without ever actually having been implemented",
             DeprecationWarning,
