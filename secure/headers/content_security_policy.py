@@ -1,5 +1,7 @@
 from typing import List
 
+from secure.headers.report_to import ReportTo
+
 
 class ContentSecurityPolicy:
     """
