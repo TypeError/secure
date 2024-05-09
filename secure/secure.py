@@ -16,7 +16,6 @@ from .headers import (
     strict_transport_security,
     x_content_type_options,
     x_frame_options,
-    x_xss_protection,
 )
 
 
@@ -26,12 +25,10 @@ class Secure:
     :param server: Server header options
     :param hsts: Strict-Transport-Security (HSTS) header options
     :param xfo: X-Frame-Options (XFO) header options
-    :param xxp: X-XSS-Protection (XXP) header options
     :param content: X-Content-Type-Options header options
     :param csp: Content-Security-Policy (CSP) header options
     :param referrer: Referrer-Policy header options
     :param cache: Cache-control, Pragma and Expires headers options
-    :param feature: Feature-Policy header options
     """
 
     framework: "Framework"
@@ -43,9 +40,6 @@ class Secure:
             strict_transport_security.StrictTransportSecurity
         ] = strict_transport_security.StrictTransportSecurity(),
         xfo: Optional[x_frame_options.XFrameOptions] = x_frame_options.XFrameOptions(),
-        xxp: Optional[
-            x_xss_protection.XXSSProtection
-        ] = x_xss_protection.XXSSProtection(),
         content: Optional[
             x_content_type_options.XContentTypeOptions
         ] = x_content_type_options.XContentTypeOptions(),
@@ -60,7 +54,6 @@ class Secure:
         self.server = server
         self.hsts = hsts
         self.xfo = xfo
-        self.xxp = xxp
         self.content = content
         self.csp = csp
         self.referrer = referrer
@@ -88,14 +81,12 @@ class Secure:
             strict_transport_security.StrictTransportSecurity,
             x_content_type_options.XContentTypeOptions,
             x_frame_options.XFrameOptions,
-            x_xss_protection.XXSSProtection,
         ]
     ]:
         headers = [
             self.server,
             self.hsts,
             self.xfo,
-            self.xxp,
             self.content,
             self.csp,
             self.referrer,
