@@ -122,10 +122,14 @@ class Secure:
         return headers
 
     def _set_header_dict(self, response: Any) -> None:
+        """Function to set (dict) secure headers to response object."""
+
         for header in self._header_list():
             response.headers[header.header] = header.value
 
     def _set_header_tuple(self, response: Any) -> None:
+        """Function to set (tuple) secure headers to response object."""
+
         for header in self._header_list():
             response.set_header(header.header, header.value)
 
