@@ -98,9 +98,9 @@ class ContentSecurityPolicy:
         return self
 
     def default_src(self, *sources: str) -> "ContentSecurityPolicy":
-        """Sets fallback valid orgins for other directives
+        """Sets fallback valid origins for other directives
 
-        Resouces:
+        Resources:
         https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/default-src
 
         :param sources: variable number of sources
@@ -114,7 +114,7 @@ class ContentSecurityPolicy:
     def font_src(self, *sources: str) -> "ContentSecurityPolicy":
         """Set valid origins for `@font-face`
 
-        Resouces:
+        Resources:
         https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/font-src
 
         :param sources: variable number of sources
@@ -128,7 +128,7 @@ class ContentSecurityPolicy:
     def form_action(self, *sources: str) -> "ContentSecurityPolicy":
         """Set valid origins for form submissions
 
-        Resouces:
+        Resources:
         https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/form-action
 
         :param sources: variable number of sources
@@ -142,7 +142,7 @@ class ContentSecurityPolicy:
     def frame_ancestors(self, *sources: str) -> "ContentSecurityPolicy":
         """Set valid origins that can embed the resource
 
-        Resouces:
+        Resources:
         https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/frame-ancestors
 
         :param sources: variable number of sources
@@ -156,7 +156,7 @@ class ContentSecurityPolicy:
     def frame_src(self, *sources: str) -> "ContentSecurityPolicy":
         """Set valid origins for frames
 
-        Resouces:
+        Resources:
         https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/frame-src
 
         :param sources: variable number of sources
@@ -170,7 +170,7 @@ class ContentSecurityPolicy:
     def img_src(self, *sources: str) -> "ContentSecurityPolicy":
         """Set valid origins for images
 
-        Resouces:
+        Resources:
         https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/img-src
 
         :param sources: variable number of sources
@@ -184,7 +184,7 @@ class ContentSecurityPolicy:
     def manifest_src(self, *sources: str) -> "ContentSecurityPolicy":
         """Set valid origins for manifest files
 
-        Resouces:
+        Resources:
         https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/manifest-src
 
         :param sources: variable number of sources
@@ -198,7 +198,7 @@ class ContentSecurityPolicy:
     def media_src(self, *sources: str) -> "ContentSecurityPolicy":
         """Set valid origins for media
 
-        Resouces:
+        Resources:
         https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/media-src
 
         :param sources: variable number of sources
@@ -212,7 +212,7 @@ class ContentSecurityPolicy:
     def object_src(self, *sources: str) -> "ContentSecurityPolicy":
         """Set valid origins for plugins
 
-        Resouces:
+        Resources:
         https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/object-src
 
         :param sources: variable number of sources
@@ -224,9 +224,9 @@ class ContentSecurityPolicy:
         return self
 
     def prefetch_src(self, *sources: str) -> "ContentSecurityPolicy":
-        """Set valid resources that may prefetched or prerendered
+        """Set valid resources that may be prefetched or prerendered
 
-        Resouces:
+        Resources:
         https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/prefetch-src
 
         :param sources: variable number of sources
@@ -240,7 +240,7 @@ class ContentSecurityPolicy:
     def report_to(self, report_to: ReportTo) -> "ContentSecurityPolicy":
         """Configure reporting endpoints
 
-        Resouces:
+        Resources:
         https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/report-to
 
         :param report_to: ReportTo class
@@ -259,7 +259,7 @@ class ContentSecurityPolicy:
         However, as it is not yet supported in most browsers, it is recommended to set both headers.
         Browsers that support report-to will ignore report-uri if both headers are set.
 
-        Resouces:
+        Resources:
         https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/report-uri
 
         :param values: variable number of URIs
@@ -273,7 +273,7 @@ class ContentSecurityPolicy:
     def sandbox(self, *values: str) -> "ContentSecurityPolicy":
         """Enables sandbox restrictions
 
-        Resouces:
+        Resources:
         https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/sandbox
 
         :param values: variable number of types
@@ -287,7 +287,7 @@ class ContentSecurityPolicy:
     def script_src(self, *sources: str) -> "ContentSecurityPolicy":
         """Set valid origins for JavaScript
 
-        Resouces:
+        Resources:
         https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src
 
         :param sources: variable number of types
@@ -301,7 +301,7 @@ class ContentSecurityPolicy:
     def style_src(self, *sources: str) -> "ContentSecurityPolicy":
         """Set valid origins for styles
 
-        Resouces:
+        Resources:
         https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/style-src
 
         :param sources: variable number of types
@@ -315,7 +315,7 @@ class ContentSecurityPolicy:
     def upgrade_insecure_requests(self) -> "ContentSecurityPolicy":
         """Upgrade HTTP URLs to HTTPS
 
-        Resouces:
+        Resources:
         https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/upgrade-insecure-requests
 
         :return: ContentSecurityPolicy class
@@ -327,7 +327,7 @@ class ContentSecurityPolicy:
     def worker_src(self, *sources: str) -> "ContentSecurityPolicy":
         """Set valid origins for worker scripts
 
-        Resouces:
+        Resources:
         https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/worker-src
 
         :param sources: variable number of types
@@ -345,7 +345,7 @@ class ContentSecurityPolicy:
         Resources:
         https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/nonce
 
-        :param value: nounce value
+        :param value: nonce value
         :type value: str
         :return: ContentSecurityPolicy class
         :rtype: ContentSecurityPolicy
