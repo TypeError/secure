@@ -53,7 +53,7 @@ class TestHeaders(unittest.TestCase):
 class TestHStSHeader(unittest.TestCase):
     def test_header(self):
         hsts = (
-            secure.StrictTransportSecurity()
+            secure.strict_transport_security()
             .include_subdomains()
             .preload()
             .max_age(2592000)
@@ -67,14 +67,14 @@ class TestHStSHeader(unittest.TestCase):
 
 class TestXFOHeader(unittest.TestCase):
     def test_header(self):
-        xfo = secure.XFrameOptions().deny()
+        xfo = secure.x_frame_options().deny()
         secure_headers = secure.Secure(xfo=xfo).headers()
         self.assertEqual(secure_headers["X-Frame-Options"], "deny")
 
 
 class TestReferrerHeader(unittest.TestCase):
     def test_header(self):
-        referrer = secure.ReferrerPolicy().strict_origin()
+        referrer = secure.referrer_policy().strict_origin()
         secure_headers = secure.Secure(referrer=referrer).headers()
         self.assertEqual(secure_headers["Referrer-Policy"], "strict-origin")
 

@@ -1,11 +1,11 @@
-from secure.headers import CacheControl as CacheControl
-from secure.headers import ContentSecurityPolicy as ContentSecurityPolicy
-from secure.headers import PermissionsPolicy as PermissionsPolicy
-from secure.headers import ReferrerPolicy as ReferrerPolicy
-from secure.headers import ReportTo as ReportTo
-from secure.headers import Server as Server
-from secure.headers import StrictTransportSecurity as StrictTransportSecurity
-from secure.headers import XContentTypeOptions as XContentTypeOptions
-from secure.headers import XFrameOptions as XFrameOptions
-from secure.headers import XXSSProtection as XXSSProtection
+from secure.headers.cache_control import CacheControl
+from secure.headers.content_security_policy import ContentSecurityPolicy
+from secure.headers.permissions_policy import PermissionsPolicy
+from secure.headers import referrer_policy as referrer_policy
+from secure.headers import report_to as report_to
+from secure.headers import server as server
+from secure.headers import strict_transport_security as strict_transport_security
+from secure.headers import x_content_type_options as x_content_type_options
+from secure.headers import x_frame_options as x_frame_options
+from secure.headers import x_xss_protection as x_xss_protection
 from secure.secure import Secure as Secure
