@@ -47,7 +47,7 @@ class Secure:
         referrer: Optional[
             referrer_policy.ReferrerPolicy
         ] = referrer_policy.ReferrerPolicy(),
-        cache: Optional[cache_control.CacheControl] = cache_control.CacheControl(),
+        cache: Optional[cache_control.CacheControl] = None,
         permissions: Optional[permissions_policy.PermissionsPolicy] = None,
         report_to: Optional[report_to.ReportTo] = None,
     ) -> None:
