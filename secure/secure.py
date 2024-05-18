@@ -16,6 +16,8 @@ from .headers import (
     strict_transport_security,
     x_content_type_options,
     x_frame_options,
+    cross_origin_opener_policy,
+    cross_origin_embedder_policy,
 )
 
 
@@ -29,6 +31,8 @@ class Secure:
     :param csp: Content-Security-Policy (CSP) header options
     :param referrer: Referrer-Policy header options
     :param cache: Cache-control, Pragma and Expires headers options
+    :param coop: Cross-Origin-Opener-Policy header options
+    :param coep: Cross-Origin-Embedder-Policy header options
     """
 
     framework: "Framework"
@@ -50,6 +54,10 @@ class Secure:
         cache: Optional[cache_control.CacheControl] = None,
         permissions: Optional[permissions_policy.PermissionsPolicy] = None,
         report_to: Optional[report_to.ReportTo] = None,
+        coop: Optional[
+            cross_origin_opener_policy
+        ] = cross_origin_opener_policy.CrossOriginOpenerPolicy(),
+        ceop: Optional[cross_origin_embedder_policy] = None,
     ) -> None:
         self.server = server
         self.hsts = hsts
@@ -60,6 +68,8 @@ class Secure:
         self.cache = cache
         self.permissions = permissions
         self.report_to = report_to
+        self.coop = coop
+        self.ceop = ceop
 
         self.framework = self.Framework(self)
 
