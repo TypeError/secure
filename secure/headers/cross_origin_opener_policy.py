@@ -2,7 +2,7 @@
 # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Opener-Policy
 # https://owasp.org/www-project-secure-headers/#cross-origin-opener-policy
 #
-# Attributions and copyright licensing by Mozilla Contributors is licensed under CC-BY-SA 2.5.
+# Cross-Origin-Opener-Policy by Mozilla Contributors is licensed under CC-BY-SA 2.5.
 # https://developer.mozilla.org/en-US/docs/MDN/Community/Roles_teams#contributor
 # https://creativecommons.org/licenses/by-sa/2.5/
 

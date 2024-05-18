@@ -2,7 +2,7 @@
 # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Embedder-Policy
 # https://owasp.org/www-project-secure-headers/#cross-origin-embedder-policy
 #
-# Attributions and copyright licensing by Mozilla Contributors is licensed under CC-BY-SA 2.5.
+# Cross-Origin-Embedder-Policy by Mozilla Contributors is licensed under CC-BY-SA 2.5.
 # https://developer.mozilla.org/en-US/docs/MDN/Community/Roles_teams#contributor
 # https://creativecommons.org/licenses/by-sa/2.5/
 
