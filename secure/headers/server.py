@@ -1,11 +1,18 @@
-class Server:
+from __future__ import annotations  # type: ignore
+
+from dataclasses import dataclass
+
+from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderName
+
+
+@dataclass
+class Server(BaseHeader):
     """Replace server header"""
 
-    def __init__(self) -> None:
-        self.header = "Server"
-        self.value = "NULL"
+    header_name: str = HeaderName.SERVER.value
+    header_value: str = HeaderDefaultValue.SERVER.value
 
-    def set(self, value: str) -> "Server":
+    def set(self, value: str) -> Server:
         """Set custom value for `Server` header
 
         :param value: custom header value
@@ -13,5 +20,5 @@ class Server:
         :return: Server class
         :rtype: Server
         """
-        self.value = value
+        self.header_value = value
         return self

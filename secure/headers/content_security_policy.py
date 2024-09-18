@@ -1,9 +1,13 @@
-from typing import List
+from __future__ import annotations  # type: ignore
 
+from dataclasses import dataclass, field
+
+from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderName
 from secure.headers.report_to import ReportTo
 
 
-class ContentSecurityPolicy:
+@dataclass
+class ContentSecurityPolicy(BaseHeader):
     """
     Prevent Cross-site injections
 
@@ -13,19 +17,18 @@ class ContentSecurityPolicy:
 
     """
 
-    def __init__(self) -> None:
-        self.__policy: List[str] = []
-        self.header = "Content-Security-Policy"
-        self.value = "script-src 'self'; object-src 'self'"
+    _policy: list[str] = field(default_factory=list)
+    header_name: str = HeaderName.CONTENT_SECURITY_POLICY.value
+    header_value: str = HeaderDefaultValue.CONTENT_SECURITY_POLICY.value
 
     def _build(self, directive: str, *sources: str) -> None:
         if len(sources) == 0:
-            self.__policy.append(directive)
+            self._policy.append(directive)
         else:
-            self.__policy.append(f"{directive} {' '.join(sources)}")
-        self.value = "; ".join(self.__policy)
+            self._policy.append(f"{directive} {' '.join(sources)}")
+        self.header_value = "; ".join(self._policy)
 
-    def set(self, value: str) -> "ContentSecurityPolicy":
+    def set(self, value: str) -> ContentSecurityPolicy:
         """Set custom value for `Content-Security-Policy` header
 
         :param value: custom header value
@@ -36,9 +39,7 @@ class ContentSecurityPolicy:
         self._build(value)
         return self
 
-    def custom_directive(
-        self, directive: str, *sources: str
-    ) -> "ContentSecurityPolicy":
+    def custom_directive(self, directive: str, *sources: str) -> ContentSecurityPolicy:
         """Set custom directive and sources
 
         :param directive: custom directive
@@ -53,9 +54,9 @@ class ContentSecurityPolicy:
 
     def report_only(self) -> None:
         """Set Content-Security-Policy header to Content-Security-Policy-Report-Only"""
-        self.header = "Content-Security-Policy-Report-Only"
+        self.header_name = HeaderName.CONTENT_SECURITY_POLICY_REPORT_ONLY.value
 
-    def base_uri(self, *sources: str) -> "ContentSecurityPolicy":
+    def base_uri(self, *sources: str) -> ContentSecurityPolicy:
         """Sets valid origins for `<base>`
 
         Resources:
@@ -69,7 +70,7 @@ class ContentSecurityPolicy:
         self._build("base-uri", *sources)
         return self
 
-    def child_src(self, *sources: str) -> "ContentSecurityPolicy":
+    def child_src(self, *sources: str) -> ContentSecurityPolicy:
         """Sets valid origins for web workers
 
         Resources:
@@ -83,7 +84,7 @@ class ContentSecurityPolicy:
         self._build("child-src", *sources)
         return self
 
-    def connect_src(self, *sources: str) -> "ContentSecurityPolicy":
+    def connect_src(self, *sources: str) -> ContentSecurityPolicy:
         """Sets valid origins for script interfaces
 
         Resources:
@@ -97,7 +98,7 @@ class ContentSecurityPolicy:
         self._build("connect-src", *sources)
         return self
 
-    def default_src(self, *sources: str) -> "ContentSecurityPolicy":
+    def default_src(self, *sources: str) -> ContentSecurityPolicy:
         """Sets fallback valid origins for other directives
 
         Resources:
@@ -111,7 +112,7 @@ class ContentSecurityPolicy:
         self._build("default-src", *sources)
         return self
 
-    def font_src(self, *sources: str) -> "ContentSecurityPolicy":
+    def font_src(self, *sources: str) -> ContentSecurityPolicy:
         """Set valid origins for `@font-face`
 
         Resources:
@@ -125,7 +126,7 @@ class ContentSecurityPolicy:
         self._build("font-src", *sources)
         return self
 
-    def form_action(self, *sources: str) -> "ContentSecurityPolicy":
+    def form_action(self, *sources: str) -> ContentSecurityPolicy:
         """Set valid origins for form submissions
 
         Resources:
@@ -139,7 +140,7 @@ class ContentSecurityPolicy:
         self._build("form-action", *sources)
         return self
 
-    def frame_ancestors(self, *sources: str) -> "ContentSecurityPolicy":
+    def frame_ancestors(self, *sources: str) -> ContentSecurityPolicy:
         """Set valid origins that can embed the resource
 
         Resources:
@@ -153,7 +154,7 @@ class ContentSecurityPolicy:
         self._build("frame-ancestors", *sources)
         return self
 
-    def frame_src(self, *sources: str) -> "ContentSecurityPolicy":
+    def frame_src(self, *sources: str) -> ContentSecurityPolicy:
         """Set valid origins for frames
 
         Resources:
@@ -167,7 +168,7 @@ class ContentSecurityPolicy:
         self._build("frame-src", *sources)
         return self
 
-    def img_src(self, *sources: str) -> "ContentSecurityPolicy":
+    def img_src(self, *sources: str) -> ContentSecurityPolicy:
         """Set valid origins for images
 
         Resources:
@@ -181,7 +182,7 @@ class ContentSecurityPolicy:
         self._build("img-src", *sources)
         return self
 
-    def manifest_src(self, *sources: str) -> "ContentSecurityPolicy":
+    def manifest_src(self, *sources: str) -> ContentSecurityPolicy:
         """Set valid origins for manifest files
 
         Resources:
@@ -195,7 +196,7 @@ class ContentSecurityPolicy:
         self._build("manifest-src", *sources)
         return self
 
-    def media_src(self, *sources: str) -> "ContentSecurityPolicy":
+    def media_src(self, *sources: str) -> ContentSecurityPolicy:
         """Set valid origins for media
 
         Resources:
@@ -209,7 +210,7 @@ class ContentSecurityPolicy:
         self._build("media-src", *sources)
         return self
 
-    def object_src(self, *sources: str) -> "ContentSecurityPolicy":
+    def object_src(self, *sources: str) -> ContentSecurityPolicy:
         """Set valid origins for plugins
 
         Resources:
@@ -223,7 +224,7 @@ class ContentSecurityPolicy:
         self._build("object-src", *sources)
         return self
 
-    def prefetch_src(self, *sources: str) -> "ContentSecurityPolicy":
+    def prefetch_src(self, *sources: str) -> ContentSecurityPolicy:
         """Set valid resources that may be prefetched or prerendered
 
         Resources:
@@ -237,7 +238,7 @@ class ContentSecurityPolicy:
         self._build("prefetch-src", *sources)
         return self
 
-    def report_to(self, report_to: ReportTo) -> "ContentSecurityPolicy":
+    def report_to(self, report_to: ReportTo) -> ContentSecurityPolicy:
         """Configure reporting endpoints
 
         Resources:
@@ -251,7 +252,7 @@ class ContentSecurityPolicy:
         self._build("report-to", report_to.value)
         return self
 
-    def report_uri(self, *values: str) -> "ContentSecurityPolicy":
+    def report_uri(self, *values: str) -> ContentSecurityPolicy:
         """Configure reporting endpoints in an older format
 
         **Deprecated**
@@ -270,7 +271,7 @@ class ContentSecurityPolicy:
         self._build("report-uri", *values)
         return self
 
-    def sandbox(self, *values: str) -> "ContentSecurityPolicy":
+    def sandbox(self, *values: str) -> ContentSecurityPolicy:
         """Enables sandbox restrictions
 
         Resources:
@@ -284,7 +285,7 @@ class ContentSecurityPolicy:
         self._build("sandbox", *values)
         return self
 
-    def script_src(self, *sources: str) -> "ContentSecurityPolicy":
+    def script_src(self, *sources: str) -> ContentSecurityPolicy:
         """Set valid origins for JavaScript
 
         Resources:
@@ -298,7 +299,7 @@ class ContentSecurityPolicy:
         self._build("script-src", *sources)
         return self
 
-    def style_src(self, *sources: str) -> "ContentSecurityPolicy":
+    def style_src(self, *sources: str) -> ContentSecurityPolicy:
         """Set valid origins for styles
 
         Resources:
@@ -312,7 +313,7 @@ class ContentSecurityPolicy:
         self._build("style-src", *sources)
         return self
 
-    def upgrade_insecure_requests(self) -> "ContentSecurityPolicy":
+    def upgrade_insecure_requests(self) -> ContentSecurityPolicy:
         """Upgrade HTTP URLs to HTTPS
 
         Resources:
@@ -324,7 +325,7 @@ class ContentSecurityPolicy:
         self._build("upgrade-insecure-requests")
         return self
 
-    def worker_src(self, *sources: str) -> "ContentSecurityPolicy":
+    def worker_src(self, *sources: str) -> ContentSecurityPolicy:
         """Set valid origins for worker scripts
 
         Resources:

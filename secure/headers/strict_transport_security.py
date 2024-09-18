@@ -1,7 +1,12 @@
-from typing import List
+from __future__ import annotations  # type: ignore
+
+from dataclasses import dataclass, field
+
+from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderName
 
 
-class StrictTransportSecurity:
+@dataclass
+class StrictTransportSecurity(BaseHeader):
     """
     Ensure application communication is sent over HTTPS
 
@@ -10,16 +15,15 @@ class StrictTransportSecurity:
     https://owasp.org/www-project-secure-headers/#http-strict-transport-security
     """
 
-    def __init__(self) -> None:
-        self.__policy: List[str] = []
-        self.header = "Strict-Transport-Security"
-        self.value = "max-age=63072000; includeSubdomains"
+    _policy: list[str] = field(default_factory=list)
+    header_name: str = HeaderName.STRICT_TRANSPORT_SECURITY.value
+    header_value: str = HeaderDefaultValue.STRICT_TRANSPORT_SECURITY.value
 
     def _build(self, directive: str) -> None:
-        self.__policy.append(directive)
-        self.value = "; ".join(self.__policy)
+        self._policy.append(directive)
+        self.header_value = "; ".join(self._policy)
 
-    def set(self, value: str) -> "StrictTransportSecurity":
+    def set(self, value: str) -> StrictTransportSecurity:
         """Set custom value for `Strict-Transport-Security` header
 
         :param value: custom header value
@@ -30,7 +34,7 @@ class StrictTransportSecurity:
         self._build(value)
         return self
 
-    def include_subdomains(self) -> "StrictTransportSecurity":
+    def include_subdomains(self) -> StrictTransportSecurity:
         """Include subdomains to HSTS policy [Optional]
 
         :return: [description]
@@ -39,7 +43,7 @@ class StrictTransportSecurity:
         self._build("includeSubDomains")
         return self
 
-    def max_age(self, seconds: int) -> "StrictTransportSecurity":
+    def max_age(self, seconds: int) -> StrictTransportSecurity:
         """Instruct the browser to remember HTTPS preference
         until time (seconds) expires.
 
@@ -51,7 +55,7 @@ class StrictTransportSecurity:
         self._build(f"max-age={seconds}")
         return self
 
-    def preload(self) -> "StrictTransportSecurity":
+    def preload(self) -> StrictTransportSecurity:
         """Instruct browser to always use HTTPS [Optional]
 
         Please see:

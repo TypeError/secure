@@ -1,4 +1,12 @@
-class XContentTypeOptions:
+from __future__ import annotations  # type: ignore
+
+from dataclasses import dataclass
+
+from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderName
+
+
+@dataclass
+class XContentTypeOptions(BaseHeader):
     """Prevent MIME-sniffing
 
     Resources:
@@ -6,11 +14,10 @@ class XContentTypeOptions:
     https://owasp.org/www-project-secure-headers/#x-content-type-options
     """
 
-    def __init__(self) -> None:
-        self.header = "X-Content-Type-Options"
-        self.value = "nosniff"
+    header_name: str = HeaderName.X_CONTENT_TYPE_OPTIONS.value
+    header_value: str = HeaderDefaultValue.X_CONTENT_TYPE_OPTIONS.value
 
-    def set(self, value: str) -> "XContentTypeOptions":
+    def set(self, value: str) -> XContentTypeOptions:
         """Set custom value for `X-Content-Type-Options` header
 
         :param value: custom header value
@@ -18,5 +25,5 @@ class XContentTypeOptions:
         :return: XContentTypeOptions class
         :rtype: XContentTypeOptions
         """
-        self.value = value
+        self.header_value = value
         return self

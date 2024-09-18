@@ -7,7 +7,15 @@
 # https://creativecommons.org/licenses/by-sa/2.5/
 
 
-class CrossOriginEmbedderPolicy:
+from __future__ import annotations  # type: ignore
+
+from dataclasses import dataclass
+
+from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderName
+
+
+@dataclass
+class CrossOriginEmbedderPolicy(BaseHeader):
     """
     The Cross-Origin-Embedder-Policy (COEP) header prevents a document from loading any cross-origin resources
     that don’t explicitly grant the document permission
@@ -20,11 +28,10 @@ class CrossOriginEmbedderPolicy:
     https://owasp.org/www-project-secure-headers/#cross-origin-embedder-policy
     """
 
-    def __init__(self) -> None:
-        self.header = "Cross-Origin-Embedder-Policy"
-        self.value = "require-corp"
+    header_name: str = HeaderName.CROSS_ORIGIN_EMBEDDER_POLICY.value
+    header_value: str = HeaderDefaultValue.CROSS_ORIGIN_EMBEDDER_POLICY.value
 
-    def set(self, value: str) -> "CrossOriginEmbedderPolicy":
+    def set(self, value: str) -> CrossOriginEmbedderPolicy:
         """Set custom value for Cross-Origin-Opener-Policy header
 
         :param value: custom header value
@@ -32,10 +39,10 @@ class CrossOriginEmbedderPolicy:
         :return: CrossOriginEmbedderPolicy class
         :rtype: CrossOriginEmbedderPolicy
         """
-        self.value = value
+        self.header_value = value
         return self
 
-    def unsafe_none(self) -> "CrossOriginEmbedderPolicy":
+    def unsafe_none(self) -> CrossOriginEmbedderPolicy:
         """Allows the document to fetch cross-origin resources without giving explicit permission through
         the CORS protocol or the Cross-Origin-Resource-Policy header (it is the default value).
 
@@ -45,10 +52,10 @@ class CrossOriginEmbedderPolicy:
         :return: CrossOriginEmbedderPolicy class
         :rtype: CrossOriginEmbedderPolicy
         """
-        self.value = "unsafe-none"
+        self.header_value = "unsafe-none"
         return self
 
-    def require_corp(self) -> "CrossOriginEmbedderPolicy":
+    def require_corp(self) -> CrossOriginEmbedderPolicy:
         """A document can only load resources from the same origin,
         or resources explicitly marked as loadable from another origin.
 
@@ -58,5 +65,5 @@ class CrossOriginEmbedderPolicy:
         :return: CrossOriginEmbedderPolicy class
         :rtype: CrossOriginEmbedderPolicy
         """
-        self.value = "require-corp"
+        self.header_value = "require-corp"
         return self

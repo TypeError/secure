@@ -1,6 +1,6 @@
+from __future__ import annotations  # type: ignore
+
 import json
-from typing import Dict, Optional, Union
-from typing import List
 
 
 class ReportTo:
@@ -24,14 +24,14 @@ class ReportTo:
         self,
         max_age: int,
         include_subdomains: bool = False,
-        group: Optional[str] = None,
-        *endpoints: List[Dict[str, Union[str, int]]],
+        group: str | None = None,
+        *endpoints: list[dict[str, str | int]],
     ) -> None:
         self.header = "Report-To"
 
         report_to_endpoints = json.dumps(endpoints)
 
-        report_to_object: Dict[str, Union[str, int]] = {
+        report_to_object: dict[str, str | int] = {
             "max_age": max_age,
             "endpoints": report_to_endpoints,
         }
@@ -44,7 +44,7 @@ class ReportTo:
 
         self.value = json.dumps(report_to_object)
 
-    def set(self, value: str) -> "ReportTo":
+    def set(self, value: str) -> ReportTo:
         """Set custom value for `Report-To` header
 
         :param value: custom header value

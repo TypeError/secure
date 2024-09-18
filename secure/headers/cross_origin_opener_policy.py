@@ -7,7 +7,15 @@
 # https://creativecommons.org/licenses/by-sa/2.5/
 
 
-class CrossOriginOpenerPolicy:
+from __future__ import annotations  # type: ignore
+
+from dataclasses import dataclass
+
+from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderName
+
+
+@dataclass
+class CrossOriginOpenerPolicy(BaseHeader):
     """
     The Cross-Origin-Opener-Policy (COOP) header will process-isolate your document.
 
@@ -19,11 +27,10 @@ class CrossOriginOpenerPolicy:
     https://owasp.org/www-project-secure-headers/#cross-origin-opener-policy
     """
 
-    def __init__(self) -> None:
-        self.header = "Cross-Origin-Opener-Policy"
-        self.value = "same-origin"
+    header_name: str = HeaderName.CROSS_ORIGIN_OPENER_POLICY.value
+    header_value: str = HeaderDefaultValue.CROSS_ORIGIN_OPENER_POLICY.value
 
-    def set(self, value: str) -> "CrossOriginOpenerPolicy":
+    def set(self, value: str) -> CrossOriginOpenerPolicy:
         """Set custom value for Cross-Origin-Opener-Policy header
 
         https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Opener-Policy
@@ -34,10 +41,10 @@ class CrossOriginOpenerPolicy:
         :return: CrossOriginOpenerPolicy class
         :rtype: CrossOriginOpenerPolicy
         """
-        self.value = value
+        self.header_value = value
         return self
 
-    def unsafe_none(self) -> "CrossOriginOpenerPolicy":
+    def unsafe_none(self) -> CrossOriginOpenerPolicy:
         """Allows the document to be added to its opener’s browsing context group unless the opener itself has a COOP
             of same-origin or same-origin-allow-popups (it is the default value).
 
@@ -47,10 +54,10 @@ class CrossOriginOpenerPolicy:
             :return: CrossOriginOpenerPolicy class
             :rtype: CrossOriginOpenerPolicy
         """
-        self.value = "unsafe-none"
+        self.header_value = "unsafe-none"
         return self
 
-    def same_origin_allow_popups(self) -> "CrossOriginOpenerPolicy":
+    def same_origin_allow_popups(self) -> CrossOriginOpenerPolicy:
         """Retains references to newly opened windows or tabs which either don’t set COOP or which opt out of isolation
         by setting a COOP of unsafe-none.
 
@@ -61,10 +68,10 @@ class CrossOriginOpenerPolicy:
         :return: CrossOriginOpenerPolicy class
         :rtype: CrossOriginOpenerPolicy
         """
-        self.value = "same-origin-allow-popups"
+        self.header_value = "same-origin-allow-popups"
         return self
 
-    def same_origin(self) -> "CrossOriginOpenerPolicy":
+    def same_origin(self) -> CrossOriginOpenerPolicy:
         """Isolates the browsing context exclusively to same-origin documents.
         Cross-origin documents are not loaded in the same browsing context.
 
@@ -74,5 +81,5 @@ class CrossOriginOpenerPolicy:
         :return: CrossOriginOpenerPolicy class
         :rtype: CrossOriginOpenerPolicy
         """
-        self.value = "same-origin"
+        self.header_value = "same-origin"
         return self
