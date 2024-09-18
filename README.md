@@ -3,46 +3,103 @@
 [![image](https://img.shields.io/pypi/v/secure.svg)](https://pypi.org/project/secure/)
 [![Python 3](https://img.shields.io/badge/python-3-blue.svg)](https://www.python.org/downloads/)
 [![image](https://img.shields.io/pypi/l/secure.svg)](https://pypi.org/project/secure/)
-[![image](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Build Status](https://travis-ci.org/TypeError/secure.svg?branch=master)](https://travis-ci.org/TypeError/secure)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
-secure.py 🔒 is a lightweight package that adds optional security headers for Python web frameworks.
+## **Introduction**
 
-## Supported Python web frameworks
+**secure.py** is a lightweight and easy-to-use Python library that helps you add optional **security headers** to your web applications across multiple frameworks. It simplifies the application of best security practices for headers such as **Content Security Policy (CSP)**, **Strict-Transport-Security (HSTS)**, **Referrer-Policy**, and more, making your applications safer from common vulnerabilities.
 
-[aiohttp](https://docs.aiohttp.org), [Bottle](https://bottlepy.org), [CherryPy](https://cherrypy.org), [Django](https://www.djangoproject.com), [Falcon](https://falconframework.org), [FastAPI](https://fastapi.tiangolo.com), [Flask](http://flask.pocoo.org), [hug](http://www.hug.rest), [Masonite](https://docs.masoniteproject.com), [Pyramid](https://trypyramid.com), [Quart](https://pgjones.gitlab.io/quart/), [Responder](https://python-responder.org), [Sanic](https://sanicframework.org), [Starlette](https://www.starlette.io/), [Tornado](https://www.tornadoweb.org/)
+### **Why use secure.py?**
 
-## Install
+- Apply essential security headers in your Python web applications with minimal effort.
+- Consistent API for a wide range of popular web frameworks.
+- Supports customization while providing **secure defaults**.
+- Easy integration with Python's most used frameworks like Django, Flask, FastAPI, and more.
+
+---
+
+## **Supported Frameworks**
+
+**secure.py** supports the following Python web frameworks:
+
+- [aiohttp](https://docs.aiohttp.org)
+- [Bottle](https://bottlepy.org)
+- [CherryPy](https://cherrypy.org)
+- [Django](https://www.djangoproject.com)
+- [Falcon](https://falconframework.org)
+- [FastAPI](https://fastapi.tiangolo.com)
+- [Flask](http://flask.pocoo.org)
+- [hug](http://www.hug.rest)
+- [Masonite](https://docs.masoniteproject.com)
+- [Pyramid](https://trypyramid.com)
+- [Quart](https://pgjones.gitlab.io/quart/)
+- [Responder](https://python-responder.org)
+- [Sanic](https://sanicframework.org)
+- [Starlette](https://www.starlette.io/)
+- [Tornado](https://www.tornadoweb.org/)
+
+---
+
+## **Features**
+
+- **Secure Headers**: Automatically apply headers like `Strict-Transport-Security`, `X-Frame-Options`, `Content-Security-Policy`, `Referrer-Policy`, and more.
+- **Customizable Policies**: Build your own security policies with flexibility using method chaining for headers like CSP.
+- **Framework Integration**: Secure headers can be applied to various frameworks, ensuring cross-compatibility.
+- **No External Dependencies**: `secure.py` is lightweight and introduces no external dependencies, making it easy to include in any project without worrying about compatibility issues.
+- **Easy to Use**: Integrate security headers in just a few lines of code with sensible defaults that adhere to best security practices.
+
+---
+
+## **Installation**
+
+You can install secure.py using pip or pipenv:
 
 **pip**:
 
-```console
+```bash
 pip install secure
 ```
 
 **Pipenv**:
 
-```console
+```bash
 pipenv install secure
 ```
 
-After installing secure:
+---
 
-```Python
+## **Getting Started**
+
+Once installed, you can quickly integrate `secure.py` into your project:
+
+```python
+import secure
+
+# Initialize secure headers
+secure_headers = secure.Secure()
+
+# Apply the headers to your framework response object
+secure_headers.framework.<your_framework_method>(response)
+```
+
+### **Example Usage**
+
+```python
 import secure
 
 secure_headers = secure.Secure()
+
+# Apply default secure headers to a response object
+secure_headers.framework.flask(response)
 ```
 
-## Secure Headers
+---
 
-### Example
+## **Default Secure Headers**
 
-`secure_headers.framework(response)`
+By default, `secure.py` applies the following headers:
 
-**Default HTTP response headers:**
-
-```HTTP
+```http
 strict-transport-security: max-age=63072000; includeSubdomains
 x-frame-options: SAMEORIGIN
 x-xss-protection: 0
@@ -51,41 +108,48 @@ referrer-policy: no-referrer, strict-origin-when-cross-origin
 cache-control: no-store
 ```
 
-## Policy Builders
+---
 
-### Policy Builder Example
+## **Policy Builders**
 
-**Content Security Policy builder:**
+`secure.py` allows you to customize headers such as **Content-Security-Policy** with ease:
+
+### **Content-Security-Policy Example**
 
 ```python
+import secure
+
+# Build a custom CSP policy
 csp = (
-        secure.ContentSecurityPolicy()
-        .default_src("'none'")
-        .base_uri("'self'")
-        .connect_src("'self'", "api.spam.com")
-        .frame_src("'none'")
-        .img_src("'self'", "static.spam.com")
-    )
+    secure.ContentSecurityPolicy()
+    .default_src("'none'")
+    .base_uri("'self'")
+    .connect_src("'self'", "api.example.com")
+    .frame_src("'none'")
+    .img_src("'self'", "static.example.com")
+)
+
+# Apply it to secure headers
 secure_headers = secure.Secure(csp=csp)
 ```
 
-**HTTP response headers:**
+**Resulting HTTP headers:**
 
-```HTTP
+```http
 strict-transport-security: max-age=63072000; includeSubdomains
 x-frame-options: SAMEORIGIN
 x-xss-protection: 0
 x-content-type-options: nosniff
 referrer-policy: no-referrer, strict-origin-when-cross-origin
 cache-control: no-store
-content-security-policy: default-src 'none'; base-uri 'self'; connect-src 'self' api.spam.com; frame-src 'none'; img-src 'self' static.spam.com"
+content-security-policy: default-src 'none'; base-uri 'self'; connect-src 'self' api.example.com; frame-src 'none'; img-src 'self' static.example.com
 ```
 
-## Documentation
+---
 
-Please see the full set of documentation at [https://secure.readthedocs.io](https://secure.readthedocs.io)
+## **Framework Example: FastAPI**
 
-## FastAPI Example
+Here's how you can use `secure.py` with **FastAPI**:
 
 ```python
 import uvicorn
@@ -94,73 +158,69 @@ import secure
 
 app = FastAPI()
 
-server = secure.Server().set("Secure")
-
-csp = (
-    secure.ContentSecurityPolicy()
-    .default_src("'none'")
-    .base_uri("'self'")
-    .connect_src("'self'" "api.spam.com")
-    .frame_src("'none'")
-    .img_src("'self'", "static.spam.com")
-)
-
-hsts = secure.StrictTransportSecurity().include_subdomains().preload().max_age(2592000)
-
-referrer = secure.ReferrerPolicy().no_referrer()
-
-permissions_value = (
-    secure.PermissionsPolicy().geolocation("self", "'spam.com'").vibrate()
-)
-
-cache_value = secure.CacheControl().must_revalidate()
-
+# Define security headers
 secure_headers = secure.Secure(
-    server=server,
-    csp=csp,
-    hsts=hsts,
-    referrer=referrer,
-    permissions=permissions_value,
-    cache=cache_value,
+    server=secure.Server().set("Secure"),
+    csp=secure.ContentSecurityPolicy().default_src("'none'").img_src("'self'", "static.example.com"),
+    hsts=secure.StrictTransportSecurity().include_subdomains().preload().max_age(2592000),
+    referrer=secure.ReferrerPolicy().no_referrer(),
+    permissions=secure.PermissionsPolicy().geolocation("self", "'example.com'").vibrate(),
+    cache=secure.CacheControl().must_revalidate(),
 )
 
-
+# Apply headers middleware
 @app.middleware("http")
 async def set_secure_headers(request, call_next):
     response = await call_next(request)
     secure_headers.framework.fastapi(response)
     return response
 
-
 @app.get("/")
 async def root():
-    return {"message": "Secure"}
-
+    return {"message": "Hello, World!"}
 
 if __name__ == "__main__":
     uvicorn.run(app, port=8081, host="localhost")
 ```
 
-**HTTP response headers:**
+**Resulting HTTP headers:**
 
-```HTTP
+```http
 server: Secure
 strict-transport-security: includeSubDomains; preload; max-age=2592000
 x-frame-options: SAMEORIGIN
 x-xss-protection: 0
 x-content-type-options: nosniff
-content-security-policy: default-src 'none'; base-uri 'self'; connect-src 'self'api.spam.com; frame-src 'none'; img-src 'self' static.spam.com
+content-security-policy: default-src 'none'; img-src 'self' static.example.com
 referrer-policy: no-referrer
 cache-control: must-revalidate
-permissions-policy: geolocation=(self 'spam.com'), vibrate=()
+permissions-policy: geolocation=(self 'example.com'), vibrate=()
 ```
 
-## Resources
+---
 
-- [kennethreitz/setup.py: 📦 A Human’s Ultimate Guide to setup.py.](https://github.com/kennethreitz/setup.py)
-- [OWASP - Secure Headers Project](https://www.owasp.org/index.php/OWASP_Secure_Headers_Project)
-- [Mozilla Web Security](https://infosec.mozilla.org/guidelines/web_security)
-- [securityheaders.com](https://securityheaders.com)
-- [MDN Web Docs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers#security)
-- [web.dev](https://web.dev)
+## **Documentation**
+
+For more details, including advanced configurations and integration examples, please visit the **[full documentation](https://secure.readthedocs.io)**.
+
+---
+
+## **Resources**
+
+- [OWASP - Secure Headers Project](https://owasp.org/www-project-secure-headers/)
+- [Mozilla Web Security Guidelines](https://infosec.mozilla.org/guidelines/web_security)
+- [MDN Web Docs: Security Headers](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers#security)
+- [web.dev: Security Best Practices](https://web.dev)
 - [The World Wide Web Consortium (W3C)](https://www.w3.org)
+
+---
+
+### **License**
+
+This project is licensed under the terms of the **[MIT License](https://opensource.org/licenses/MIT)**.
+
+---
+
+## **Contributing**
+
+Contributions are welcome! If you'd like to contribute to `secure.py`, please feel free to open an issue or submit a pull request on **[GitHub](https://github.com/TypeError/secure)**.
