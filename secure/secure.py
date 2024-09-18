@@ -4,25 +4,32 @@
 # - web.dev (https://web.dev)
 # - The World Wide Web Consortium (W3C) (https://www.w3.org)
 
-from typing import Any, Dict, List, Optional, Tuple, Union
+from __future__ import annotations  # type: ignore
+
+from typing import Any
+
+from framework import Framework
+
+from secure.headers.custom_header import CustomHeader
 
 from .headers import (
-    server,
     cache_control,
     content_security_policy,
+    cross_origin_embedder_policy,
+    cross_origin_opener_policy,
     permissions_policy,
     referrer_policy,
     report_to,
+    server,
     strict_transport_security,
     x_content_type_options,
     x_frame_options,
-    cross_origin_opener_policy,
-    cross_origin_embedder_policy,
 )
+from .headers.base_header import BaseHeader
 
 
 class Secure:
-    """Set Secure Header options
+    """Set Secure Header options.
 
     :param server: Server header options
     :param hsts: Strict-Transport-Security (HSTS) header options
@@ -30,69 +37,58 @@ class Secure:
     :param content: X-Content-Type-Options header options
     :param csp: Content-Security-Policy (CSP) header options
     :param referrer: Referrer-Policy header options
-    :param cache: Cache-control, Pragma and Expires headers options
+    :param cache: Cache-Control, Pragma, and Expires headers options
+    :param permissions: Permissions-Policy header options
+    :param report_to: Report-To header options
     :param coop: Cross-Origin-Opener-Policy header options
-    :param coep: Cross-Origin-Embedder-Policy header options
+    :param ceop: Cross-Origin-Embedder-Policy header options
     """
-
-    framework: "Framework"
 
     def __init__(
         self,
-        server: Optional[server.Server] = None,
-        hsts: Optional[
-            strict_transport_security.StrictTransportSecurity
-        ] = strict_transport_security.StrictTransportSecurity(),
-        xfo: Optional[x_frame_options.XFrameOptions] = x_frame_options.XFrameOptions(),
-        content: Optional[
-            x_content_type_options.XContentTypeOptions
-        ] = x_content_type_options.XContentTypeOptions(),
-        csp: Optional[content_security_policy.ContentSecurityPolicy] = None,
-        referrer: Optional[
-            referrer_policy.ReferrerPolicy
-        ] = referrer_policy.ReferrerPolicy(),
-        cache: Optional[cache_control.CacheControl] = None,
-        permissions: Optional[permissions_policy.PermissionsPolicy] = None,
-        report_to: Optional[report_to.ReportTo] = None,
-        coop: Optional[
-            cross_origin_opener_policy
-        ] = cross_origin_opener_policy.CrossOriginOpenerPolicy(),
-        ceop: Optional[cross_origin_embedder_policy] = None,
+        server: server.Server | None = None,
+        hsts: strict_transport_security.StrictTransportSecurity | None = None,
+        xfo: x_frame_options.XFrameOptions | None = None,
+        content: x_content_type_options.XContentTypeOptions | None = None,
+        csp: content_security_policy.ContentSecurityPolicy | None = None,
+        referrer: referrer_policy.ReferrerPolicy | None = None,
+        cache: cache_control.CacheControl | None = None,
+        permissions: permissions_policy.PermissionsPolicy | None = None,
+        report_to: report_to.ReportTo | None = None,
+        coop: cross_origin_opener_policy.CrossOriginOpenerPolicy | None = None,
+        ceop: cross_origin_embedder_policy.CrossOriginEmbedderPolicy | None = None,
+        custom: list[CustomHeader] | None = None,
     ) -> None:
         self.server = server
-        self.hsts = hsts
-        self.xfo = xfo
-        self.content = content
+        self.hsts = hsts or strict_transport_security.StrictTransportSecurity()
+        self.xfo = xfo or x_frame_options.XFrameOptions()
+        self.content = content or x_content_type_options.XContentTypeOptions()
         self.csp = csp
-        self.referrer = referrer
+        self.referrer = referrer or referrer_policy.ReferrerPolicy()
         self.cache = cache
         self.permissions = permissions
         self.report_to = report_to
-        self.coop = coop
+        self.coop = coop or cross_origin_opener_policy.CrossOriginOpenerPolicy()
         self.ceop = ceop
+        self.custom = custom or []
+        self.framework = Framework(self)
 
-        self.framework = self.Framework(self)
+    def __str__(self) -> str:
+        headers = self.headers
+        return "\n".join(f"{header}: {value}" for header, value in headers.items())
 
     def __repr__(self) -> str:
-        return "\n".join(
-            [f"{header}:{value}" for header, value in self.headers().items()]
+        return (
+            f"Secure(server={self.server!r}, hsts={self.hsts!r}, xfo={self.xfo!r}, "
+            f"content={self.content!r}, csp={self.csp!r}, referrer={self.referrer!r}, "
+            f"cache={self.cache!r}, permissions={self.permissions!r}, report_to={self.report_to!r}, "
+            f"coop={self.coop!r}, ceop={self.ceop!r}, custom={self.custom!r})"
         )
 
-    def _header_list(
-        self,
-    ) -> List[
-        Union[
-            cache_control.CacheControl,
-            content_security_policy.ContentSecurityPolicy,
-            permissions_policy.PermissionsPolicy,
-            referrer_policy.ReferrerPolicy,
-            report_to.ReportTo,
-            server.Server,
-            strict_transport_security.StrictTransportSecurity,
-            x_content_type_options.XContentTypeOptions,
-            x_frame_options.XFrameOptions,
-        ]
-    ]:
+    def __len__(self) -> int:
+        return len(self.headers)
+
+    def _header_list(self) -> list[BaseHeader]:
         headers = [
             self.server,
             self.hsts,
@@ -103,44 +99,41 @@ class Secure:
             self.cache,
             self.permissions,
             self.report_to,
+            self.coop,
+            self.ceop,
+            *self.custom,
+        ]
+        return [
+            header
+            for header in headers
+            if header is not None and isinstance(header, BaseHeader)
         ]
 
-        return [header for header in headers if header is not None]
+    @property
+    def headers(self) -> dict[str, str]:
+        """Dictionary containing secure headers.
 
-    def headers(self) -> Dict[str, str]:
-        """Dictionary of secure headers
-
-        :return: dictionary containing security headers
-        :rtype: Dict[str, str]
+        :param as_tuple: If True, return headers as list of tuples, otherwise as a dictionary.
+        :return: Dictionary containing security headers.
         """
-        headers: Dict[str, str] = {}
-
-        for header in self._header_list():
-            headers[header.header] = header.value
-
+        headers = {
+            header.header_name: header.header_value for header in self._header_list()
+        }
         return headers
 
-    def headers_tuple(self) -> List[Tuple[str, str]]:
-        """List of a tuple containing secure headers
+    def set_headers(self, response: Any, use_set_header: bool = False) -> None:
+        """Helper method to set headers on the response object.
 
-        :return: list of tuples containing security headers
-        :rtype: List[Tuple[str, str]]
+        :param response: Response object.
+        :param use_set_header: Whether to use set_header method or direct assignment.
         """
-        headers: List[Tuple[str, str]] = []
-        for header in self._header_list():
-            headers.append((header.header, header.value))
-        return headers
-
-    def _set_header_dict(self, response: Any) -> None:
-        """Function to set (dict) secure headers to response object."""
-
-        for header in self._header_list():
-            response.headers[header.header] = header.value
-
-    def _set_header_tuple(self, response: Any) -> None:
-        """Function to set (tuple) secure headers to response object."""
-
-        for header in self._header_list():
-            response.set_header(header.header, header.value)
-
-        """
+        headers = self.headers
+        try:
+            if use_set_header:
+                for header, value in headers:
+                    response.set_header(header, value)
+            else:
+                for header, value in headers:
+                    response.headers[header] = value
+        except AttributeError as e:
+            print(f"Failed to set headers: {e}")
