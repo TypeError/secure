@@ -24,16 +24,12 @@
 
 - [aiohttp](https://docs.aiohttp.org)
 - [Bottle](https://bottlepy.org)
-- [CherryPy](https://cherrypy.org)
 - [Django](https://www.djangoproject.com)
 - [Falcon](https://falconframework.org)
 - [FastAPI](https://fastapi.tiangolo.com)
 - [Flask](http://flask.pocoo.org)
-- [hug](http://www.hug.rest)
-- [Masonite](https://docs.masoniteproject.com)
 - [Pyramid](https://trypyramid.com)
 - [Quart](https://pgjones.gitlab.io/quart/)
-- [Responder](https://python-responder.org)
 - [Sanic](https://sanicframework.org)
 - [Starlette](https://www.starlette.io/)
 - [Tornado](https://www.tornadoweb.org/)
@@ -47,6 +43,7 @@
 - **Framework Integration**: Secure headers can be applied to various frameworks, ensuring cross-compatibility.
 - **No External Dependencies**: `secure.py` is lightweight and introduces no external dependencies, making it easy to include in any project without worrying about compatibility issues.
 - **Easy to Use**: Integrate security headers in just a few lines of code with sensible defaults that adhere to best security practices.
+- **Asynchronous Support**: Now provides `async` support for modern asynchronous frameworks like **FastAPI**, **Sanic**, and **Starlette**.
 
 ---
 
@@ -72,6 +69,8 @@ pipenv install secure
 
 Once installed, you can quickly integrate `secure.py` into your project:
 
+### Synchronous Usage
+
 ```python
 import secure
 
@@ -79,7 +78,21 @@ import secure
 secure_headers = secure.Secure()
 
 # Apply the headers to your framework response object
-secure_headers.framework.<your_framework_method>(response)
+secure_headers.set_headers(response)
+```
+
+### Asynchronous Usage
+
+For frameworks like **FastAPI** and **Starlette** that support asynchronous operations, use the async method:
+
+```python
+import secure
+
+# Initialize secure headers
+secure_headers = secure.Secure()
+
+# Apply the headers asynchronously to your framework response object
+await secure_headers.set_headers_async(response)
 ```
 
 ### **Example Usage**
@@ -90,7 +103,7 @@ import secure
 secure_headers = secure.Secure()
 
 # Apply default secure headers to a response object
-secure_headers.framework.flask(response)
+secure_headers.set_headers(response)
 ```
 
 ---
@@ -102,7 +115,6 @@ By default, `secure.py` applies the following headers:
 ```http
 strict-transport-security: max-age=63072000; includeSubdomains
 x-frame-options: SAMEORIGIN
-x-xss-protection: 0
 x-content-type-options: nosniff
 referrer-policy: no-referrer, strict-origin-when-cross-origin
 cache-control: no-store
@@ -138,7 +150,6 @@ secure_headers = secure.Secure(csp=csp)
 ```http
 strict-transport-security: max-age=63072000; includeSubdomains
 x-frame-options: SAMEORIGIN
-x-xss-protection: 0
 x-content-type-options: nosniff
 referrer-policy: no-referrer, strict-origin-when-cross-origin
 cache-control: no-store
@@ -172,7 +183,7 @@ secure_headers = secure.Secure(
 @app.middleware("http")
 async def set_secure_headers(request, call_next):
     response = await call_next(request)
-    secure_headers.framework.fastapi(response)
+    await secure_headers.set_headers_async(response)  # Use async version
     return response
 
 @app.get("/")
@@ -189,7 +200,6 @@ if __name__ == "__main__":
 server: Secure
 strict-transport-security: includeSubDomains; preload; max-age=2592000
 x-frame-options: SAMEORIGIN
-x-xss-protection: 0
 x-content-type-options: nosniff
 content-security-policy: default-src 'none'; img-src 'self' static.example.com
 referrer-policy: no-referrer
