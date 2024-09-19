@@ -8,7 +8,6 @@ from __future__ import annotations  # type: ignore
 
 from typing import Any
 
-from framework import Framework
 
 from secure.headers.custom_header import CustomHeader
 
@@ -71,7 +70,6 @@ class Secure:
         self.coop = coop or cross_origin_opener_policy.CrossOriginOpenerPolicy()
         self.ceop = ceop
         self.custom = custom or []
-        self.framework = Framework(self)
 
     def __str__(self) -> str:
         headers = self.headers
