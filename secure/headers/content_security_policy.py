@@ -3,7 +3,6 @@ from __future__ import annotations  # type: ignore
 from dataclasses import dataclass, field
 
 from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderName
-from secure.headers.report_to import ReportTo
 
 
 @dataclass
@@ -224,51 +223,18 @@ class ContentSecurityPolicy(BaseHeader):
         self._build("object-src", *sources)
         return self
 
-    def prefetch_src(self, *sources: str) -> ContentSecurityPolicy:
-        """Set valid resources that may be prefetched or prerendered
-
-        Resources:
-        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/prefetch-src
-
-        :param sources: variable number of sources
-        :type sources: str
-        :return: ContentSecurityPolicy class
-        :rtype: ContentSecurityPolicy
-        """
-        self._build("prefetch-src", *sources)
-        return self
-
-    def report_to(self, report_to: ReportTo) -> ContentSecurityPolicy:
+    def report_to(self, *values: str) -> ContentSecurityPolicy:
         """Configure reporting endpoints
 
         Resources:
         https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/report-to
-
-        :param report_to: ReportTo class
-        :type report_to: ReportTo
-        :return: ContentSecurityPolicy class
-        :rtype: ContentSecurityPolicy
-        """
-        self._build("report-to", report_to.value)
-        return self
-
-    def report_uri(self, *values: str) -> ContentSecurityPolicy:
-        """Configure reporting endpoints in an older format
-
-        **Deprecated**
-        This header has been deprecated in favor of report-to.
-        However, as it is not yet supported in most browsers, it is recommended to set both headers.
-        Browsers that support report-to will ignore report-uri if both headers are set.
-
-        Resources:
-        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/report-uri
 
         :param values: variable number of URIs
         :type values: str
         :return: ContentSecurityPolicy class
         :rtype: ContentSecurityPolicy
         """
-        self._build("report-uri", *values)
+        self._build("report-to", *values)
         return self
 
     def sandbox(self, *values: str) -> ContentSecurityPolicy:
