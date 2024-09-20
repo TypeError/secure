@@ -1,9 +1,9 @@
 # secure.py
 
-[![image](https://img.shields.io/pypi/v/secure.svg)](https://pypi.org/project/secure/)
-[![Python 3](https://img.shields.io/badge/python-3-blue.svg)](https://www.python.org/downloads/)
-[![image](https://img.shields.io/pypi/l/secure.svg)](https://pypi.org/project/secure/)
+[![PyPI Version](https://img.shields.io/pypi/v/secure.svg)](https://pypi.org/project/secure/)
+[![Python Versions](https://img.shields.io/pypi/pyversions/secure.svg)](https://pypi.org/project/secure/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![License](https://img.shields.io/pypi/l/secure.svg)](https://github.com/TypeError/secure/blob/main/LICENSE)
 
 ## **Introduction**
 
@@ -44,6 +44,24 @@
 - **No External Dependencies**: `secure.py` is lightweight and introduces no external dependencies, making it easy to include in any project without worrying about compatibility issues.
 - **Easy to Use**: Integrate security headers in just a few lines of code with sensible defaults that adhere to best security practices.
 - **Asynchronous Support**: Now provides `async` support for modern asynchronous frameworks like **FastAPI**, **Sanic**, and **Starlette**.
+
+---
+
+## Requirements
+
+- **Python 3.10** or higher
+
+  This library leverages modern Python features introduced in Python 3.10, such as:
+
+  - **Union Type Operator (`|`)**: Simplifies type annotations.
+  - **Structural Pattern Matching (`match` statement)**: Enhances control flow.
+  - **Improved Type Hinting**: Provides better code clarity and maintenance.
+
+  **Note:** If you're using an older version of Python (3.6 to 3.9), please use version **0.3.0** of this library, which maintains compatibility with those versions.
+
+- **Dependencies**
+
+  This library has no external dependencies outside of the Python Standard Library.
 
 ---
 
