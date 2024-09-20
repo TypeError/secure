@@ -8,102 +8,120 @@ from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderNam
 @dataclass
 class ReferrerPolicy(BaseHeader):
     """
-    Enable full referrer if same origin, remove path for cross origin and
-    disable referrer in unsupported browsers
+    Represents the `Referrer-Policy` HTTP header, which controls how much referrer information is sent with requests.
 
     Resources:
-    https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy
-    https://owasp.org/www-project-secure-headers/#referrer-policy
+        - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy
+        - https://owasp.org/www-project-secure-headers/#referrer-policy
     """
 
-    _policy: list[str] = field(default_factory=list)
     header_name: str = HeaderName.REFERRER_POLICY.value
-    header_value: str = HeaderDefaultValue.REFERRER_POLICY.value
+    _directives: list[str] = field(default_factory=list)
+    _default_value: str = HeaderDefaultValue.REFERRER_POLICY.value
+
+    @property
+    def header_value(self) -> str:
+        """Return the current `Referrer-Policy` header value."""
+        return ", ".join(self._directives) if self._directives else self._default_value
 
     def _build(self, directive: str) -> None:
-        self._policy.append(directive)
-        self.header_value = ", ".join(self._policy)
+        """Add a directive to the `Referrer-Policy` header if it is not already added."""
+        if directive not in self._directives:
+            self._directives.append(directive)
 
     def set(self, value: str) -> ReferrerPolicy:
-        """Set custom value for `Referrer-Policy` header
+        """
+        Set a custom value for the `Referrer-Policy` header.
 
-        :param value: custom header value
-        :type value: str
-        :return: ReferrerPolicy class
-        :rtype: ReferrerPolicy
+        Args:
+            value: Custom header value.
+
+        Returns:
+            The `ReferrerPolicy` instance for method chaining.
         """
         self._build(value)
         return self
 
-    def no_referrer(self) -> ReferrerPolicy:
-        """The `Referer` header will not be sent
-
-        :return: ReferrerPolicy class
-        :rtype: ReferrerPolicy
+    def clear(self) -> ReferrerPolicy:
         """
-        self._build("no-referrer")
+        Clear all directives from the `Referrer-Policy` header.
+
+        Returns:
+            The `ReferrerPolicy` instance for method chaining.
+        """
+        self._directives.clear()
         return self
+
+    def no_referrer(self) -> ReferrerPolicy:
+        """
+        Set the policy to `no-referrer`, meaning the `Referer` header will not be sent.
+
+        Returns:
+            The `ReferrerPolicy` instance for method chaining.
+        """
+        return self.set("no-referrer")
 
     def no_referrer_when_downgrade(self) -> ReferrerPolicy:
-        """The `Referer` header will not be sent if HTTPS -> HTTP
-
-        :return: ReferrerPolicy class
-        :rtype: ReferrerPolicy
         """
-        self._build("no-referrer-when-downgrade")
-        return self
+        Set the policy to `no-referrer-when-downgrade`, meaning the `Referer` header will not be sent if HTTPS -> HTTP.
+
+        Returns:
+            The `ReferrerPolicy` instance for method chaining.
+        """
+        return self.set("no-referrer-when-downgrade")
 
     def origin(self) -> ReferrerPolicy:
-        """The `Referer` header will contain only the origin
-
-        :return: ReferrerPolicy class
-        :rtype: ReferrerPolicy
         """
-        self._build("origin")
-        return self
+        Set the policy to `origin`, meaning the `Referer` header will contain only the origin.
+
+        Returns:
+            The `ReferrerPolicy` instance for method chaining.
+        """
+        return self.set("origin")
 
     def origin_when_cross_origin(self) -> ReferrerPolicy:
-        """The `Referer` header will contain the full URL
-        but only the origin if cross-origin
-
-        :return: ReferrerPolicy class
-        :rtype: ReferrerPolicy
         """
-        self._build("origin-when-cross-origin")
-        return self
+        Set the policy to `origin-when-cross-origin`, meaning the `Referer` header will contain the full URL,
+        but only the origin if cross-origin.
+
+        Returns:
+            The `ReferrerPolicy` instance for method chaining.
+        """
+        return self.set("origin-when-cross-origin")
 
     def same_origin(self) -> ReferrerPolicy:
-        """The `Referer` header will be sent with the full URL if same-origin
-
-        :return: ReferrerPolicy class
-        :rtype: ReferrerPolicy
         """
-        self._build("same-origin")
-        return self
+        Set the policy to `same-origin`, meaning the `Referer` header will be sent with the full URL if same-origin.
+
+        Returns:
+            The `ReferrerPolicy` instance for method chaining.
+        """
+        return self.set("same-origin")
 
     def strict_origin(self) -> ReferrerPolicy:
-        """The `Referer` header will be sent only for same-origin
-
-        :return: ReferrerPolicy class
-        :rtype: ReferrerPolicy
         """
-        self._build("strict-origin")
-        return self
+        Set the policy to `strict-origin`, meaning the `Referer` header will be sent only for same-origin requests.
+
+        Returns:
+            The `ReferrerPolicy` instance for method chaining.
+        """
+        return self.set("strict-origin")
 
     def strict_origin_when_cross_origin(self) -> ReferrerPolicy:
-        """The `Referer` header will only contain the origin if HTTPS -> HTTP
-
-        :return: ReferrerPolicy class
-        :rtype: ReferrerPolicy
         """
-        self._build("strict-origin-when-cross-origin")
-        return self
+        Set the policy to `strict-origin-when-cross-origin`, meaning the `Referer` header will only contain the origin if
+        HTTPS -> HTTP or cross-origin requests.
+
+        Returns:
+            The `ReferrerPolicy` instance for method chaining.
+        """
+        return self.set("strict-origin-when-cross-origin")
 
     def unsafe_url(self) -> ReferrerPolicy:
-        """The `Referer` header will contain the full URL
-
-        :return: ReferrerPolicy class
-        :rtype: ReferrerPolicy
         """
-        self._build("unsafe-url")
-        return self
+        Set the policy to `unsafe-url`, meaning the `Referer` header will contain the full URL, regardless of security.
+
+        Returns:
+            The `ReferrerPolicy` instance for method chaining.
+        """
+        return self.set("unsafe-url")

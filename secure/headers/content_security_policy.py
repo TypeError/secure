@@ -8,314 +8,287 @@ from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderNam
 @dataclass
 class ContentSecurityPolicy(BaseHeader):
     """
-    Prevent Cross-site injections
+    Represents the `Content-Security-Policy` HTTP header, which helps prevent cross-site injections
+    by specifying allowed sources for content.
 
     Resources:
-    https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy
-    https://developers.google.com/web/fundamentals/security/csp
-
+        - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy
+        - https://developers.google.com/web/fundamentals/security/csp
     """
 
-    _policy: list[str] = field(default_factory=list)
     header_name: str = HeaderName.CONTENT_SECURITY_POLICY.value
-    header_value: str = HeaderDefaultValue.CONTENT_SECURITY_POLICY.value
+    _directives: list[str] = field(default_factory=list)
+    _default_value: str = HeaderDefaultValue.CONTENT_SECURITY_POLICY.value
+
+    @property
+    def header_value(self) -> str:
+        """Return the current header value."""
+        return "; ".join(self._directives) if self._directives else self._default_value
 
     def _build(self, directive: str, *sources: str) -> None:
-        if len(sources) == 0:
-            self._policy.append(directive)
+        """Add a directive to the policy.
+
+        Args:
+            directive: The directive name.
+            *sources: The sources for the directive.
+        """
+        if sources:
+            self._directives.append(f"{directive} {' '.join(sources)}")
         else:
-            self._policy.append(f"{directive} {' '.join(sources)}")
-        self.header_value = "; ".join(self._policy)
+            self._directives.append(directive)
 
     def set(self, value: str) -> ContentSecurityPolicy:
-        """Set custom value for `Content-Security-Policy` header
+        """Set a custom value for the `Content-Security-Policy` header.
 
-        :param value: custom header value
-        :type value: str
-        :return: ContentSecurityPolicy class
-        :rtype: ContentSecurityPolicy
+        Args:
+            value: Custom header value.
+
+        Returns:
+            The `ContentSecurityPolicy` instance for method chaining.
         """
-        self._build(value)
+        self._directives = [value]
+        return self
+
+    def clear(self) -> ContentSecurityPolicy:
+        """Clear all directives from the policy.
+
+        Returns:
+            The `ContentSecurityPolicy` instance for method chaining.
+        """
+        self._directives.clear()
+        return self
+
+    def report_only(self) -> ContentSecurityPolicy:
+        """Set `Content-Security-Policy` header to `Content-Security-Policy-Report-Only`.
+
+        Returns:
+            The `ContentSecurityPolicy` instance for method chaining.
+        """
+        self.header_name = HeaderName.CONTENT_SECURITY_POLICY_REPORT_ONLY.value
         return self
 
     def custom_directive(self, directive: str, *sources: str) -> ContentSecurityPolicy:
-        """Set custom directive and sources
+        """Set a custom directive and sources.
 
-        :param directive: custom directive
-        :type directive: str
-        :param sources: variable number of sources
-        :type sources: str
-        :return: ContentSecurityPolicy class
-        :rtype: ContentSecurityPolicy
+        Args:
+            directive: Custom directive.
+            *sources: Custom sources.
+
+        Returns:
+            The `ContentSecurityPolicy` instance for method chaining.
         """
         self._build(directive, *sources)
         return self
 
-    def report_only(self) -> None:
-        """Set Content-Security-Policy header to Content-Security-Policy-Report-Only"""
-        self.header_name = HeaderName.CONTENT_SECURITY_POLICY_REPORT_ONLY.value
-
     def base_uri(self, *sources: str) -> ContentSecurityPolicy:
-        """Sets valid origins for `<base>`
+        """Sets valid origins for `<base>` element.
 
         Resources:
-        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/base-uri
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/base-uri
 
-        :param sources: variable number of sources
-        :type sources: str
-        :return: ContentSecurityPolicy class
-        :rtype: ContentSecurityPolicy
+        Returns:
+            The `ContentSecurityPolicy` instance for method chaining.
         """
-        self._build("base-uri", *sources)
-        return self
+        return self.custom_directive("base-uri", *sources)
 
     def child_src(self, *sources: str) -> ContentSecurityPolicy:
-        """Sets valid origins for web workers
+        """Sets valid origins for web workers.
 
         Resources:
-        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/child-src
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/child-src
 
-        :param sources: variable number of sources
-        :type sources: str
-        :return: ContentSecurityPolicy class
-        :rtype: ContentSecurityPolicy
+        Returns:
+            The `ContentSecurityPolicy` instance for method chaining.
         """
-        self._build("child-src", *sources)
-        return self
+        return self.custom_directive("child-src", *sources)
 
     def connect_src(self, *sources: str) -> ContentSecurityPolicy:
-        """Sets valid origins for script interfaces
+        """Sets valid origins for script interfaces.
 
         Resources:
-        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/connect-src
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/connect-src
 
-        :param sources: variable number of sources
-        :type sources: str
-        :return: ContentSecurityPolicy class
-        :rtype: ContentSecurityPolicy
+        Returns:
+            The `ContentSecurityPolicy` instance for method chaining.
         """
-        self._build("connect-src", *sources)
-        return self
+        return self.custom_directive("connect-src", *sources)
 
     def default_src(self, *sources: str) -> ContentSecurityPolicy:
-        """Sets fallback valid origins for other directives
+        """Sets fallback valid origins for other directives.
 
         Resources:
-        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/default-src
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/default-src
 
-        :param sources: variable number of sources
-        :type sources: str
-        :return: ContentSecurityPolicy class
-        :rtype: ContentSecurityPolicy
+        Returns:
+            The `ContentSecurityPolicy` instance for method chaining.
         """
-        self._build("default-src", *sources)
-        return self
+        return self.custom_directive("default-src", *sources)
 
     def font_src(self, *sources: str) -> ContentSecurityPolicy:
-        """Set valid origins for `@font-face`
+        """Set valid origins for `@font-face`.
 
         Resources:
-        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/font-src
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/font-src
 
-        :param sources: variable number of sources
-        :type sources: str
-        :return: ContentSecurityPolicy class
-        :rtype: ContentSecurityPolicy
+        Returns:
+            The `ContentSecurityPolicy` instance for method chaining.
         """
-        self._build("font-src", *sources)
-        return self
+        return self.custom_directive("font-src", *sources)
 
     def form_action(self, *sources: str) -> ContentSecurityPolicy:
-        """Set valid origins for form submissions
+        """Set valid origins for form submissions.
 
         Resources:
-        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/form-action
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/form-action
 
-        :param sources: variable number of sources
-        :type sources: str
-        :return: ContentSecurityPolicy class
-        :rtype: ContentSecurityPolicy
+        Returns:
+            The `ContentSecurityPolicy` instance for method chaining.
         """
-        self._build("form-action", *sources)
-        return self
+        return self.custom_directive("form-action", *sources)
 
     def frame_ancestors(self, *sources: str) -> ContentSecurityPolicy:
-        """Set valid origins that can embed the resource
+        """Set valid origins that can embed the resource.
 
         Resources:
-        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/frame-ancestors
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/frame-ancestors
 
-        :param sources: variable number of sources
-        :type sources: str
-        :return: ContentSecurityPolicy class
-        :rtype: ContentSecurityPolicy
+        Returns:
+            The `ContentSecurityPolicy` instance for method chaining.
         """
-        self._build("frame-ancestors", *sources)
-        return self
+        return self.custom_directive("frame-ancestors", *sources)
 
     def frame_src(self, *sources: str) -> ContentSecurityPolicy:
-        """Set valid origins for frames
+        """Set valid origins for frames.
 
         Resources:
-        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/frame-src
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/frame-src
 
-        :param sources: variable number of sources
-        :type sources: str
-        :return: ContentSecurityPolicy class
-        :rtype: ContentSecurityPolicy
+        Returns:
+            The `ContentSecurityPolicy` instance for method chaining.
         """
-        self._build("frame-src", *sources)
-        return self
+        return self.custom_directive("frame-src", *sources)
 
     def img_src(self, *sources: str) -> ContentSecurityPolicy:
-        """Set valid origins for images
+        """Set valid origins for images.
 
         Resources:
-        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/img-src
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/img-src
 
-        :param sources: variable number of sources
-        :type sources: str
-        :return: ContentSecurityPolicy class
-        :rtype: ContentSecurityPolicy
+        Returns:
+            The `ContentSecurityPolicy` instance for method chaining.
         """
-        self._build("img-src", *sources)
-        return self
+        return self.custom_directive("img-src", *sources)
 
     def manifest_src(self, *sources: str) -> ContentSecurityPolicy:
-        """Set valid origins for manifest files
+        """Set valid origins for manifest files.
 
         Resources:
-        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/manifest-src
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/manifest-src
 
-        :param sources: variable number of sources
-        :type sources: str
-        :return: ContentSecurityPolicy class
-        :rtype: ContentSecurityPolicy
+        Returns:
+            The `ContentSecurityPolicy` instance for method chaining.
         """
-        self._build("manifest-src", *sources)
-        return self
+        return self.custom_directive("manifest-src", *sources)
 
     def media_src(self, *sources: str) -> ContentSecurityPolicy:
-        """Set valid origins for media
+        """Set valid origins for media.
 
         Resources:
-        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/media-src
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/media-src
 
-        :param sources: variable number of sources
-        :type sources: str
-        :return: ContentSecurityPolicy class
-        :rtype: ContentSecurityPolicy
+        Returns:
+            The `ContentSecurityPolicy` instance for method chaining.
         """
-        self._build("media-src", *sources)
-        return self
+        return self.custom_directive("media-src", *sources)
 
     def object_src(self, *sources: str) -> ContentSecurityPolicy:
-        """Set valid origins for plugins
+        """Set valid origins for plugins.
 
         Resources:
-        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/object-src
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/object-src
 
-        :param sources: variable number of sources
-        :type sources: str
-        :return: ContentSecurityPolicy class
-        :rtype: ContentSecurityPolicy
+        Returns:
+            The `ContentSecurityPolicy` instance for method chaining.
         """
-        self._build("object-src", *sources)
-        return self
+        return self.custom_directive("object-src", *sources)
 
     def report_to(self, *values: str) -> ContentSecurityPolicy:
-        """Configure reporting endpoints
+        """Configure reporting endpoints.
 
         Resources:
-        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/report-to
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/report-to
 
-        :param values: variable number of URIs
-        :type values: str
-        :return: ContentSecurityPolicy class
-        :rtype: ContentSecurityPolicy
+        Returns:
+            The `ContentSecurityPolicy` instance for method chaining.
         """
-        self._build("report-to", *values)
-        return self
+        return self.custom_directive("report-to", *values)
 
     def sandbox(self, *values: str) -> ContentSecurityPolicy:
-        """Enables sandbox restrictions
+        """Enables sandbox restrictions.
 
         Resources:
-        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/sandbox
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/sandbox
 
-        :param values: variable number of types
-        :type values: str
-        :return: ContentSecurityPolicy class
-        :rtype: ContentSecurityPolicy
+        Returns:
+            The `ContentSecurityPolicy` instance for method chaining.
         """
-        self._build("sandbox", *values)
-        return self
+        return self.custom_directive("sandbox", *values)
 
     def script_src(self, *sources: str) -> ContentSecurityPolicy:
-        """Set valid origins for JavaScript
+        """Set valid origins for JavaScript.
 
         Resources:
-        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src
 
-        :param sources: variable number of types
-        :type sources: str
-        :return: ContentSecurityPolicy class
-        :rtype: ContentSecurityPolicy
+        Returns:
+            The `ContentSecurityPolicy` instance for method chaining.
         """
-        self._build("script-src", *sources)
-        return self
+        return self.custom_directive("script-src", *sources)
 
     def style_src(self, *sources: str) -> ContentSecurityPolicy:
-        """Set valid origins for styles
+        """Set valid origins for styles.
 
         Resources:
-        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/style-src
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/style-src
 
-        :param sources: variable number of types
-        :type sources: str
-        :return: ContentSecurityPolicy class
-        :rtype: ContentSecurityPolicy
+        Returns:
+            The `ContentSecurityPolicy` instance for method chaining.
         """
-        self._build("style-src", *sources)
-        return self
+        return self.custom_directive("style-src", *sources)
 
     def upgrade_insecure_requests(self) -> ContentSecurityPolicy:
-        """Upgrade HTTP URLs to HTTPS
+        """Upgrade HTTP URLs to HTTPS.
 
         Resources:
-        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/upgrade-insecure-requests
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/upgrade-insecure-requests
 
-        :return: ContentSecurityPolicy class
-        :rtype: ContentSecurityPolicy
+        Returns:
+            The `ContentSecurityPolicy` instance for method chaining.
         """
-        self._build("upgrade-insecure-requests")
-        return self
+        return self.custom_directive("upgrade-insecure-requests")
 
     def worker_src(self, *sources: str) -> ContentSecurityPolicy:
-        """Set valid origins for worker scripts
+        """Set valid origins for worker scripts.
 
         Resources:
-        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/worker-src
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/worker-src
 
-        :param sources: variable number of types
-        :type sources: str
-        :return: ContentSecurityPolicy class
-        :rtype: ContentSecurityPolicy
+        Returns:
+            The `ContentSecurityPolicy` instance for method chaining.
         """
-        self._build("worker-src", *sources)
-        return self
+        return self.custom_directive("worker-src", *sources)
 
     @staticmethod
     def nonce(value: str) -> str:
-        """Creates a nonce format
+        """Creates a nonce format for inline scripts.
 
         Resources:
-        https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/nonce
+            https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/nonce
 
-        :param value: nonce value
-        :type value: str
-        :return: ContentSecurityPolicy class
-        :rtype: ContentSecurityPolicy
+        Args:
+            value: The nonce value.
+
+        Returns:
+            A string formatted as a nonce.
         """
-        value = f"'nonce-{value}'"
-        return value
+        return f"'nonce-{value}'"

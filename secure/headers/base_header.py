@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 
@@ -34,4 +35,7 @@ class BaseHeader:
     """Base class for all header classes."""
 
     header_name: str
-    header_value: str
+
+    @property
+    @abstractmethod
+    def header_value(self) -> str: ...

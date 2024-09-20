@@ -9,7 +9,7 @@
 
 from __future__ import annotations  # type: ignore
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderName
 
@@ -17,53 +17,72 @@ from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderNam
 @dataclass
 class CrossOriginEmbedderPolicy(BaseHeader):
     """
-    The Cross-Origin-Embedder-Policy (COEP) header prevents a document from loading any cross-origin resources
-    that don’t explicitly grant the document permission
+    Represents the `Cross-Origin-Embedder-Policy` HTTP header, which prevents a document from loading
+    any cross-origin resources that don’t explicitly grant the document permission.
 
-    - CORP applies on the loaded resource side (resource owner)
-    - COEP applies on the “loader” of the resource side (consumer of the resource).
+    - `CORP` applies on the loaded resource side (resource owner).
+    - `COEP` applies on the “loader” of the resource side (consumer of the resource).
 
     Resources:
-    https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Opener-Policy
-    https://owasp.org/www-project-secure-headers/#cross-origin-embedder-policy
+        - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Embedder-Policy
+        - https://owasp.org/www-project-secure-headers/#cross-origin-embedder-policy
     """
 
     header_name: str = HeaderName.CROSS_ORIGIN_EMBEDDER_POLICY.value
-    header_value: str = HeaderDefaultValue.CROSS_ORIGIN_EMBEDDER_POLICY.value
+    _directive: str = field(
+        default=HeaderDefaultValue.CROSS_ORIGIN_EMBEDDER_POLICY.value
+    )
+
+    @property
+    def header_value(self) -> str:
+        """Return the current `Cross-Origin-Embedder-Policy` header value."""
+        return self._directive
 
     def set(self, value: str) -> CrossOriginEmbedderPolicy:
-        """Set custom value for Cross-Origin-Opener-Policy header
-
-        :param value: custom header value
-        :type value: str
-        :return: CrossOriginEmbedderPolicy class
-        :rtype: CrossOriginEmbedderPolicy
         """
-        self.header_value = value
+        Set a custom value for the `Cross-Origin-Embedder-Policy` header.
+
+        Args:
+            value: Custom header value.
+
+        Returns:
+            The `CrossOriginEmbedderPolicy` instance for method chaining.
+        """
+        self._directive = value
+        return self
+
+    def clear(self) -> CrossOriginEmbedderPolicy:
+        """
+        Reset the `Cross-Origin-Embedder-Policy` header to its default value.
+
+        Returns:
+            The `CrossOriginEmbedderPolicy` instance for method chaining.
+        """
+        self._directive = HeaderDefaultValue.CROSS_ORIGIN_EMBEDDER_POLICY.value
         return self
 
     def unsafe_none(self) -> CrossOriginEmbedderPolicy:
-        """Allows the document to fetch cross-origin resources without giving explicit permission through
-        the CORS protocol or the Cross-Origin-Resource-Policy header (it is the default value).
-
-        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Opener-Policy
-        https://owasp.org/www-project-secure-headers/#cross-origin-embedder-policy
-
-        :return: CrossOriginEmbedderPolicy class
-        :rtype: CrossOriginEmbedderPolicy
         """
-        self.header_value = "unsafe-none"
+        Set the header to `'unsafe-none'`.
+
+        This allows the document to fetch cross-origin resources without giving explicit permission
+        through the CORS protocol or the `Cross-Origin-Resource-Policy` header.
+
+        Returns:
+            The `CrossOriginEmbedderPolicy` instance for method chaining.
+        """
+        self._directive = "unsafe-none"
         return self
 
     def require_corp(self) -> CrossOriginEmbedderPolicy:
-        """A document can only load resources from the same origin,
-        or resources explicitly marked as loadable from another origin.
-
-        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Opener-Policy
-        https://owasp.org/www-project-secure-headers/#cross-origin-embedder-policy
-
-        :return: CrossOriginEmbedderPolicy class
-        :rtype: CrossOriginEmbedderPolicy
         """
-        self.header_value = "require-corp"
+        Set the header to `'require-corp'`.
+
+        This ensures a document can only load resources from the same origin, or resources explicitly
+        marked as loadable from another origin.
+
+        Returns:
+            The `CrossOriginEmbedderPolicy` instance for method chaining.
+        """
+        self._directive = "require-corp"
         return self

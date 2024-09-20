@@ -4,13 +4,12 @@ import inspect
 from functools import cached_property
 from typing import Any, Protocol, runtime_checkable
 
-from secure.headers.custom_header import CustomHeader
-
 from .headers import (
     cache_control,
     content_security_policy,
     cross_origin_embedder_policy,
     cross_origin_opener_policy,
+    custom_header,
     permissions_policy,
     referrer_policy,
     server,
@@ -79,7 +78,7 @@ class Secure:
         permissions: permissions_policy.PermissionsPolicy | None = None,
         coop: cross_origin_opener_policy.CrossOriginOpenerPolicy | None = None,
         ceop: cross_origin_embedder_policy.CrossOriginEmbedderPolicy | None = None,
-        custom: list[CustomHeader] | None = None,
+        custom: list[custom_header.CustomHeader] | None = None,
     ) -> None:
         # Initialize the list of header instances
         self.headers_list: list[BaseHeader] = []

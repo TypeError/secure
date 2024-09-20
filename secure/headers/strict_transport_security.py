@@ -8,61 +8,82 @@ from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderNam
 @dataclass
 class StrictTransportSecurity(BaseHeader):
     """
-    Ensure application communication is sent over HTTPS
+    Represents the `Strict-Transport-Security` (HSTS) HTTP header, which ensures that the application
+    communication is sent over HTTPS and prevents man-in-the-middle attacks.
 
     Resources:
-    https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security
-    https://owasp.org/www-project-secure-headers/#http-strict-transport-security
+        - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security
+        - https://owasp.org/www-project-secure-headers/#http-strict-transport-security
     """
 
-    _policy: list[str] = field(default_factory=list)
     header_name: str = HeaderName.STRICT_TRANSPORT_SECURITY.value
-    header_value: str = HeaderDefaultValue.STRICT_TRANSPORT_SECURITY.value
+    _directives: list[str] = field(default_factory=list)
+    _default_value: str = HeaderDefaultValue.STRICT_TRANSPORT_SECURITY.value
+
+    @property
+    def header_value(self) -> str:
+        """Return the current `Strict-Transport-Security` header value."""
+        return "; ".join(self._directives) if self._directives else self._default_value
 
     def _build(self, directive: str) -> None:
-        self._policy.append(directive)
-        self.header_value = "; ".join(self._policy)
+        """Add a directive to the `Strict-Transport-Security` policy if not already present."""
+        if directive not in self._directives:
+            self._directives.append(directive)
 
     def set(self, value: str) -> StrictTransportSecurity:
-        """Set custom value for `Strict-Transport-Security` header
-
-        :param value: custom header value
-        :type value: str
-        :return: StrictTransportSecurity class
-        :rtype: StrictTransportSecurity
         """
-        self._build(value)
+        Set a custom value for the `Strict-Transport-Security` header, replacing any existing directives.
+
+        Args:
+            value: The custom header value.
+
+        Returns:
+            The `StrictTransportSecurity` instance for method chaining.
+        """
+        self._directives = [value]
+        return self
+
+    def clear(self) -> StrictTransportSecurity:
+        """
+        Clear the current directives and reset to the default value.
+
+        Returns:
+            The `StrictTransportSecurity` instance for method chaining.
+        """
+        self._directives.clear()
         return self
 
     def include_subdomains(self) -> StrictTransportSecurity:
-        """Include subdomains to HSTS policy [Optional]
+        """
+        Include all subdomains in the HSTS policy.
 
-        :return: [description]
-        :rtype: [type]
+        Returns:
+            The `StrictTransportSecurity` instance for method chaining.
         """
         self._build("includeSubDomains")
         return self
 
     def max_age(self, seconds: int) -> StrictTransportSecurity:
-        """Instruct the browser to remember HTTPS preference
-        until time (seconds) expires.
+        """
+        Set the `max-age` directive, instructing the browser to remember the HTTPS preference
+        for the specified time (in seconds).
 
-        :param seconds: time in seconds
-        :type seconds: str
-        :return: StrictTransportSecurity class
-        :rtype: StrictTransportSecurity
+        Args:
+            seconds: The duration in seconds for which the HSTS policy is enforced.
+
+        Returns:
+            The `StrictTransportSecurity` instance for method chaining.
         """
         self._build(f"max-age={seconds}")
         return self
 
     def preload(self) -> StrictTransportSecurity:
-        """Instruct browser to always use HTTPS [Optional]
+        """
+        Add the `preload` directive, indicating that the site should always be loaded over HTTPS
+        and included in the HSTS preload list.
 
-        Please see:
-        https://hstspreload.org
-
-        :return: StrictTransportSecurity class
-        :rtype: StrictTransportSecurity
+        Returns:
+            The `StrictTransportSecurity` instance for method chaining.
         """
         self._build("preload")
         return self

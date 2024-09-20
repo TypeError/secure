@@ -9,7 +9,7 @@
 
 from __future__ import annotations  # type: ignore
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderName
 
@@ -17,69 +17,80 @@ from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderNam
 @dataclass
 class CrossOriginOpenerPolicy(BaseHeader):
     """
-    The Cross-Origin-Opener-Policy (COOP) header will process-isolate your document.
-
-    COOP will prevent potential attackers from accessing to your global object if they were opening it in a popup.
-    Preventing a set of cross-origin attacks dubbed XS-Leaks.
+    Represents the `Cross-Origin-Opener-Policy` (COOP) HTTP header, which helps process-isolate your document
+    to prevent attackers from accessing your global object through popups and reduce cross-origin attacks (XS-Leaks).
 
     Resources:
-    https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Opener-Policy
-    https://owasp.org/www-project-secure-headers/#cross-origin-opener-policy
+        - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Opener-Policy
+        - https://owasp.org/www-project-secure-headers/#cross-origin-opener-policy
     """
 
     header_name: str = HeaderName.CROSS_ORIGIN_OPENER_POLICY.value
-    header_value: str = HeaderDefaultValue.CROSS_ORIGIN_OPENER_POLICY.value
+    _directive: str = field(default=HeaderDefaultValue.CROSS_ORIGIN_OPENER_POLICY.value)
+
+    @property
+    def header_value(self) -> str:
+        """Return the current `Cross-Origin-Opener-Policy` header value."""
+        return self._directive
 
     def set(self, value: str) -> CrossOriginOpenerPolicy:
-        """Set custom value for Cross-Origin-Opener-Policy header
-
-        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Opener-Policy
-        https://owasp.org/www-project-secure-headers/#cross-origin-opener-policy
-
-        :param value: custom header value
-        :type value: str
-        :return: CrossOriginOpenerPolicy class
-        :rtype: CrossOriginOpenerPolicy
         """
-        self.header_value = value
+        Set a custom value for the `Cross-Origin-Opener-Policy` header.
+
+        Args:
+            value: Custom header value.
+
+        Returns:
+            The `CrossOriginOpenerPolicy` instance for method chaining.
+        """
+        self._directive = value
+        return self
+
+    def clear(self) -> CrossOriginOpenerPolicy:
+        """
+        Reset the `Cross-Origin-Opener-Policy` header to its default value.
+
+        Returns:
+            The `CrossOriginOpenerPolicy` instance for method chaining.
+        """
+        self._directive = HeaderDefaultValue.CROSS_ORIGIN_OPENER_POLICY.value
         return self
 
     def unsafe_none(self) -> CrossOriginOpenerPolicy:
-        """Allows the document to be added to its opener’s browsing context group unless the opener itself has a COOP
-            of same-origin or same-origin-allow-popups (it is the default value).
-
-        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Opener-Policy
-        https://owasp.org/www-project-secure-headers/#cross-origin-opener-policy
-
-            :return: CrossOriginOpenerPolicy class
-            :rtype: CrossOriginOpenerPolicy
         """
-        self.header_value = "unsafe-none"
+        Set the header to `'unsafe-none'`.
+
+        This allows the document to be added to its opener’s browsing context group unless the opener has a COOP
+        of `same-origin` or `same-origin-allow-popups` (this is the default value).
+
+        Returns:
+            The `CrossOriginOpenerPolicy` instance for method chaining.
+        """
+        self._directive = "unsafe-none"
         return self
 
     def same_origin_allow_popups(self) -> CrossOriginOpenerPolicy:
-        """Retains references to newly opened windows or tabs which either don’t set COOP or which opt out of isolation
-        by setting a COOP of unsafe-none.
-
-        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Opener-Policy
-        https://owasp.org/www-project-secure-headers/#cross-origin-opener-policy
-
-
-        :return: CrossOriginOpenerPolicy class
-        :rtype: CrossOriginOpenerPolicy
         """
-        self.header_value = "same-origin-allow-popups"
+        Set the header to `'same-origin-allow-popups'`.
+
+        This allows retaining references to newly opened windows or tabs that either don’t set COOP or opt out of isolation
+        by setting a COOP of `unsafe-none`.
+
+        Returns:
+            The `CrossOriginOpenerPolicy` instance for method chaining.
+        """
+        self._directive = "same-origin-allow-popups"
         return self
 
     def same_origin(self) -> CrossOriginOpenerPolicy:
-        """Isolates the browsing context exclusively to same-origin documents.
-        Cross-origin documents are not loaded in the same browsing context.
-
-        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Opener-Policy
-        https://owasp.org/www-project-secure-headers/#cross-origin-opener-policy
-
-        :return: CrossOriginOpenerPolicy class
-        :rtype: CrossOriginOpenerPolicy
         """
-        self.header_value = "same-origin"
+        Set the header to `'same-origin'`.
+
+        This isolates the browsing context exclusively to same-origin documents, preventing cross-origin documents from
+        being loaded in the same context.
+
+        Returns:
+            The `CrossOriginOpenerPolicy` instance for method chaining.
+        """
+        self._directive = "same-origin"
         return self
