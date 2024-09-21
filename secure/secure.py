@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+from enum import Enum
 from functools import cached_property
 from typing import Any, Protocol, runtime_checkable
 
@@ -36,32 +37,51 @@ class ResponseProtocol(Protocol):
 
 
 class Secure:
-    """Set Secure Header options.
+    """
+    A class to configure and apply security headers for web applications.
 
-    :param server: Server header options
-    :param hsts: Strict-Transport-Security (HSTS) header options
-    :param xfo: X-Frame-Options header options
-    :param content: X-Content-Type-Options header options
-    :param csp: Content-Security-Policy header options
-    :param referrer: Referrer-Policy header options
-    :param cache: Cache-Control header options
-    :param permissions: Permissions-Policy header options
-    :param coop: Cross-Origin-Opener-Policy header options
-    :param ceop: Cross-Origin-Embedder-Policy header options
-    :param custom: List of custom headers
+    The `Secure` class allows users to specify various HTTP security headers for
+    web applications, such as HSTS, CSP, X-Frame-Options, and more. Users can either
+    configure headers manually or use the built-in `with_default_headers()` method
+    to apply a secure set of default headers.
 
-    **Usage with Django:**
+    :param server: Server header options (e.g., to hide or modify the `Server` header)
+    :param hsts: Strict-Transport-Security (HSTS) header options to enforce HTTPS
+    :param xfo: X-Frame-Options header options to prevent clickjacking attacks
+    :param content: X-Content-Type-Options header options to prevent MIME-sniffing
+    :param csp: Content-Security-Policy header options to prevent XSS and content injection
+    :param referrer: Referrer-Policy header options to control referrer information
+    :param cache: Cache-Control header options to define caching behavior
+    :param permissions: Permissions-Policy header options to control browser APIs and features
+    :param coop: Cross-Origin-Opener-Policy header options to mitigate cross-origin attacks
+    :param ceop: Cross-Origin-Embedder-Policy header options to control resource embedding
+    :param custom: A list of custom headers, allowing users to specify their own headers
+
+    Methods:
+    --------
+    - `with_default_headers()`: A class method to create a `Secure` instance with a secure
+       set of default headers.
+    - `from_preset()`: A class method to create a `Secure` instance using predefined security
+       presets like `BASIC`, `STRICT`, and `CUSTOM`.
+
+    Usage Examples:
+    ---------------
+
+    **Django:**
+    Use the `set_headers` method to apply security headers to a Django response object.
 
     ```python
-    secure_headers = Secure()
+    secure_headers = Secure.with_default_headers()
     response = HttpResponse()
     secure_headers.set_headers(response)
     ```
 
-    **Usage with FastAPI:**
+    **FastAPI:**
+    Use the `set_headers_async` method for asynchronous frameworks like FastAPI.
 
     ```python
-    secure_headers = Secure()
+    secure_headers = Secure.with_default_headers()
+
     @app.get("/")
     async def read_root():
         response = JSONResponse(content={"message": "Hello World"})
