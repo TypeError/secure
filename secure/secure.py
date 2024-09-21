@@ -5,19 +5,19 @@ from functools import cached_property
 from typing import Any, Protocol, runtime_checkable
 
 from .headers import (
-    cache_control,
-    content_security_policy,
-    cross_origin_embedder_policy,
-    cross_origin_opener_policy,
-    custom_header,
-    permissions_policy,
-    referrer_policy,
-    server,
-    strict_transport_security,
-    x_content_type_options,
-    x_frame_options,
+    BaseHeader,
+    CacheControl,
+    ContentSecurityPolicy,
+    CrossOriginEmbedderPolicy,
+    CrossOriginOpenerPolicy,
+    CustomHeader,
+    PermissionsPolicy,
+    ReferrerPolicy,
+    Server,
+    StrictTransportSecurity,
+    XContentTypeOptions,
+    XFrameOptions,
 )
-from .headers.base_header import BaseHeader
 
 
 @runtime_checkable
@@ -68,17 +68,17 @@ class Secure:
 
     def __init__(
         self,
-        server: server.Server | None = None,
-        hsts: strict_transport_security.StrictTransportSecurity | None = None,
-        xfo: x_frame_options.XFrameOptions | None = None,
-        content: x_content_type_options.XContentTypeOptions | None = None,
-        csp: content_security_policy.ContentSecurityPolicy | None = None,
-        referrer: referrer_policy.ReferrerPolicy | None = None,
-        cache: cache_control.CacheControl | None = None,
-        permissions: permissions_policy.PermissionsPolicy | None = None,
-        coop: cross_origin_opener_policy.CrossOriginOpenerPolicy | None = None,
-        ceop: cross_origin_embedder_policy.CrossOriginEmbedderPolicy | None = None,
-        custom: list[custom_header.CustomHeader] | None = None,
+        server: Server | None = None,
+        hsts: StrictTransportSecurity | None = None,
+        xfo: XFrameOptions | None = None,
+        content: XContentTypeOptions | None = None,
+        csp: ContentSecurityPolicy | None = None,
+        referrer: ReferrerPolicy | None = None,
+        cache: CacheControl | None = None,
+        permissions: PermissionsPolicy | None = None,
+        coop: CrossOriginOpenerPolicy | None = None,
+        ceop: CrossOriginEmbedderPolicy | None = None,
+        custom: list[CustomHeader] | None = None,
     ) -> None:
         # Initialize the list of header instances
         self.headers_list: list[BaseHeader] = []
