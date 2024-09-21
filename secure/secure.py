@@ -20,6 +20,12 @@ from .headers import (
 )
 
 
+class Preset(Enum):
+    BASIC = "basic"
+    STRICT = "strict"
+    CUSTOM = "custom"
+
+
 @runtime_checkable
 class ResponseProtocol(Protocol):
     """Protocol to define the expected interface of the response object."""
@@ -195,3 +201,25 @@ class Secure:
                 raise AttributeError(
                     f"The response object of type '{type(response).__name__}' does not support setting headers."
                 )
+
+    @classmethod
+    def from_preset(cls, preset: Preset) -> Secure:
+        match preset:
+            case Preset.BASIC:
+                return cls(
+                    hsts=StrictTransportSecurity().max_age(63072000),
+                    xfo=XFrameOptions().sameorigin(),
+                    referrer=ReferrerPolicy().no_referrer_when_downgrade(),
+                )
+            case Preset.STRICT:
+                return cls(
+                    hsts=StrictTransportSecurity()
+                    .max_age(31536000)
+                    .include_subdomains()
+                    .preload(),
+                    xfo=XFrameOptions().deny(),
+                    referrer=ReferrerPolicy().no_referrer(),
+                    csp=ContentSecurityPolicy().default_src("'self'"),
+                )
+            case Preset.CUSTOM:
+                return cls()
