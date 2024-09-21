@@ -83,32 +83,45 @@ class Secure:
         # Initialize the list of header instances
         self.headers_list: list[BaseHeader] = []
 
-        # Add headers with defaults or provided values
-        if server is not None:
-            self.headers_list.append(server)
-        self.headers_list.append(
-            hsts or strict_transport_security.StrictTransportSecurity()
-        )
-        self.headers_list.append(xfo or x_frame_options.XFrameOptions())
-        self.headers_list.append(
-            content or x_content_type_options.XContentTypeOptions()
-        )
-        if csp is not None:
-            self.headers_list.append(csp)
-        self.headers_list.append(referrer or referrer_policy.ReferrerPolicy())
-        if cache is not None:
-            self.headers_list.append(cache)
-        if permissions is not None:
-            self.headers_list.append(permissions)
-        self.headers_list.append(
-            coop or cross_origin_opener_policy.CrossOriginOpenerPolicy()
-        )
-        if ceop is not None:
-            self.headers_list.append(ceop)
+        # Add only provided headers, no defaults here
+        headers = {
+            "server": server,
+            "hsts": hsts,
+            "xfo": xfo,
+            "content": content,
+            "csp": csp,
+            "referrer": referrer,
+            "cache": cache,
+            "permissions": permissions,
+            "coop": coop,
+            "ceop": ceop,
+        }
+
+        for header in headers.values():
+            if header is not None:
+                self.headers_list.append(header)
 
         # Add custom headers if provided
         if custom:
             self.headers_list.extend(custom)
+
+    @classmethod
+    def with_default_headers(cls) -> Secure:
+        """Create a Secure instance using a default set of common security headers."""
+        return cls(
+            # HSTS with a max age of 1 year and include subdomains
+            hsts=StrictTransportSecurity().max_age(31536000).include_subdomains(),
+            # X-Frame-Options set to 'DENY'
+            xfo=XFrameOptions().deny(),
+            # X-Content-Type-Options set to 'nosniff'
+            content=XContentTypeOptions().nosniff(),
+            # Content-Security-Policy with default-src 'self'
+            csp=ContentSecurityPolicy().default_src("'self'"),
+            # Referrer-Policy set to 'no-referrer-when-downgrade'
+            referrer=ReferrerPolicy().no_referrer_when_downgrade(),
+            # Permissions-Policy disabling camera and microphone
+            permissions=PermissionsPolicy().camera("'none'").microphone("'none'"),
+        )
 
     def __str__(self) -> str:
         return "\n".join(
