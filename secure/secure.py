@@ -172,23 +172,20 @@ class Secure:
             )
 
     def _apply_headers(self, response: ResponseProtocol, is_async: bool) -> Any:
-        """Internal method to apply headers to the response object.
+        """Internal method to apply headers to the response object."""
+        headers = self.headers  # Use the headers dict directly
 
-        :param response: Response object that supports setting headers.
-        :param is_async: Indicates whether to handle asynchronous operations.
-        """
         if is_async:
-            return self._apply_headers_async(response)
+            return self._apply_headers_async(response, headers)
 
-        for header_name, header_value in self.headers.items():
+        for header_name, header_value in headers.items():
             self._set_header(response, header_name, header_value)
 
-    async def _apply_headers_async(self, response: ResponseProtocol) -> None:
-        """Internal async method to apply headers to the response object.
-
-        :param response: Response object that supports setting headers asynchronously.
-        """
-        for header_name, header_value in self.headers.items():
+    async def _apply_headers_async(
+        self, response: ResponseProtocol, headers: dict[str, str]
+    ) -> None:
+        """Internal async method to apply headers to the response object."""
+        for header_name, header_value in headers.items():
             if hasattr(response, "set_header"):
                 set_header = response.set_header
                 if inspect.iscoroutinefunction(set_header):
