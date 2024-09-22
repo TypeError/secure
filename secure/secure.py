@@ -3,7 +3,7 @@ from __future__ import annotations
 import inspect
 from enum import Enum
 from functools import cached_property
-from typing import Any, Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 from .headers import (
     BaseHeader,
@@ -22,78 +22,99 @@ from .headers import (
 
 
 class Preset(Enum):
+    """Enumeration of predefined security presets."""
+
     BASIC = "basic"
     STRICT = "strict"
-    CUSTOM = "custom"
 
 
 @runtime_checkable
 class ResponseProtocol(Protocol):
-    """Protocol to define the expected interface of the response object."""
+    """Protocol defining the expected interface of a response object.
+
+    The response object should have a `headers` dictionary and an optional
+    `set_header` method to set headers individually.
+    """
 
     headers: dict[str, str]
 
-    def set_header(self, header_name: str, header_value: str) -> Any: ...
+    def set_header(self, header_name: str, header_value: str) -> None: ...
 
 
 class Secure:
-    """
-    A class to configure and apply security headers for web applications.
+    """A class to configure and apply security headers for web applications.
 
-    The `Secure` class allows users to specify various HTTP security headers for
-    web applications, such as HSTS, CSP, X-Frame-Options, and more. Users can either
-    configure headers manually or use the built-in `with_default_headers()` method
-    to apply a secure set of default headers.
+    The `Secure` class provides a simple interface to configure and apply
+    a comprehensive set of HTTP security headers to protect web applications
+    from various security threats such as cross-site scripting (XSS), clickjacking,
+    MIME-sniffing vulnerabilities, and more.
 
-    :param server: Server header options (e.g., to hide or modify the `Server` header)
-    :param hsts: Strict-Transport-Security (HSTS) header options to enforce HTTPS
-    :param xfo: X-Frame-Options header options to prevent clickjacking attacks
-    :param content: X-Content-Type-Options header options to prevent MIME-sniffing
-    :param csp: Content-Security-Policy header options to prevent XSS and content injection
-    :param referrer: Referrer-Policy header options to control referrer information
-    :param cache: Cache-Control header options to define caching behavior
-    :param permissions: Permissions-Policy header options to control browser APIs and features
-    :param coop: Cross-Origin-Opener-Policy header options to mitigate cross-origin attacks
-    :param ceop: Cross-Origin-Embedder-Policy header options to control resource embedding
-    :param custom: A list of custom headers, allowing users to specify their own headers
+    It supports headers like Strict-Transport-Security (HSTS), Content-Security-Policy (CSP),
+    X-Frame-Options, Referrer-Policy, and others. You can configure these headers manually
+    by providing their respective classes, or use built-in presets or default configurations
+    for common use cases.
 
-    Methods:
-    --------
-    - `with_default_headers()`: A class method to create a `Secure` instance with a secure
-       set of default headers.
-    - `from_preset()`: A class method to create a `Secure` instance using predefined security
-       presets like `BASIC`, `STRICT`, and `CUSTOM`.
+    Parameters:
+        server (Server | None, optional): Configuration for the `Server` header to hide or modify it.
+        hsts (StrictTransportSecurity | None, optional): HSTS options to enforce HTTPS.
+        xfo (XFrameOptions | None, optional): X-Frame-Options to prevent clickjacking attacks.
+        content (XContentTypeOptions | None, optional): X-Content-Type-Options to prevent MIME-sniffing.
+        csp (ContentSecurityPolicy | None, optional): CSP to prevent XSS and content injection.
+        referrer (ReferrerPolicy | None, optional): Referrer-Policy to control referrer information.
+        cache (CacheControl | None, optional): Cache-Control to define caching behavior.
+        permissions (PermissionsPolicy | None, optional): Permissions-Policy to control browser APIs.
+        coop (CrossOriginOpenerPolicy | None, optional): COOP to mitigate cross-origin attacks.
+        ceop (CrossOriginEmbedderPolicy | None, optional): COEP to control resource embedding.
+        custom (list[CustomHeader] | None, optional): List of custom headers to add.
 
-    Usage Examples:
-    ---------------
+    Examples:
+        **Using Default Headers:**
 
-    **Django:**
-    Use the `set_headers` method to apply security headers to a Django response object.
+        ```python
+        from secure import Secure
 
-    ```python
-    secure_headers = Secure.with_default_headers()
-    response = HttpResponse()
-    secure_headers.set_headers(response)
-    ```
+        secure_headers = Secure.with_default_headers()
+        response = HttpResponse()
+        secure_headers.set_headers(response)
+        ```
 
-    **FastAPI:**
-    Use the `set_headers_async` method for asynchronous frameworks like FastAPI.
+        **Using Presets:**
 
-    ```python
-    secure_headers = Secure.with_default_headers()
+        ```python
+        from secure import Secure, Preset
 
-    @app.get("/")
-    async def read_root():
-        response = JSONResponse(content={"message": "Hello World"})
-        await secure_headers.set_headers_async(response)
-        return response
-    ```
+        secure_headers = Secure.from_preset(Preset.STRICT)
+        ```
+
+        **Custom Configuration:**
+
+        ```python
+        from secure import (
+            Secure,
+            StrictTransportSecurity,
+            XFrameOptions,
+            ReferrerPolicy,
+            ContentSecurityPolicy,
+            PermissionsPolicy,
+        )
+
+        secure_headers = Secure(
+            hsts=StrictTransportSecurity().max_age(63072000).include_subdomains(),
+            xfo=XFrameOptions().sameorigin(),
+            referrer=ReferrerPolicy().strict_origin_when_cross_origin(),
+            csp=ContentSecurityPolicy()
+                .default_src("'self'")
+                .script_src("'self'", "'unsafe-inline'"),
+            permissions=PermissionsPolicy().geolocation("'none'"),
+        )
+        ```
     """
 
     __slots__ = ("headers_list",)
 
     def __init__(
         self,
+        *,
         server: Server | None = None,
         hsts: StrictTransportSecurity | None = None,
         xfo: XFrameOptions | None = None,
@@ -106,26 +127,23 @@ class Secure:
         ceop: CrossOriginEmbedderPolicy | None = None,
         custom: list[CustomHeader] | None = None,
     ) -> None:
-        # Initialize the list of header instances
-        self.headers_list: list[BaseHeader] = []
-
-        # Add only provided headers, no defaults here
-        headers = {
-            "server": server,
-            "hsts": hsts,
-            "xfo": xfo,
-            "content": content,
-            "csp": csp,
-            "referrer": referrer,
-            "cache": cache,
-            "permissions": permissions,
-            "coop": coop,
-            "ceop": ceop,
-        }
-
-        for header in headers.values():
-            if header is not None:
-                self.headers_list.append(header)
+        """Initialize the Secure instance with the specified security headers."""
+        self.headers_list: list[BaseHeader] = [
+            header
+            for header in (
+                server,
+                hsts,
+                xfo,
+                content,
+                csp,
+                referrer,
+                cache,
+                permissions,
+                coop,
+                ceop,
+            )
+            if header is not None
+        ]
 
         # Add custom headers if provided
         if custom:
@@ -133,94 +151,51 @@ class Secure:
 
     @classmethod
     def with_default_headers(cls) -> Secure:
-        """Create a Secure instance using a default set of common security headers."""
+        """Create a `Secure` instance with a default set of common security headers.
+
+        This method returns a `Secure` instance configured with a recommended set of default security headers.
+        These headers provide a baseline level of security for most web applications.
+
+        The default headers included are:
+
+        - **Strict-Transport-Security**: Enforces secure (HTTP over SSL/TLS) connections to the server.
+        - **X-Frame-Options**: Protects against clickjacking attacks by controlling whether the browser should render pages in a `<frame>`, `<iframe>`, `<embed>`, or `<object>`.
+        - **X-Content-Type-Options**: Prevents browsers from MIME-sniffing a response away from the declared content-type.
+        - **Content-Security-Policy**: Prevents cross-site scripting (XSS), clickjacking and other code injection attacks.
+        - **Referrer-Policy**: Governs which referrer information should be included with requests.
+        - **Permissions-Policy**: Allows or denies the use of browser features.
+
+        Returns:
+            Secure: An instance configured with a secure set of default headers.
+        """
         return cls(
-            # HSTS with a max age of 1 year and include subdomains
             hsts=StrictTransportSecurity().max_age(31536000).include_subdomains(),
-            # X-Frame-Options set to 'DENY'
             xfo=XFrameOptions().deny(),
-            # X-Content-Type-Options set to 'nosniff'
             content=XContentTypeOptions().nosniff(),
-            # Content-Security-Policy with default-src 'self'
             csp=ContentSecurityPolicy().default_src("'self'"),
-            # Referrer-Policy set to 'no-referrer-when-downgrade'
             referrer=ReferrerPolicy().no_referrer_when_downgrade(),
-            # Permissions-Policy disabling camera and microphone
             permissions=PermissionsPolicy().camera("'none'").microphone("'none'"),
         )
 
-    def __str__(self) -> str:
-        return "\n".join(
-            f"{header.header_name}: {header.header_value}"
-            for header in self.headers_list
-        )
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(headers_list={self.headers_list!r})"
-
-    @cached_property
-    def headers(self) -> dict[str, str]:
-        """Collects all the headers as a dictionary."""
-        return {header.header_name: header.header_value for header in self.headers_list}
-
-    def set_headers(self, response: ResponseProtocol) -> None:
-        """Set headers on the response object synchronously.
-
-        :param response: Response object that supports setting headers.
-        """
-        self._apply_headers(response, is_async=False)
-
-    async def set_headers_async(self, response: ResponseProtocol) -> None:
-        """Set headers on the response object asynchronously.
-
-        :param response: Response object that supports setting headers.
-        """
-        await self._apply_headers(response, is_async=True)
-
-    def _set_header(
-        self, response: ResponseProtocol, header_name: str, header_value: str
-    ) -> None:
-        """Helper method to set a single header."""
-        if hasattr(response, "set_header"):
-            set_header = response.set_header
-            set_header(header_name, header_value)
-        elif hasattr(response, "headers"):
-            response.headers[header_name] = header_value
-        else:
-            raise AttributeError(
-                f"The response object of type '{type(response).__name__}' does not support setting headers."
-            )
-
-    def _apply_headers(self, response: ResponseProtocol, is_async: bool) -> Any:
-        """Internal method to apply headers to the response object."""
-        headers = self.headers  # Use the headers dict directly
-
-        if is_async:
-            return self._apply_headers_async(response, headers)
-
-        for header_name, header_value in headers.items():
-            self._set_header(response, header_name, header_value)
-
-    async def _apply_headers_async(
-        self, response: ResponseProtocol, headers: dict[str, str]
-    ) -> None:
-        """Internal async method to apply headers to the response object."""
-        for header_name, header_value in headers.items():
-            if hasattr(response, "set_header"):
-                set_header = response.set_header
-                if inspect.iscoroutinefunction(set_header):
-                    await set_header(header_name, header_value)
-                else:
-                    set_header(header_name, header_value)
-            elif hasattr(response, "headers"):
-                response.headers[header_name] = header_value
-            else:
-                raise AttributeError(
-                    f"The response object of type '{type(response).__name__}' does not support setting headers."
-                )
-
     @classmethod
     def from_preset(cls, preset: Preset) -> Secure:
+        """Create a `Secure` instance using a predefined security preset.
+
+        This method provides quick configuration of security headers using predefined presets.
+        Currently, the following presets are available:
+
+        - `Preset.BASIC`: A basic set of security headers suitable for general use.
+        - `Preset.STRICT`: A stricter set of security headers for enhanced security.
+
+        Args:
+            preset (Preset): The security preset to use (`Preset.BASIC` or `Preset.STRICT`).
+
+        Returns:
+            Secure: An instance configured with the specified preset.
+
+        Raises:
+            ValueError: If an unknown preset is provided.
+        """
         match preset:
             case Preset.BASIC:
                 return cls(
@@ -238,5 +213,88 @@ class Secure:
                     referrer=ReferrerPolicy().no_referrer(),
                     csp=ContentSecurityPolicy().default_src("'self'"),
                 )
-            case Preset.CUSTOM:
-                return cls()
+            case _:  # type: ignore
+                raise ValueError(f"Unknown preset: {preset}")
+
+    def __str__(self) -> str:
+        """Return a string representation of the security headers.
+
+        Returns:
+            str: A string listing all configured security headers in the format "Header-Name: Header-Value".
+        """
+        return "\n".join(
+            f"{header.header_name}: {header.header_value}"
+            for header in self.headers_list
+        )
+
+    def __repr__(self) -> str:
+        """Return a detailed string representation of the `Secure` instance.
+
+        Returns:
+            str: A string representation showing the list of configured headers.
+        """
+        return f"{self.__class__.__name__}(headers_list={self.headers_list!r})"
+
+    @cached_property
+    def headers(self) -> dict[str, str]:
+        """Collect all configured headers as a dictionary.
+
+        Returns:
+            dict[str, str]: A dictionary mapping header names to their values.
+        """
+        return {header.header_name: header.header_value for header in self.headers_list}
+
+    def set_headers(self, response: ResponseProtocol) -> None:
+        """Set security headers on the response object synchronously.
+
+        This method adds the configured security headers to the given response object.
+        It supports response objects that have either a `set_header` method or a `headers` dictionary attribute.
+
+        Args:
+            response (ResponseProtocol): The response object to modify.
+
+        Raises:
+            AttributeError: If the response object does not support setting headers via `set_header` method or `headers` attribute.
+            RuntimeError: If an asynchronous `set_header` method is encountered in a synchronous context.
+        """
+        for header_name, header_value in self.headers.items():
+            if hasattr(response, "set_header"):
+                set_header = response.set_header
+                if inspect.iscoroutinefunction(set_header):
+                    raise RuntimeError(
+                        "Encountered asynchronous 'set_header' in synchronous context."
+                    )
+                set_header(header_name, header_value)
+            elif hasattr(response, "headers"):
+                response.headers[header_name] = header_value
+            else:
+                raise AttributeError(
+                    f"Response object of type '{type(response).__name__}' does not support setting headers."
+                )
+
+    async def set_headers_async(self, response: ResponseProtocol) -> None:
+        """Set security headers on the response object asynchronously.
+
+        This method adds the configured security headers to the given response object.
+        It supports response objects that have either a `set_header` method or a `headers` dictionary attribute.
+        If the `set_header` method is asynchronous, it awaits it; otherwise, it calls it directly.
+
+        Args:
+            response (ResponseProtocol): The response object to modify.
+
+        Raises:
+            AttributeError: If the response object does not support setting headers via `set_header` method or `headers` attribute.
+        """
+        for header_name, header_value in self.headers.items():
+            if hasattr(response, "set_header"):
+                set_header = response.set_header
+                if inspect.iscoroutinefunction(set_header):
+                    await set_header(header_name, header_value)
+                else:
+                    set_header(header_name, header_value)
+            elif hasattr(response, "headers"):
+                response.headers[header_name] = header_value
+            else:
+                raise AttributeError(
+                    f"Response object of type '{type(response).__name__}' does not support setting headers."
+                )
