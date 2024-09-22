@@ -30,7 +30,11 @@ class CrossOriginOpenerPolicy(BaseHeader):
 
     @property
     def header_value(self) -> str:
-        """Return the current `Cross-Origin-Opener-Policy` header value."""
+        """Return the current `Cross-Origin-Opener-Policy` header value.
+
+        Returns:
+            The current COOP policy as a string.
+        """
         return self._directive
 
     def set(self, value: str) -> CrossOriginOpenerPolicy:
@@ -63,6 +67,9 @@ class CrossOriginOpenerPolicy(BaseHeader):
         This allows the document to be added to its opener’s browsing context group unless the opener has a COOP
         of `same-origin` or `same-origin-allow-popups` (this is the default value).
 
+        Resources:
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Opener-Policy
+
         Returns:
             The `CrossOriginOpenerPolicy` instance for method chaining.
         """
@@ -76,6 +83,9 @@ class CrossOriginOpenerPolicy(BaseHeader):
         This allows retaining references to newly opened windows or tabs that either don’t set COOP or opt out of isolation
         by setting a COOP of `unsafe-none`.
 
+        Resources:
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Opener-Policy
+
         Returns:
             The `CrossOriginOpenerPolicy` instance for method chaining.
         """
@@ -88,6 +98,9 @@ class CrossOriginOpenerPolicy(BaseHeader):
 
         This isolates the browsing context exclusively to same-origin documents, preventing cross-origin documents from
         being loaded in the same context.
+
+        Resources:
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Opener-Policy
 
         Returns:
             The `CrossOriginOpenerPolicy` instance for method chaining.

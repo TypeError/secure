@@ -1,3 +1,11 @@
+# Security header recommendations and information from the MDN Web Docs and the OWASP Secure Headers Project
+# https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security
+# https://owasp.org/www-project-secure-headers/#http-strict-transport-security
+#
+# Strict-Transport-Security by Mozilla Contributors is licensed under CC-BY-SA 2.5.
+# https://developer.mozilla.org/en-US/docs/MDN/Community/Roles_teams#contributor
+# https://creativecommons.org/licenses/by-sa/2.5/
+
 from __future__ import annotations  # type: ignore
 
 from dataclasses import dataclass, field
@@ -9,7 +17,7 @@ from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderNam
 class StrictTransportSecurity(BaseHeader):
     """
     Represents the `Strict-Transport-Security` (HSTS) HTTP header, which ensures that the application
-    communication is sent over HTTPS and prevents man-in-the-middle attacks.
+    communication is sent over HTTPS and helps prevent man-in-the-middle attacks.
 
     Resources:
         - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security
@@ -22,11 +30,19 @@ class StrictTransportSecurity(BaseHeader):
 
     @property
     def header_value(self) -> str:
-        """Return the current `Strict-Transport-Security` header value."""
+        """Return the current `Strict-Transport-Security` header value.
+
+        Returns:
+            The `Strict-Transport-Security` header as a string.
+        """
         return "; ".join(self._directives) if self._directives else self._default_value
 
     def _build(self, directive: str) -> None:
-        """Add a directive to the `Strict-Transport-Security` policy if not already present."""
+        """Add a directive to the `Strict-Transport-Security` policy if not already present.
+
+        Args:
+            directive: The directive to add to the HSTS policy.
+        """
         if directive not in self._directives:
             self._directives.append(directive)
 
@@ -45,7 +61,7 @@ class StrictTransportSecurity(BaseHeader):
 
     def clear(self) -> StrictTransportSecurity:
         """
-        Clear the current directives and reset to the default value.
+        Clear all directives from the `Strict-Transport-Security` header and reset to the default value.
 
         Returns:
             The `StrictTransportSecurity` instance for method chaining.
@@ -55,7 +71,11 @@ class StrictTransportSecurity(BaseHeader):
 
     def include_subdomains(self) -> StrictTransportSecurity:
         """
-        Include all subdomains in the HSTS policy.
+        Add the `includeSubDomains` directive, which ensures that the HSTS policy is applied
+        to all subdomains of the domain.
+
+        Resources:
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security#includeSubDomains
 
         Returns:
             The `StrictTransportSecurity` instance for method chaining.
@@ -65,11 +85,14 @@ class StrictTransportSecurity(BaseHeader):
 
     def max_age(self, seconds: int) -> StrictTransportSecurity:
         """
-        Set the `max-age` directive, instructing the browser to remember the HTTPS preference
-        for the specified time (in seconds).
+        Set the `max-age` directive, instructing the browser to enforce the HTTPS-only policy
+        for the specified duration in seconds.
 
         Args:
-            seconds: The duration in seconds for which the HSTS policy is enforced.
+            seconds: The number of seconds for which the HSTS policy will be applied.
+
+        Resources:
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security#max-age
 
         Returns:
             The `StrictTransportSecurity` instance for method chaining.
@@ -79,8 +102,12 @@ class StrictTransportSecurity(BaseHeader):
 
     def preload(self) -> StrictTransportSecurity:
         """
-        Add the `preload` directive, indicating that the site should always be loaded over HTTPS
-        and included in the HSTS preload list.
+        Add the `preload` directive, indicating that the site should be included in the HSTS preload list,
+        instructing browsers to always load the site over HTTPS.
+
+        Resources:
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security#preload
+            https://hstspreload.org
 
         Returns:
             The `StrictTransportSecurity` instance for method chaining.

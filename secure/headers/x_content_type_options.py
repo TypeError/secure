@@ -1,3 +1,11 @@
+# Security header recommendations and information from the MDN Web Docs and the OWASP Secure Headers Project
+# https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Content-Type-Options
+# https://owasp.org/www-project-secure-headers/#x-content-type-options
+#
+# X-Content-Type-Options by Mozilla Contributors is licensed under CC-BY-SA 2.5.
+# https://developer.mozilla.org/en-US/docs/MDN/Community/Roles_teams#contributor
+# https://creativecommons.org/licenses/by-sa/2.5/
+
 from __future__ import annotations  # type: ignore
 
 from dataclasses import dataclass, field
@@ -20,7 +28,11 @@ class XContentTypeOptions(BaseHeader):
 
     @property
     def header_value(self) -> str:
-        """Return the current `X-Content-Type-Options` header value."""
+        """Return the current `X-Content-Type-Options` header value.
+
+        Returns:
+            The current `X-Content-Type-Options` header value as a string.
+        """
         return self._value
 
     def set(self, value: str) -> XContentTypeOptions:
@@ -50,7 +62,10 @@ class XContentTypeOptions(BaseHeader):
         """
         Set the `X-Content-Type-Options` header to `nosniff`.
 
-        This is the recommended value for preventing MIME-sniffing.
+        This value tells the browser to block requests for certain content types and prevents MIME-sniffing attacks.
+
+        Resources:
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Content-Type-Options
 
         Returns:
             The `XContentTypeOptions` instance for method chaining.

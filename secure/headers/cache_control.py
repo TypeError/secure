@@ -1,3 +1,11 @@
+# Security header recommendations and information from the MDN Web Docs and the OWASP Secure Headers Project
+# https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control
+# https://owasp.org/www-project-secure-headers/#cache-control
+#
+# Cache-Control by Mozilla Contributors is licensed under CC-BY-SA 2.5.
+# https://developer.mozilla.org/en-US/docs/MDN/Community/Roles_teams#contributor
+# https://creativecommons.org/licenses/by-sa/2.5/
+
 from __future__ import annotations  # type: ignore
 
 from dataclasses import dataclass, field
@@ -19,6 +27,7 @@ class CacheControl(BaseHeader):
 
     Resources:
         - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control
+        - https://owasp.org/www-project-secure-headers/#cache-control
     """
 
     header_name: str = HeaderName.CACHE_CONTROL.value
@@ -31,7 +40,11 @@ class CacheControl(BaseHeader):
         return ", ".join(self._directives) if self._directives else self._default_value
 
     def _build(self, directive: str) -> None:
-        """Add a directive to the list, preventing duplicates."""
+        """Add a directive to the list, preventing duplicates.
+
+        Args:
+            directive: The caching directive to add.
+        """
         if directive not in self._directives:
             self._directives.append(directive)
 
@@ -42,7 +55,7 @@ class CacheControl(BaseHeader):
             value: The custom header value.
 
         Returns:
-            The CacheControl instance (self) for method chaining.
+            The `CacheControl` instance for method chaining.
         """
         self._directives = [value]
         return self
@@ -51,13 +64,20 @@ class CacheControl(BaseHeader):
         """Clear all directives from the Cache-Control header, returning to the default state.
 
         Returns:
-            The CacheControl instance (self) for method chaining.
+            The `CacheControl` instance for method chaining.
         """
         self._directives.clear()
         return self
 
     def immutable(self) -> CacheControl:
-        """Add the 'immutable' directive."""
+        """Add the 'immutable' directive.
+
+        Resources:
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control#immutable
+
+        Returns:
+            The `CacheControl` instance for method chaining.
+        """
         self._build("immutable")
         return self
 
@@ -68,7 +88,7 @@ class CacheControl(BaseHeader):
             seconds: The maximum time, in seconds, that the resource is fresh.
 
         Returns:
-            The CacheControl instance (self) for method chaining.
+            The `CacheControl` instance for method chaining.
 
         Raises:
             ValueError: If 'seconds' is negative.
@@ -79,42 +99,98 @@ class CacheControl(BaseHeader):
         return self
 
     def must_revalidate(self) -> CacheControl:
-        """Add the 'must-revalidate' directive."""
+        """Add the 'must-revalidate' directive.
+
+        Resources:
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control#must-revalidate
+
+        Returns:
+            The `CacheControl` instance for method chaining.
+        """
         self._build("must-revalidate")
         return self
 
     def must_understand(self) -> CacheControl:
-        """Add the 'must-understand' directive."""
+        """Add the 'must-understand' directive.
+
+        Resources:
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control#must-understand
+
+        Returns:
+            The `CacheControl` instance for method chaining.
+        """
         self._build("must-understand")
         return self
 
     def no_cache(self) -> CacheControl:
-        """Add the 'no-cache' directive."""
+        """Add the 'no-cache' directive, requiring cache revalidation.
+
+        Resources:
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control#no-cache
+
+        Returns:
+            The `CacheControl` instance for method chaining.
+        """
         self._build("no-cache")
         return self
 
     def no_store(self) -> CacheControl:
-        """Add the 'no-store' directive."""
+        """Add the 'no-store' directive, preventing caching entirely.
+
+        Resources:
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control#no-store
+
+        Returns:
+            The `CacheControl` instance for method chaining.
+        """
         self._build("no-store")
         return self
 
     def no_transform(self) -> CacheControl:
-        """Add the 'no-transform' directive."""
+        """Add the 'no-transform' directive, preventing intermediaries from altering the content.
+
+        Resources:
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control#no-transform
+
+        Returns:
+            The `CacheControl` instance for method chaining.
+        """
         self._build("no-transform")
         return self
 
     def private(self) -> CacheControl:
-        """Add the 'private' directive."""
+        """Add the 'private' directive, allowing caching only by the end user's browser.
+
+        Resources:
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control#private
+
+        Returns:
+            The `CacheControl` instance for method chaining.
+        """
         self._build("private")
         return self
 
     def proxy_revalidate(self) -> CacheControl:
-        """Add the 'proxy-revalidate' directive."""
+        """Add the 'proxy-revalidate' directive, requiring intermediaries to revalidate the cache.
+
+        Resources:
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control#proxy-revalidate
+
+        Returns:
+            The `CacheControl` instance for method chaining.
+        """
         self._build("proxy-revalidate")
         return self
 
     def public(self) -> CacheControl:
-        """Add the 'public' directive."""
+        """Add the 'public' directive, allowing caching by any cache.
+
+        Resources:
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control#public
+
+        Returns:
+            The `CacheControl` instance for method chaining.
+        """
         self._build("public")
         return self
 
@@ -124,8 +200,11 @@ class CacheControl(BaseHeader):
         Args:
             seconds: The maximum amount of time, in seconds, that the resource is fresh for shared caches.
 
+        Resources:
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control#s-maxage
+
         Returns:
-            The CacheControl instance (self) for method chaining.
+            The `CacheControl` instance for method chaining.
 
         Raises:
             ValueError: If 'seconds' is negative.
@@ -141,8 +220,11 @@ class CacheControl(BaseHeader):
         Args:
             seconds: The time, in seconds, for how long stale content is allowed if there's an error.
 
+        Resources:
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control#stale-if-error
+
         Returns:
-            The CacheControl instance (self) for method chaining.
+            The `CacheControl` instance for method chaining.
 
         Raises:
             ValueError: If 'seconds' is negative.
@@ -158,8 +240,11 @@ class CacheControl(BaseHeader):
         Args:
             seconds: The time, in seconds, for how long stale content is allowed during revalidation.
 
+        Resources:
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control#stale-while-revalidate
+
         Returns:
-            The CacheControl instance (self) for method chaining.
+            The `CacheControl` instance for method chaining.
 
         Raises:
             ValueError: If 'seconds' is negative.

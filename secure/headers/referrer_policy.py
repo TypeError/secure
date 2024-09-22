@@ -1,3 +1,11 @@
+# Security header recommendations and information from the MDN Web Docs and the OWASP Secure Headers Project
+# https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy
+# https://owasp.org/www-project-secure-headers/#referrer-policy
+#
+# Referrer-Policy by Mozilla Contributors is licensed under CC-BY-SA 2.5.
+# https://developer.mozilla.org/en-US/docs/MDN/Community/Roles_teams#contributor
+# https://creativecommons.org/licenses/by-sa/2.5/
+
 from __future__ import annotations  # type: ignore
 
 from dataclasses import dataclass, field
@@ -21,7 +29,11 @@ class ReferrerPolicy(BaseHeader):
 
     @property
     def header_value(self) -> str:
-        """Return the current `Referrer-Policy` header value."""
+        """Return the current `Referrer-Policy` header value.
+
+        Returns:
+            The current Referrer-Policy header value as a string.
+        """
         return ", ".join(self._directives) if self._directives else self._default_value
 
     def _build(self, directive: str) -> None:
@@ -56,6 +68,9 @@ class ReferrerPolicy(BaseHeader):
         """
         Set the policy to `no-referrer`, meaning the `Referer` header will not be sent.
 
+        Resources:
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy/no-referrer
+
         Returns:
             The `ReferrerPolicy` instance for method chaining.
         """
@@ -63,7 +78,11 @@ class ReferrerPolicy(BaseHeader):
 
     def no_referrer_when_downgrade(self) -> ReferrerPolicy:
         """
-        Set the policy to `no-referrer-when-downgrade`, meaning the `Referer` header will not be sent if HTTPS -> HTTP.
+        Set the policy to `no-referrer-when-downgrade`, meaning the `Referer` header will not be sent when moving from
+        HTTPS to HTTP.
+
+        Resources:
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy/no-referrer-when-downgrade
 
         Returns:
             The `ReferrerPolicy` instance for method chaining.
@@ -72,7 +91,10 @@ class ReferrerPolicy(BaseHeader):
 
     def origin(self) -> ReferrerPolicy:
         """
-        Set the policy to `origin`, meaning the `Referer` header will contain only the origin.
+        Set the policy to `origin`, meaning the `Referer` header will contain only the origin of the URL.
+
+        Resources:
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy/origin
 
         Returns:
             The `ReferrerPolicy` instance for method chaining.
@@ -81,8 +103,11 @@ class ReferrerPolicy(BaseHeader):
 
     def origin_when_cross_origin(self) -> ReferrerPolicy:
         """
-        Set the policy to `origin-when-cross-origin`, meaning the `Referer` header will contain the full URL,
-        but only the origin if cross-origin.
+        Set the policy to `origin-when-cross-origin`, meaning the `Referer` header will contain the full URL for
+        same-origin requests, but only the origin for cross-origin requests.
+
+        Resources:
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy/origin-when-cross-origin
 
         Returns:
             The `ReferrerPolicy` instance for method chaining.
@@ -91,7 +116,10 @@ class ReferrerPolicy(BaseHeader):
 
     def same_origin(self) -> ReferrerPolicy:
         """
-        Set the policy to `same-origin`, meaning the `Referer` header will be sent with the full URL if same-origin.
+        Set the policy to `same-origin`, meaning the `Referer` header will only be sent for same-origin requests.
+
+        Resources:
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy/same-origin
 
         Returns:
             The `ReferrerPolicy` instance for method chaining.
@@ -100,7 +128,11 @@ class ReferrerPolicy(BaseHeader):
 
     def strict_origin(self) -> ReferrerPolicy:
         """
-        Set the policy to `strict-origin`, meaning the `Referer` header will be sent only for same-origin requests.
+        Set the policy to `strict-origin`, meaning the `Referer` header will only be sent for same-origin requests,
+        and not for cross-origin requests.
+
+        Resources:
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy/strict-origin
 
         Returns:
             The `ReferrerPolicy` instance for method chaining.
@@ -109,8 +141,11 @@ class ReferrerPolicy(BaseHeader):
 
     def strict_origin_when_cross_origin(self) -> ReferrerPolicy:
         """
-        Set the policy to `strict-origin-when-cross-origin`, meaning the `Referer` header will only contain the origin if
-        HTTPS -> HTTP or cross-origin requests.
+        Set the policy to `strict-origin-when-cross-origin`, meaning the `Referer` header will contain the origin for
+        cross-origin requests and only the full URL for same-origin requests.
+
+        Resources:
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy/strict-origin-when-cross-origin
 
         Returns:
             The `ReferrerPolicy` instance for method chaining.
@@ -119,7 +154,11 @@ class ReferrerPolicy(BaseHeader):
 
     def unsafe_url(self) -> ReferrerPolicy:
         """
-        Set the policy to `unsafe-url`, meaning the `Referer` header will contain the full URL, regardless of security.
+        Set the policy to `unsafe-url`, meaning the `Referer` header will contain the full URL for both same-origin
+        and cross-origin requests, regardless of security.
+
+        Resources:
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy/unsafe-url
 
         Returns:
             The `ReferrerPolicy` instance for method chaining.

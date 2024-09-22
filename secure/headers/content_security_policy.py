@@ -1,3 +1,11 @@
+# Security header recommendations and information from the MDN Web Docs and the OWASP Secure Headers Project
+# https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy
+# https://owasp.org/www-project-secure-headers/#content-security-policy
+#
+# Content-Security-Policy by Mozilla Contributors is licensed under CC-BY-SA 2.5.
+# https://developer.mozilla.org/en-US/docs/MDN/Community/Roles_teams#contributor
+# https://creativecommons.org/licenses/by-sa/2.5/
+
 from __future__ import annotations  # type: ignore
 
 from dataclasses import dataclass, field
@@ -14,6 +22,7 @@ class ContentSecurityPolicy(BaseHeader):
     Resources:
         - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy
         - https://developers.google.com/web/fundamentals/security/csp
+        - https://owasp.org/www-project-secure-headers/#content-security-policy
     """
 
     header_name: str = HeaderName.CONTENT_SECURITY_POLICY.value
@@ -22,7 +31,7 @@ class ContentSecurityPolicy(BaseHeader):
 
     @property
     def header_value(self) -> str:
-        """Return the current header value."""
+        """Return the current `Content-Security-Policy` header value."""
         return "; ".join(self._directives) if self._directives else self._default_value
 
     def _build(self, directive: str, *sources: str) -> None:
@@ -30,7 +39,7 @@ class ContentSecurityPolicy(BaseHeader):
 
         Args:
             directive: The directive name.
-            *sources: The sources for the directive.
+            *sources: The allowed sources for the directive.
         """
         if sources:
             self._directives.append(f"{directive} {' '.join(sources)}")
@@ -50,7 +59,7 @@ class ContentSecurityPolicy(BaseHeader):
         return self
 
     def clear(self) -> ContentSecurityPolicy:
-        """Clear all directives from the policy.
+        """Clear all directives from the `Content-Security-Policy` header.
 
         Returns:
             The `ContentSecurityPolicy` instance for method chaining.
@@ -68,11 +77,11 @@ class ContentSecurityPolicy(BaseHeader):
         return self
 
     def custom_directive(self, directive: str, *sources: str) -> ContentSecurityPolicy:
-        """Set a custom directive and sources.
+        """Add a custom directive and its allowed sources.
 
         Args:
             directive: Custom directive.
-            *sources: Custom sources.
+            *sources: Allowed sources for the directive.
 
         Returns:
             The `ContentSecurityPolicy` instance for method chaining.
@@ -81,7 +90,7 @@ class ContentSecurityPolicy(BaseHeader):
         return self
 
     def base_uri(self, *sources: str) -> ContentSecurityPolicy:
-        """Sets valid origins for `<base>` element.
+        """Set valid origins for `<base>` element.
 
         Resources:
             https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/base-uri
@@ -92,7 +101,7 @@ class ContentSecurityPolicy(BaseHeader):
         return self.custom_directive("base-uri", *sources)
 
     def child_src(self, *sources: str) -> ContentSecurityPolicy:
-        """Sets valid origins for web workers.
+        """Set valid origins for web workers.
 
         Resources:
             https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/child-src
@@ -103,7 +112,7 @@ class ContentSecurityPolicy(BaseHeader):
         return self.custom_directive("child-src", *sources)
 
     def connect_src(self, *sources: str) -> ContentSecurityPolicy:
-        """Sets valid origins for script interfaces.
+        """Set valid origins for script interfaces (e.g., XMLHttpRequest, WebSocket).
 
         Resources:
             https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/connect-src
@@ -114,7 +123,7 @@ class ContentSecurityPolicy(BaseHeader):
         return self.custom_directive("connect-src", *sources)
 
     def default_src(self, *sources: str) -> ContentSecurityPolicy:
-        """Sets fallback valid origins for other directives.
+        """Set fallback valid origins for other directives.
 
         Resources:
             https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/default-src
@@ -147,7 +156,7 @@ class ContentSecurityPolicy(BaseHeader):
         return self.custom_directive("form-action", *sources)
 
     def frame_ancestors(self, *sources: str) -> ContentSecurityPolicy:
-        """Set valid origins that can embed the resource.
+        """Set valid origins that can embed the resource (e.g., iframes).
 
         Resources:
             https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/frame-ancestors
@@ -191,7 +200,7 @@ class ContentSecurityPolicy(BaseHeader):
         return self.custom_directive("manifest-src", *sources)
 
     def media_src(self, *sources: str) -> ContentSecurityPolicy:
-        """Set valid origins for media.
+        """Set valid origins for media content.
 
         Resources:
             https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/media-src
@@ -202,7 +211,7 @@ class ContentSecurityPolicy(BaseHeader):
         return self.custom_directive("media-src", *sources)
 
     def object_src(self, *sources: str) -> ContentSecurityPolicy:
-        """Set valid origins for plugins.
+        """Set valid origins for plugin objects (e.g., `<object>`, `<embed>`, `<applet>`).
 
         Resources:
             https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/object-src
@@ -224,7 +233,7 @@ class ContentSecurityPolicy(BaseHeader):
         return self.custom_directive("report-to", *values)
 
     def sandbox(self, *values: str) -> ContentSecurityPolicy:
-        """Enables sandbox restrictions.
+        """Enable sandboxing for scripts and iframes.
 
         Resources:
             https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/sandbox
@@ -235,7 +244,7 @@ class ContentSecurityPolicy(BaseHeader):
         return self.custom_directive("sandbox", *values)
 
     def script_src(self, *sources: str) -> ContentSecurityPolicy:
-        """Set valid origins for JavaScript.
+        """Set valid origins for JavaScript sources.
 
         Resources:
             https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src
@@ -246,7 +255,7 @@ class ContentSecurityPolicy(BaseHeader):
         return self.custom_directive("script-src", *sources)
 
     def style_src(self, *sources: str) -> ContentSecurityPolicy:
-        """Set valid origins for styles.
+        """Set valid origins for CSS and styles.
 
         Resources:
             https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/style-src

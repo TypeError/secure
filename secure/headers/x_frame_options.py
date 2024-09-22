@@ -1,3 +1,11 @@
+# Security header recommendations and information from the MDN Web Docs and the OWASP Secure Headers Project
+# https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options
+# https://owasp.org/www-project-secure-headers/#x-frame-options
+#
+# X-Frame-Options by Mozilla Contributors is licensed under CC-BY-SA 2.5.
+# https://developer.mozilla.org/en-US/docs/MDN/Community/Roles_teams#contributor
+# https://creativecommons.org/licenses/by-sa/2.5/
+
 from __future__ import annotations  # type: ignore
 
 from dataclasses import dataclass, field
@@ -13,6 +21,7 @@ class XFrameOptions(BaseHeader):
 
     Resources:
         - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options
+        - https://owasp.org/www-project-secure-headers/#x-frame-options
     """
 
     header_name: str = HeaderName.X_FRAME_OPTIONS.value
@@ -20,7 +29,11 @@ class XFrameOptions(BaseHeader):
 
     @property
     def header_value(self) -> str:
-        """Return the current `X-Frame-Options` header value."""
+        """Return the current `X-Frame-Options` header value.
+
+        Returns:
+            The current `X-Frame-Options` header value as a string.
+        """
         return self._value
 
     def set(self, value: str) -> XFrameOptions:
@@ -50,6 +63,9 @@ class XFrameOptions(BaseHeader):
         """
         Set the `X-Frame-Options` header to `deny`, which prevents any site from framing the page.
 
+        Resources:
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options
+
         Returns:
             The `XFrameOptions` instance for method chaining.
         """
@@ -60,6 +76,9 @@ class XFrameOptions(BaseHeader):
         """
         Set the `X-Frame-Options` header to `sameorigin`, which allows the page to be framed
         only by pages from the same origin.
+
+        Resources:
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options
 
         Returns:
             The `XFrameOptions` instance for method chaining.

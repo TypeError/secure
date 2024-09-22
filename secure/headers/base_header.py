@@ -4,6 +4,13 @@ from enum import Enum
 
 
 class HeaderName(Enum):
+    """Enumeration of standard HTTP security headers.
+
+    This enum provides the header names for various security headers
+    like Cache-Control, Content-Security-Policy, Strict-Transport-Security, etc.
+    It is used to ensure consistency in header naming across the codebase.
+    """
+
     CACHE_CONTROL = "Cache-Control"
     CONTENT_SECURITY_POLICY = "Content-Security-Policy"
     CONTENT_SECURITY_POLICY_REPORT_ONLY = "Content-Security-Policy-Report-Only"
@@ -18,6 +25,13 @@ class HeaderName(Enum):
 
 
 class HeaderDefaultValue(Enum):
+    """Enumeration of default values for standard HTTP security headers.
+
+    This enum provides default values for headers like Cache-Control, Content-Security-Policy,
+    Strict-Transport-Security, and others. These values represent recommended security defaults
+    where applicable.
+    """
+
     CACHE_CONTROL = "no-store"
     CONTENT_SECURITY_POLICY = "script-src 'self'; object-src 'self'"
     CROSS_ORIGIN_EMBEDDER_POLICY = "require-corp"
@@ -32,10 +46,27 @@ class HeaderDefaultValue(Enum):
 
 @dataclass
 class BaseHeader:
-    """Base class for all header classes."""
+    """Abstract base class for HTTP security headers.
+
+    This class defines the basic structure for security headers by requiring
+    derived classes to implement the `header_value` property, which provides
+    the value of the header.
+
+    Attributes:
+        header_name (str): The name of the security header.
+    """
 
     header_name: str
 
     @property
     @abstractmethod
-    def header_value(self) -> str: ...
+    def header_value(self) -> str:
+        """Abstract property for getting the header value.
+
+        This property should be implemented by subclasses to return the
+        security header's value.
+
+        Returns:
+            str: The value of the header.
+        """
+        ...

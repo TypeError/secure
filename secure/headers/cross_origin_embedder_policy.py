@@ -35,7 +35,11 @@ class CrossOriginEmbedderPolicy(BaseHeader):
 
     @property
     def header_value(self) -> str:
-        """Return the current `Cross-Origin-Embedder-Policy` header value."""
+        """Return the current `Cross-Origin-Embedder-Policy` header value.
+
+        Returns:
+            The current COEP policy as a string.
+        """
         return self._directive
 
     def set(self, value: str) -> CrossOriginEmbedderPolicy:
@@ -66,7 +70,10 @@ class CrossOriginEmbedderPolicy(BaseHeader):
         Set the header to `'unsafe-none'`.
 
         This allows the document to fetch cross-origin resources without giving explicit permission
-        through the CORS protocol or the `Cross-Origin-Resource-Policy` header.
+        through the CORS protocol or the `Cross-Origin-Resource-Policy` header (this is the default value).
+
+        Resources:
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Embedder-Policy
 
         Returns:
             The `CrossOriginEmbedderPolicy` instance for method chaining.
@@ -80,6 +87,9 @@ class CrossOriginEmbedderPolicy(BaseHeader):
 
         This ensures a document can only load resources from the same origin, or resources explicitly
         marked as loadable from another origin.
+
+        Resources:
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Embedder-Policy
 
         Returns:
             The `CrossOriginEmbedderPolicy` instance for method chaining.
