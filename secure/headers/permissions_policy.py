@@ -23,6 +23,7 @@ class PermissionsPolicy(BaseHeader):
 
     Resources:
         - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Permissions-Policy
+        - https://owasp.org/www-project-secure-headers/#permissions-policy
         - https://github.com/w3c/webappsec-permissions-policy/blob/main/permissions-policy-explainer.md
     """
 

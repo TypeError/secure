@@ -32,14 +32,16 @@ class HeaderDefaultValue(Enum):
     where applicable.
     """
 
-    CACHE_CONTROL = "no-store"
-    CONTENT_SECURITY_POLICY = "script-src 'self'; object-src 'self'"
+    CACHE_CONTROL = "no-store, no-cache, must-revalidate"
+    CONTENT_SECURITY_POLICY = "default-src 'self'; script-src 'self'; object-src 'self'; style-src 'self'; img-src 'self'"
     CROSS_ORIGIN_EMBEDDER_POLICY = "require-corp"
     CROSS_ORIGIN_OPENER_POLICY = "same-origin"
-    PERMISSION_POLICY = "geolocation=(), microphone=(), camera=(), payment=()"
-    REFERRER_POLICY = "no-referrer, strict-origin-when-cross-origin"
-    SERVER = "NULL"
-    STRICT_TRANSPORT_SECURITY = "max-age=63072000; includeSubdomains"
+    PERMISSION_POLICY = (
+        "geolocation=(), microphone=(), camera=(), payment=(), fullscreen=(), usb=()"
+    )
+    REFERRER_POLICY = "strict-origin-when-cross-origin"
+    SERVER = ""
+    STRICT_TRANSPORT_SECURITY = "max-age=63072000; includeSubDomains; preload"
     X_CONTENT_TYPE_OPTIONS = "nosniff"
     X_FRAME_OPTIONS = "SAMEORIGIN"
 
