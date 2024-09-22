@@ -1,9 +1,5 @@
 # type: ignore
-
-
-# Credits:
-# https://github.com/kennethreitz/setup.py
-
+# Credits: https://github.com/kennethreitz/setup.py
 
 import os
 import sys
@@ -23,35 +19,21 @@ REQUIRES_PYTHON = ">=3.10"
 VERSION = "1.0.0"
 
 # What packages are required for this module to be executed?
-REQUIRED = [
-    # 'requests', 'maya', 'records',
-]
+REQUIRED = []
 
 # What packages are optional?
-EXTRAS = {
-    # 'fancy feature': ['django'],
-}
-
-# The rest you shouldn't have to touch too much :)
-# ------------------------------------------------
+EXTRAS = {}
 
 here = os.path.abspath(os.path.dirname(__file__))
 
 # Import the README and use it as the long-description.
-# Note: this will only work if 'README.md' is present in your MANIFEST.in file!
 try:
     with open(os.path.join(here, "README.md"), encoding="utf-8") as f:
-        long_description = "\n" + f.read()
+        long_description = f.read()
 except FileNotFoundError:
     long_description = DESCRIPTION
 
-# Load the package's __version__.py module as a dictionary.
-about = {}
-if not VERSION:
-    with open(os.path.join(here, NAME, "__version__.py")) as f:
-        exec(f.read(), about)
-else:
-    about["__version__"] = VERSION
+about = {"__version__": VERSION}
 
 
 class UploadCommand(Command):
@@ -62,7 +44,7 @@ class UploadCommand(Command):
 
     @staticmethod
     def status(s):
-        """Prints things in bold."""
+        """Print things in bold."""
         print(f"\033[1m{s}\033[0m")
 
     def initialize_options(self):
@@ -91,7 +73,6 @@ class UploadCommand(Command):
         sys.exit()
 
 
-# Where the magic happens:
 setup(
     name=NAME,
     version=about["__version__"],
@@ -102,21 +83,24 @@ setup(
     author_email=EMAIL,
     python_requires=REQUIRES_PYTHON,
     url=URL,
-    packages=find_packages(exclude=["tests", "*.tests", "*.tests.*", "tests.*"]),
+    packages=find_packages(
+        exclude=["tests", "*.tests", "*.tests.*", "tests.*", "docs", "docs.*"]
+    ),
     install_requires=REQUIRED,
     extras_require=EXTRAS,
     include_package_data=True,
+    package_data={"secure": ["py.typed"]},  # Include the py.typed file
     license="MIT",
     classifiers=[
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Typing :: Typed",
         "Operating System :: OS Independent",
-        "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
         "Topic :: Software Development :: Libraries",
     ],
-    # $ setup.py publish support.
     cmdclass={
         "upload": UploadCommand,
     },
