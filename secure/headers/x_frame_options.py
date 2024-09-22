@@ -61,7 +61,7 @@ class XFrameOptions(BaseHeader):
 
     def deny(self) -> XFrameOptions:
         """
-        Set the `X-Frame-Options` header to `deny`, which prevents any site from framing the page.
+        Set the `X-Frame-Options` header to `DENY`, which prevents any site from framing the page.
 
         Resources:
             https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options
@@ -69,12 +69,12 @@ class XFrameOptions(BaseHeader):
         Returns:
             The `XFrameOptions` instance for method chaining.
         """
-        self._value = "deny"
+        self._value = "DENY"
         return self
 
     def sameorigin(self) -> XFrameOptions:
         """
-        Set the `X-Frame-Options` header to `sameorigin`, which allows the page to be framed
+        Set the `X-Frame-Options` header to `SAMEORIGIN`, which allows the page to be framed
         only by pages from the same origin.
 
         Resources:
@@ -83,5 +83,5 @@ class XFrameOptions(BaseHeader):
         Returns:
             The `XFrameOptions` instance for method chaining.
         """
-        self._value = "sameorigin"
+        self._value = "SAMEORIGIN"
         return self
