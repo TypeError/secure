@@ -33,10 +33,12 @@ class Preset(Enum):
 class ResponseProtocol(Protocol):
     """Protocol defining the expected interface of a response object.
 
-    The response object should have a `headers` dictionary.
+    The response object should have a `headers` dictionary or a `set_header` method.
     """
 
     headers: dict[str, str]
+
+    def set_header(self, key: str, value: str) -> Any: ...
 
 
 class Secure:
@@ -133,9 +135,7 @@ class Secure:
     def set_headers(self, response: ResponseProtocol) -> None:
         """Set security headers on the response object synchronously."""
         for header_name, header_value in self.headers.items():
-            if hasattr(response, "headers"):
-                response.headers[header_name] = header_value
-            elif hasattr(response, "set_header"):
+            if hasattr(response, "set_header"):
                 set_header = cast(
                     Callable[[str, str], Any], getattr(response, "set_header")
                 )
@@ -143,7 +143,9 @@ class Secure:
                     raise RuntimeError(
                         "Encountered asynchronous 'set_header' in synchronous context."
                     )
-                set_header(header_name, header_value)
+                set_header(header_name, header_value)  # Use set_header if present
+            elif hasattr(response, "headers"):
+                response.headers[header_name] = header_value  # Fallback to headers
             else:
                 raise AttributeError(
                     f"Response object of type '{type(response).__name__}' does not support setting headers."
@@ -152,16 +154,16 @@ class Secure:
     async def set_headers_async(self, response: ResponseProtocol) -> None:
         """Set security headers on the response object asynchronously."""
         for header_name, header_value in self.headers.items():
-            if hasattr(response, "headers"):
-                response.headers[header_name] = header_value
-            elif hasattr(response, "set_header"):
+            if hasattr(response, "set_header"):
                 set_header = cast(
                     Callable[[str, str], Any], getattr(response, "set_header")
                 )
                 if inspect.iscoroutinefunction(set_header):
-                    await set_header(header_name, header_value)
+                    await set_header(header_name, header_value)  # Use async set_header
                 else:
-                    set_header(header_name, header_value)
+                    set_header(header_name, header_value)  # Use synchronous set_header
+            elif hasattr(response, "headers"):
+                response.headers[header_name] = header_value  # Fallback to headers
             else:
                 raise AttributeError(
                     f"Response object of type '{type(response).__name__}' does not support setting headers."
