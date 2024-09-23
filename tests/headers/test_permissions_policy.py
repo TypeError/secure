@@ -9,7 +9,7 @@ class TestPermissionsPolicy(unittest.TestCase):
         policy = PermissionsPolicy()
         self.assertEqual(
             policy.header_value,
-            "geolocation=(), microphone=(), camera=(), payment=(), fullscreen=(), usb=()",
+            "geolocation=(), microphone=(), camera=()",
         )
 
     def test_custom_permissions_policy(self):
@@ -22,7 +22,7 @@ class TestPermissionsPolicy(unittest.TestCase):
         policy = PermissionsPolicy().camera("'self'").clear()
         self.assertEqual(
             policy.header_value,
-            "geolocation=(), microphone=(), camera=(), payment=(), fullscreen=(), usb=()",
+            "geolocation=(), microphone=(), camera=()",
         )
 
     def test_add_directive(self):

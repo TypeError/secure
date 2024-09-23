@@ -8,9 +8,7 @@ class TestStrictTransportSecurity(unittest.TestCase):
         """Test default Strict-Transport-Security header."""
         hsts = StrictTransportSecurity()
         self.assertEqual(hsts.header_name, "Strict-Transport-Security")
-        self.assertEqual(
-            hsts.header_value, "max-age=63072000; includeSubDomains; preload"
-        )
+        self.assertEqual(hsts.header_value, "max-age=31536000")
 
     def test_custom_max_age(self):
         """Test setting a custom max-age for HSTS."""
@@ -23,8 +21,8 @@ class TestStrictTransportSecurity(unittest.TestCase):
         self.assertIn("preload", hsts.header_value)
 
     def test_include_subdomains(self):
-        """Test includeSubDomains is applied by default."""
-        hsts = StrictTransportSecurity()
+        """Test adding includeSubDomains directive to HSTS."""
+        hsts = StrictTransportSecurity().max_age(31536000).include_subdomains()
         self.assertIn("includeSubDomains", hsts.header_value)
 
 

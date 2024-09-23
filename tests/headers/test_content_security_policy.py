@@ -9,7 +9,7 @@ class TestContentSecurityPolicy(unittest.TestCase):
         csp = ContentSecurityPolicy()
         self.assertEqual(
             csp.header_value,
-            "default-src 'self'; script-src 'self'; object-src 'self'; style-src 'self'; img-src 'self'",
+            "default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'",
         )
 
     def test_custom_policy(self):
@@ -33,7 +33,7 @@ class TestContentSecurityPolicy(unittest.TestCase):
         csp = ContentSecurityPolicy().default_src("'self'").clear()
         self.assertEqual(
             csp.header_value,
-            "default-src 'self'; script-src 'self'; object-src 'self'; style-src 'self'; img-src 'self'",
+            "default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'",
         )
 
 

@@ -5,7 +5,7 @@ from secure.headers import Server
 
 class TestServerHeader(unittest.TestCase):
     def test_default_server(self):
-        """Test default Server header value (NULL)."""
+        """Test default Server header value."""
         server_header = Server()
         self.assertEqual(server_header.header_value, "")
 
