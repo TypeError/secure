@@ -88,12 +88,19 @@ class Secure:
     def with_default_headers(cls) -> Secure:
         """Create a `Secure` instance with a default set of common security headers."""
         return cls(
-            hsts=StrictTransportSecurity().max_age(31536000).include_subdomains(),
-            xfo=XFrameOptions().deny(),
-            content=XContentTypeOptions().nosniff(),
-            csp=ContentSecurityPolicy().default_src("'self'"),
-            referrer=ReferrerPolicy().no_referrer_when_downgrade(),
-            permissions=PermissionsPolicy().camera("'none'").microphone("'none'"),
+            cache=CacheControl().no_store(),
+            coop=CrossOriginOpenerPolicy().same_origin(),
+            csp=ContentSecurityPolicy()
+            .default_src("'self'")
+            .script_src("'self'")
+            .style_src("'self'")
+            .object_src("'none'"),
+            hsts=StrictTransportSecurity().max_age(31536000),
+            permissions=PermissionsPolicy().geolocation().microphone().camera(),
+            referrer=ReferrerPolicy().strict_origin_when_cross_origin(),
+            server=Server().set(""),
+            xcto=XContentTypeOptions().nosniff(),
+            xfo=XFrameOptions().sameorigin(),
         )
 
     @classmethod
@@ -102,19 +109,34 @@ class Secure:
         match preset:
             case Preset.BASIC:
                 return cls(
-                    hsts=StrictTransportSecurity().max_age(63072000),
+                    cache=CacheControl().no_store(),
+                    hsts=StrictTransportSecurity().max_age(31536000),
+                    referrer=ReferrerPolicy().strict_origin_when_cross_origin(),
+                    server=Server().set(""),
+                    xcto=XContentTypeOptions().nosniff(),
                     xfo=XFrameOptions().sameorigin(),
-                    referrer=ReferrerPolicy().no_referrer_when_downgrade(),
                 )
             case Preset.STRICT:
                 return cls(
+                    cache=CacheControl().no_store(),
+                    coep=CrossOriginEmbedderPolicy().require_corp(),
+                    coop=CrossOriginOpenerPolicy().same_origin(),
+                    csp=ContentSecurityPolicy()
+                    .default_src("'self'")
+                    .script_src("'self'")
+                    .style_src("'self'")
+                    .object_src("'none'")
+                    .base_uri("'none'")
+                    .frame_ancestors("'none'"),
                     hsts=StrictTransportSecurity()
-                    .max_age(31536000)
+                    .max_age(63072000)
                     .include_subdomains()
                     .preload(),
-                    xfo=XFrameOptions().deny(),
+                    permissions=PermissionsPolicy().geolocation().microphone().camera(),
                     referrer=ReferrerPolicy().no_referrer(),
-                    csp=ContentSecurityPolicy().default_src("'self'"),
+                    server=Server().set(""),
+                    xcto=XContentTypeOptions().nosniff(),
+                    xfo=XFrameOptions().deny(),
                 )
             case _:  # type: ignore
                 raise ValueError(f"Unknown preset: {preset}")
