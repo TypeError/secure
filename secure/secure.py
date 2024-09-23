@@ -47,35 +47,38 @@ class Secure:
     def __init__(
         self,
         *,
-        server: Server | None = None,
-        hsts: StrictTransportSecurity | None = None,
-        xfo: XFrameOptions | None = None,
-        content: XContentTypeOptions | None = None,
-        csp: ContentSecurityPolicy | None = None,
-        referrer: ReferrerPolicy | None = None,
         cache: CacheControl | None = None,
-        permissions: PermissionsPolicy | None = None,
+        coep: CrossOriginEmbedderPolicy | None = None,
         coop: CrossOriginOpenerPolicy | None = None,
-        ceop: CrossOriginEmbedderPolicy | None = None,
+        csp: ContentSecurityPolicy | None = None,
         custom: list[CustomHeader] | None = None,
+        hsts: StrictTransportSecurity | None = None,
+        permissions: PermissionsPolicy | None = None,
+        referrer: ReferrerPolicy | None = None,
+        server: Server | None = None,
+        xcto: XContentTypeOptions | None = None,
+        xfo: XFrameOptions | None = None,
     ) -> None:
         """Initialize the Secure instance with the specified security headers."""
-        self.headers_list: list[BaseHeader] = [
-            header
-            for header in (
-                server,
-                hsts,
-                xfo,
-                content,
-                csp,
-                referrer,
-                cache,
-                permissions,
-                coop,
-                ceop,
-            )
-            if header is not None
+        # Store headers in the order defined by the parameters
+        self.headers_list: list[BaseHeader] = []
+        # Using the order of parameters in the function signature
+        params = [
+            cache,
+            coep,
+            coop,
+            csp,
+            hsts,
+            permissions,
+            referrer,
+            server,
+            xcto,
+            xfo,
         ]
+
+        for header in params:
+            if header is not None:
+                self.headers_list.append(header)
 
         # Add custom headers if provided
         if custom:
