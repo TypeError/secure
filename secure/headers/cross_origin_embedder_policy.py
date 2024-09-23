@@ -23,6 +23,8 @@ class CrossOriginEmbedderPolicy(BaseHeader):
     - `CORP` applies on the loaded resource side (resource owner).
     - `COEP` applies on the “loader” of the resource side (consumer of the resource).
 
+    Default header value: `require-corp`
+
     Resources:
         - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Embedder-Policy
         - https://owasp.org/www-project-secure-headers/#cross-origin-embedder-policy

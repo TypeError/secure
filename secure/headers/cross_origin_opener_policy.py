@@ -20,6 +20,8 @@ class CrossOriginOpenerPolicy(BaseHeader):
     Represents the `Cross-Origin-Opener-Policy` (COOP) HTTP header, which helps process-isolate your document
     to prevent attackers from accessing your global object through popups and reduce cross-origin attacks (XS-Leaks).
 
+    Default header value: `same-origin`
+
     Resources:
         - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Opener-Policy
         - https://owasp.org/www-project-secure-headers/#cross-origin-opener-policy

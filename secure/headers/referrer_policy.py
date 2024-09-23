@@ -18,6 +18,8 @@ class ReferrerPolicy(BaseHeader):
     """
     Represents the `Referrer-Policy` HTTP header, which controls how much referrer information is sent with requests.
 
+    Default header value: `strict-origin-when-cross-origin`
+
     Resources:
         - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy
         - https://owasp.org/www-project-secure-headers/#referrer-policy

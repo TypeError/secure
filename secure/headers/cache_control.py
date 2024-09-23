@@ -20,6 +20,8 @@ class CacheControl(BaseHeader):
 
     If no directives are added, it returns the default value.
 
+    Default header value: `no-store`
+
     Example:
         cache_control = CacheControl().no_cache().no_store().max_age(0)
         print(cache_control.header_name)   # Output: 'Cache-Control'

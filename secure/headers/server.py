@@ -10,7 +10,9 @@ class Server(BaseHeader):
     """
     Represents the `Server` HTTP header, which provides information about the software used by the server.
 
-    By default, the `Server` header is set to a generic value (`NULL`) to obscure specific server details
+    Header default value: `""`
+
+    By default, the `Server` header is set to an empty value to obscure specific server details
     and enhance security by avoiding unnecessary exposure of server information.
     """
 

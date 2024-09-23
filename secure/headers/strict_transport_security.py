@@ -19,6 +19,8 @@ class StrictTransportSecurity(BaseHeader):
     Represents the `Strict-Transport-Security` (HSTS) HTTP header, which ensures that the application
     communication is sent over HTTPS and helps prevent man-in-the-middle attacks.
 
+    Default header value: `max-age=31536000`
+
     Resources:
         - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security
         - https://owasp.org/www-project-secure-headers/#http-strict-transport-security

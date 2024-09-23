@@ -19,6 +19,8 @@ class ContentSecurityPolicy(BaseHeader):
     Represents the `Content-Security-Policy` HTTP header, which helps prevent cross-site injections
     by specifying allowed sources for content.
 
+    Default header value: `default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'`
+
     Resources:
         - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy
         - https://developers.google.com/web/fundamentals/security/csp

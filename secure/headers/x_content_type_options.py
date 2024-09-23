@@ -18,6 +18,8 @@ class XContentTypeOptions(BaseHeader):
     """
     Represents the `X-Content-Type-Options` HTTP header, which prevents MIME-sniffing by browsers.
 
+    Default header value: `nosniff`
+
     Resources:
         - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Content-Type-Options
         - https://owasp.org/www-project-secure-headers/#x-content-type-options

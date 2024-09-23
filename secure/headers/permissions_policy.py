@@ -21,6 +21,8 @@ class PermissionsPolicy(BaseHeader):
 
     This header replaces the deprecated `Feature-Policy` header.
 
+    Default header value: `geolocation=(), microphone=(), camera=()`
+
     Resources:
         - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Permissions-Policy
         - https://owasp.org/www-project-secure-headers/#permissions-policy

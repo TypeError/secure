@@ -1,3 +1,7 @@
+# Security header recommendations and information from the MDN Web Docs and the OWASP Secure Headers Project
+# https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control
+# https://owasp.org/www-project-secure-headers/#cache-control
+
 from abc import abstractmethod
 from dataclasses import dataclass
 from enum import Enum
@@ -11,16 +15,37 @@ class HeaderName(Enum):
     It is used to ensure consistency in header naming across the codebase.
     """
 
+    # Caching
     CACHE_CONTROL = "Cache-Control"
+
+    # Content policy
     CONTENT_SECURITY_POLICY = "Content-Security-Policy"
+
+    # Content policy (report-only)
     CONTENT_SECURITY_POLICY_REPORT_ONLY = "Content-Security-Policy-Report-Only"
+
+    # Embedding security
     CROSS_ORIGIN_EMBEDDER_POLICY = "Cross-Origin-Embedder-Policy"
+
+    # Context isolation
     CROSS_ORIGIN_OPENER_POLICY = "Cross-Origin-Opener-Policy"
+
+    # Permissions
     PERMISSION_POLICY = "Permissions-Policy"
+
+    # Referrer control
     REFERRER_POLICY = "Referrer-Policy"
+
+    # Server identification
     SERVER = "Server"
+
+    # HTTPS enforcement
     STRICT_TRANSPORT_SECURITY = "Strict-Transport-Security"
+
+    # MIME type protection
     X_CONTENT_TYPE_OPTIONS = "X-Content-Type-Options"
+
+    # Clickjacking protection
     X_FRAME_OPTIONS = "X-Frame-Options"
 
 
@@ -32,17 +57,38 @@ class HeaderDefaultValue(Enum):
     where applicable.
     """
 
-    CACHE_CONTROL = "no-store, no-cache, must-revalidate"
-    CONTENT_SECURITY_POLICY = "default-src 'self'; script-src 'self'; object-src 'self'; style-src 'self'; img-src 'self'"
-    CROSS_ORIGIN_EMBEDDER_POLICY = "require-corp"
-    CROSS_ORIGIN_OPENER_POLICY = "same-origin"
-    PERMISSION_POLICY = (
-        "geolocation=(), microphone=(), camera=(), payment=(), fullscreen=(), usb=()"
+    # Cache-Control to prevent caching of sensitive data
+    CACHE_CONTROL = "no-store"
+
+    # Basic Content Security Policy to allow resources only from the same origin
+    CONTENT_SECURITY_POLICY = (
+        "default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'"
     )
+
+    # Cross-Origin Embedder Policy set to 'require-corp' to enforce stricter security.
+    # This ensures that embedded cross-origin resources must explicitly allow being embedded.
+    # Note: This may break third-party content that does not allow cross-origin embedding.
+    CROSS_ORIGIN_EMBEDDER_POLICY = "require-corp"
+
+    # Cross-Origin Opener Policy to isolate browsing contexts and prevent cross-origin leaks
+    CROSS_ORIGIN_OPENER_POLICY = "same-origin"
+
+    # Permissions Policy to disable risky features by default (geolocation, microphone, camera)
+    PERMISSION_POLICY = "geolocation=(), microphone=(), camera=()"
+
+    # Referrer Policy to balance security and usability, limits information sent on cross-origin requests
     REFERRER_POLICY = "strict-origin-when-cross-origin"
+
+    # Server header omitted to hide server details from attackers
     SERVER = ""
-    STRICT_TRANSPORT_SECURITY = "max-age=63072000; includeSubDomains; preload"
+
+    # Strict Transport Security to enforce HTTPS for one year
+    STRICT_TRANSPORT_SECURITY = "max-age=31536000"
+
+    # Prevent MIME-type sniffing to block potential security threats from improperly typed content
     X_CONTENT_TYPE_OPTIONS = "nosniff"
+
+    # Clickjacking protection, allows framing only from the same origin
     X_FRAME_OPTIONS = "SAMEORIGIN"
 
 

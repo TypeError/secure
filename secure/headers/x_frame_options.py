@@ -19,6 +19,8 @@ class XFrameOptions(BaseHeader):
     Represents the `X-Frame-Options` HTTP header, which protects against clickjacking by controlling
     whether the browser should allow rendering of a page in a <frame>, <iframe>, or <object>.
 
+    Default header value: `SAMEORIGIN`
+
     Resources:
         - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options
         - https://owasp.org/www-project-secure-headers/#x-frame-options
