@@ -24,38 +24,101 @@ This will apply a standard set of HTTP security headers, such as `Content-Securi
 
 ## Using Presets
 
-`secure.py` offers pre-configured presets to make securing your application easier. These presets apply common security best practices and save you from manually configuring each header.
+### Presets Overview
 
-### Available Presets
+`secure.py` offers two preset configurations: `STRICT` and `BASIC`. These are pre-configured sets of security headers that can be quickly applied to your web application for different security needs.
 
-- **`Preset.BASIC`**: A minimal configuration that includes essential security headers.
-- **`Preset.STRICT`**: A stricter configuration for applications that require a higher level of security.
+---
 
-### Example: Using the `BASIC` Preset
+## **STRICT Preset**
 
-```python
-from secure import Secure, Preset
+The `STRICT` preset applies a high level of security headers, ideal for applications that need strict protection against various web vulnerabilities, such as XSS, clickjacking, and cross-origin attacks.
 
-secure_headers = Secure.from_preset(Preset.BASIC)
-
-def add_security_headers(response):
-    secure_headers.set_headers(response)
-    return response
-```
-
-### Example: Using the `STRICT` Preset
+### Example Code:
 
 ```python
-from secure import Secure, Preset
+from flask import Flask, Response
 
+from secure import Preset, Secure
+
+app = Flask(__name__)
 secure_headers = Secure.from_preset(Preset.STRICT)
 
-def add_security_headers(response):
+@app.after_request
+def add_security_headers(response: Response):
     secure_headers.set_headers(response)
     return response
+
+@app.route("/")
+def home():
+    return "Hello, world"
+
+if __name__ == "__main__":
+    app.run()
 ```
 
-Using the `STRICT` preset enforces more comprehensive security measures, such as preventing JavaScript from untrusted sources and ensuring that all subdomains adhere to HTTPS policies.
+### Example Headers:
+
+```http
+Cache-Control: no-store
+Cross-Origin-Embedder-Policy: require-corp
+Cross-Origin-Opener-Policy: same-origin
+Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'
+Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+Permissions-Policy: geolocation=(), microphone=(), camera=()
+Referrer-Policy: no-referrer
+Server:
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+```
+
+This preset is perfect for highly sensitive applications, enforcing strict rules around resource loading and connection security.
+
+---
+
+## **BASIC Preset**
+
+The `BASIC` preset applies a more relaxed set of headers that still offer strong security protection, suitable for most standard applications.
+
+### Example Code:
+
+```python
+from flask import Flask, Response
+
+from secure import Preset, Secure
+
+app = Flask(__name__)
+secure_headers = Secure.from_preset(Preset.BASIC)
+
+@app.after_request
+def add_security_headers(response: Response):
+    secure_headers.set_headers(response)
+    return response
+
+@app.route("/")
+def home():
+    return "Hello, world"
+
+if __name__ == "__main__":
+    app.run()
+```
+
+### Example Headers:
+
+```http
+Cache-Control: no-store
+Strict-Transport-Security: max-age=31536000
+Referrer-Policy: strict-origin-when-cross-origin
+Server:
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+```
+
+The `BASIC` preset is suitable for most general-purpose applications, balancing security and flexibility.
+
+---
+
+You can easily adjust between these presets based on your application's needs by importing `Preset.BASIC` or `Preset.STRICT` and applying it to your response handlers.
 
 ---
 

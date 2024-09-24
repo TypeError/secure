@@ -154,12 +154,14 @@ secure_headers.set_headers(response)
 By default, `secure.py` applies the following headers when using `with_default_headers()`:
 
 ```http
-Strict-Transport-Security: max-age=31536000; includeSubDomains
-X-Frame-Options: DENY
+Cache-Control: no-store
+Cross-Origin-Opener-Policy: same-origin
+Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'
+Strict-Transport-Security: max-age=31536000
+Permissions-Policy: geolocation=(), microphone=(), camera=()
+Referrer-Policy: strict-origin-when-cross-origin
+Server:
 X-Content-Type-Options: nosniff
-Content-Security-Policy: default-src 'self'
-Referrer-Policy: no-referrer-when-downgrade
-Permissions-Policy: camera=(), microphone=()
 ```
 
 ---
@@ -190,7 +192,7 @@ secure_headers = secure.Secure(csp=csp)
 **Resulting HTTP headers:**
 
 ```http
-content-security-policy: default-src 'self'; script-src 'self' cdn.example.com; style-src 'self' cdn.example.com; img-src 'self' images.example.com; connect-src 'self' api.example.com
+Content-Security-Policy: default-src 'self'; script-src 'self' cdn.example.com; style-src 'self' cdn.example.com; img-src 'self' images.example.com; connect-src 'self' api.example.com
 ```
 
 ### **Permissions-Policy Example**
@@ -213,7 +215,7 @@ secure_headers = secure.Secure(permissions=permissions)
 **Resulting HTTP headers:**
 
 ```http
-permissions-policy: geolocation=('self'), camera=(), microphone=()
+Permissions-Policy: geolocation=('self'), camera=('none'), microphone=('none')
 ```
 
 ---
@@ -223,70 +225,50 @@ permissions-policy: geolocation=('self'), camera=(), microphone=()
 ### **FastAPI**
 
 ```python
-import uvicorn
 from fastapi import FastAPI
-import secure
+
+from secure import Secure
 
 app = FastAPI()
+secure_headers = Secure.with_default_headers()
 
-# Define security headers
-secure_headers = secure.Secure()
 
-# Apply headers middleware
 @app.middleware("http")
-async def set_secure_headers(request, call_next):
+async def add_security_headers(request, call_next):
     response = await call_next(request)
-    await secure_headers.set_headers_async(response)
+    secure_headers.set_headers(response)
     return response
 
+
 @app.get("/")
-async def root():
-    return {"message": "Hello, World!"}
-
-if __name__ == "__main__":
-    uvicorn.run(app, port=8081, host="localhost")
-```
-
-### **Django**
-
-```python
-# settings.py
-import secure
-
-secure_headers = secure.Secure()
-
-MIDDLEWARE = [
-    # ... other middleware ...
-    'your_project.middleware.SecureHeadersMiddleware',
-]
-
-# your_project/middleware.py
-from django.utils.deprecation import MiddlewareMixin
-
-class SecureHeadersMiddleware(MiddlewareMixin):
-    def process_response(self, request, response):
-        secure_headers.set_headers(response)
-        return response
+def read_root():
+    return {"Hello": "World"}
 ```
 
 ### Flask
 
 ```python
-from flask import Flask
-import secure
+from flask import Flask, Response
+
+from secure import Secure
 
 app = Flask(__name__)
-secure_headers = secure.Secure()
+secure_headers = Secure.with_default_headers()
+
 
 @app.after_request
-def set_secure_headers(response):
+def add_security_headers(response: Response):
     secure_headers.set_headers(response)
     return response
 
-@app.route('/')
-def index():
-    return 'Hello, World!'
 
+@app.route("/")
+def home():
+    return "Hello, world"
+
+
+if __name__ == "__main__":
+    app.run()
 ```
 
 ---
