@@ -25,6 +25,29 @@
 
 ---
 
+### Note: Overriding the `Server` Header in Uvicorn-based Frameworks
+
+If you're using Uvicorn as the ASGI server (commonly used with frameworks like FastAPI, Starlette, and others), Uvicorn automatically injects a `Server: uvicorn` header into all HTTP responses by default. This can lead to multiple `Server` headers when using `Secure.py` to set a custom `Server` header.
+
+To prevent Uvicorn from adding its default `Server` header, you can disable it by passing the `--no-server-header` option when running Uvicorn, or by setting `server_header=False` in the `uvicorn.run()` method:
+
+```python
+import uvicorn
+
+uvicorn.run(
+    app,
+    host="0.0.0.0",
+    port=8000,
+    server_header=False,  # Disable Uvicorn's default Server header
+)
+```
+
+If you're using Uvicorn via Gunicorn (e.g., with the `UvicornWorker`), note that this setting is not passed through automatically. In such cases, you may need to subclass the worker to fully override the `Server` header.
+
+For more information, refer to the [Uvicorn Settings](https://www.uvicorn.org/settings/#http).
+
+---
+
 ## aiohttp
 
 **[aiohttp](https://docs.aiohttp.org)** is an asynchronous HTTP client/server framework for asyncio and Python. It's designed for building efficient web applications with asynchronous capabilities.

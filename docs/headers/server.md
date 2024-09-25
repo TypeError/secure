@@ -42,6 +42,10 @@ This can then be applied as part of your Secure headers configuration:
 secure_headers = Secure(server=server_header)
 ```
 
+### Special Considerations for Frameworks
+
+Some frameworks like Uvicorn automatically inject a `Server` header. If you're using Uvicorn and need to override or remove this header, refer to the [framework integration guide](../frameworks.md) for specific instructions on how to disable Uvicorn's default `Server` header.
+
 ## **Resources**
 
 - [MDN Web Docs: Server Header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Server)
