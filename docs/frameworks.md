@@ -6,13 +6,16 @@
 
 - [aiohttp](#aiohttp)
 - [Bottle](#bottle)
+- [CherryPy](#cherrypy)
 - [Django](#django)
 - [Falcon](#falcon)
 - [FastAPI](#fastapi)
 - [Flask](#flask)
+- [Masonite](#masonite)
 - [Morepath](#morepath)
 - [Pyramid](#pyramid)
 - [Quart](#quart)
+- [Responder](#responder)
 - [Sanic](#sanic)
 - [Starlette](#starlette)
 - [Tornado](#tornado)
@@ -41,7 +44,7 @@ async def handle(request):
 @web.middleware
 async def add_security_headers(request, handler):
     response = await handler(request)
-    secure_headers.set_headers(response)
+    await secure_headers.set_headers_async(response)
     return response
 
 
@@ -78,6 +81,32 @@ def index():
 
 
 run(app, host="localhost", port=8080)
+```
+
+---
+
+## CherryPy
+
+**[CherryPy](https://cherrypy.dev)** is a minimalist, object-oriented web framework that allows developers to build web applications in a way similar to building other Python applications.
+
+```python
+import cherrypy
+
+from secure import Secure
+
+secure_headers = Secure.with_default_headers()
+
+
+class HelloWorld:
+    @cherrypy.expose
+    def index(self):
+        response = b"Hello, world"
+        cherrypy.response.headers.update(secure_headers.headers)
+        return response
+
+
+if __name__ == "__main__":
+    cherrypy.quickstart(HelloWorld())
 ```
 
 ---
@@ -142,7 +171,7 @@ secure_headers = Secure.with_default_headers()
 @app.middleware("http")
 async def add_security_headers(request, call_next):
     response = await call_next(request)
-    secure_headers.set_headers(response)
+    await secure_headers.set_headers_async(response)
     return response
 
 
@@ -175,6 +204,39 @@ def add_security_headers(response: Response):
 @app.route("/")
 def home():
     return "Hello, world"
+
+
+if __name__ == "__main__":
+    app.run()
+```
+
+---
+
+## Masonite
+
+**[Masonite](https://docs.masoniteproject.com/)** is a modern and developer-friendly Python web framework. It is designed for fast development, easy database management, and an MVC architecture.
+
+```python
+from masonite.foundation import Application
+from masonite.request import Request
+from masonite.response import Response
+
+from secure import Secure
+
+app = Application()
+
+# Configure default secure headers
+secure_headers = Secure.with_default_headers()
+
+
+def add_security_headers(response: Response):
+    secure_headers.set_headers(response)
+    return response
+
+
+@app.route("/")
+def home(request: Request, response: Response):
+    return add_security_headers(response.view("Hello, world"))
 
 
 if __name__ == "__main__":
@@ -253,7 +315,7 @@ if __name__ == "__main__":
 
 ## Quart
 
-**[Quart](https://pgjones.gitlab.io/quart/)** is an async Python web framework and is a drop-in replacement for Flask, offering the same API but with async capabilities.
+**[Quart](https://quart.palletsprojects.com/en/latest/)** is an async Python web framework and is a drop-in replacement for Flask, offering the same API but with async capabilities.
 
 ```python
 from quart import Quart, Response
@@ -266,7 +328,7 @@ secure_headers = Secure.with_default_headers()
 
 @app.after_request
 async def add_security_headers(response: Response):
-    secure_headers.set_headers(response)
+    await secure_headers.set_headers_async(response)
     return response
 
 
@@ -276,6 +338,31 @@ async def index():
 
 
 app.run()
+```
+
+---
+
+## Responder
+
+**[Responder](https://responder.kennethreitz.org)** is a web framework for quickly building APIs. It combines speed and developer-friendly features with the power of Starlette and ASGI.
+
+```python
+import responder
+
+from secure import Secure
+
+api = responder.API()
+secure_headers = Secure.with_default_headers()
+
+
+@api.route("/")
+async def home(req, resp):
+    resp.text = "Hello, world"
+    await secure_headers.set_headers_async(resp)
+
+
+if __name__ == "__main__":
+    api.run()
 ```
 
 ---
@@ -330,7 +417,7 @@ async def homepage(request):
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         response = await call_next(request)
-        secure_headers.set_headers(response)
+        await secure_headers.set_headers_async(response)
         return response
 
 

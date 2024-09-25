@@ -32,22 +32,24 @@ For detailed configuration options, see the [Configuration Guide](./configuratio
 
 Secure Headers is compatible with many popular Python web frameworks. Below are the integration guides for each supported framework, consolidated in the [Frameworks Integration Guide](./frameworks.md):
 
-| Framework                                   | Documentation                                   |
-| ------------------------------------------- | ----------------------------------------------- |
-| [aiohttp](https://docs.aiohttp.org)         | [Integration Guide](./frameworks.md#aiohttp)    |
-| [Bottle](https://bottlepy.org)              | [Integration Guide](./frameworks.md#bottle)     |
-| [Django](https://www.djangoproject.com)     | [Integration Guide](./frameworks.md#django)     |
-| [Falcon](https://falconframework.org)       | [Integration Guide](./frameworks.md#falcon)     |
-| [FastAPI](https://fastapi.tiangolo.com)     | [Integration Guide](./frameworks.md#fastapi)    |
-| [Flask](https://flask.palletsprojects.com/) | [Integration Guide](./frameworks.md#flask)      |
-| [Pyramid](https://trypyramid.com)           | [Integration Guide](./frameworks.md#pyramid)    |
-| [Quart](https://pgjones.gitlab.io/quart/)   | [Integration Guide](./frameworks.md#quart)      |
-| [Sanic](https://sanicframework.org)         | [Integration Guide](./frameworks.md#sanic)      |
-| [Starlette](https://www.starlette.io/)      | [Integration Guide](./frameworks.md#starlette)  |
-| [Tornado](https://www.tornadoweb.org/)      | [Integration Guide](./frameworks.md#tornado)    |
-| [TurboGears](https://turbogears.org/)       | [Integration Guide](./frameworks.md#turbogears) |
-| [Web2py](http://www.web2py.com/)            | [Integration Guide](./frameworks.md#web2py)     |
-| [Morepath](https://morepath.readthedocs.io) | [Integration Guide](./frameworks.md#morepath)   |
+| Framework                                             | Documentation                                   |
+| ----------------------------------------------------- | ----------------------------------------------- |
+| [aiohttp](https://docs.aiohttp.org)                   | [Integration Guide](./frameworks.md#aiohttp)    |
+| [Bottle](https://bottlepy.org)                        | [Integration Guide](./frameworks.md#bottle)     |
+| [CherryPy](https://cherrypy.dev/)                     | [Integration Guide](./frameworks.md#cherrypy)   |
+| [Django](https://www.djangoproject.com)               | [Integration Guide](./frameworks.md#django)     |
+| [Falcon](https://falconframework.org)                 | [Integration Guide](./frameworks.md#falcon)     |
+| [FastAPI](https://fastapi.tiangolo.com)               | [Integration Guide](./frameworks.md#fastapi)    |
+| [Flask](http://flask.pocoo.org)                       | [Integration Guide](./frameworks.md#flask)      |
+| [Masonite](https://docs.masoniteproject.com/)         | [Integration Guide](./frameworks.md#masonite)   |
+| [Morepath](https://morepath.readthedocs.io)           | [Integration Guide](./frameworks.md#morepath)   |
+| [Pyramid](https://trypyramid.com)                     | [Integration Guide](./frameworks.md#pyramid)    |
+| [Quart](https://quart.palletsprojects.com/en/latest/) | [Integration Guide](./frameworks.md#quart)      |
+| [Responder](https://responder.kennethreitz.org/)      | [Integration Guide](./frameworks.md#responder)  |
+| [Sanic](https://sanicframework.org)                   | [Integration Guide](./frameworks.md#sanic)      |
+| [Starlette](https://www.starlette.io/)                | [Integration Guide](./frameworks.md#starlette)  |
+| [Tornado](https://www.tornadoweb.org/)                | [Integration Guide](./frameworks.md#tornado)    |
+| [TurboGears](https://turbogears.org/)                 | [Integration Guide](./frameworks.md#turbogears) |
 
 If your framework is not listed here, Secure Headers can likely still be integrated. Refer to the [Custom Framework Integration Guide](./frameworks.md#custom-frameworks) for general integration tips.
 
@@ -99,9 +101,6 @@ Secure Headers supports many critical HTTP security headers. Below is a list of 
 
 - [OWASP Secure Headers Project](https://owasp.org/www-project-secure-headers/)  
   Learn about security best practices for HTTP headers from OWASP.
-
-- [Hardenize - HTTP Security Headers](https://www.hardenize.com/blog/https-security-headers)  
-  A guide on the importance of HTTP security headers and how to use them effectively.
 
 - [Mozilla Observatory](https://observatory.mozilla.org/)  
   A security tool to check the implementation of security headers on your site.
