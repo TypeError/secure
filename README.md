@@ -29,24 +29,24 @@ In today's web landscape, security is paramount. **secure.py** is a lightweight 
 
 **secure.py** supports the following Python web frameworks:
 
-| Framework                                             | Documentation                                        |
-| ----------------------------------------------------- | ---------------------------------------------------- |
-| [aiohttp](https://docs.aiohttp.org)                   | [Integration Guide](./docs/frameworks.md#aiohttp)    |
-| [Bottle](https://bottlepy.org)                        | [Integration Guide](./docs/frameworks.md#bottle)     |
-| [CherryPy](https://cherrypy.dev/)                     | [Integration Guide](./docs/frameworks.md#cherrypy)   |
-| [Django](https://www.djangoproject.com)               | [Integration Guide](./docs/frameworks.md#django)     |
-| [Falcon](https://falconframework.org)                 | [Integration Guide](./docs/frameworks.md#falcon)     |
-| [FastAPI](https://fastapi.tiangolo.com)               | [Integration Guide](./docs/frameworks.md#fastapi)    |
-| [Flask](http://flask.pocoo.org)                       | [Integration Guide](./docs/frameworks.md#flask)      |
-| [Masonite](https://docs.masoniteproject.com/)         | [Integration Guide](./docs/frameworks.md#masonite)   |
-| [Morepath](https://morepath.readthedocs.io)           | [Integration Guide](./docs/frameworks.md#morepath)   |
-| [Pyramid](https://trypyramid.com)                     | [Integration Guide](./docs/frameworks.md#pyramid)    |
-| [Quart](https://quart.palletsprojects.com/en/latest/) | [Integration Guide](./docs/frameworks.md#quart)      |
-| [Responder](https://responder.kennethreitz.org/)      | [Integration Guide](./docs/frameworks.md#responder)  |
-| [Sanic](https://sanicframework.org)                   | [Integration Guide](./docs/frameworks.md#sanic)      |
-| [Starlette](https://www.starlette.io/)                | [Integration Guide](./docs/frameworks.md#starlette)  |
-| [Tornado](https://www.tornadoweb.org/)                | [Integration Guide](./docs/frameworks.md#tornado)    |
-| [TurboGears](https://turbogears.org/)                 | [Integration Guide](./docs/frameworks.md#turbogears) |
+| Framework                                             | Documentation                                                                                    |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| [aiohttp](https://docs.aiohttp.org)                   | [Integration Guide](https://github.com/TypeError/secure/blob/main/docs/frameworks.md#aiohttp)    |
+| [Bottle](https://bottlepy.org)                        | [Integration Guide](https://github.com/TypeError/secure/blob/main/docs/frameworks.md#bottle)     |
+| [CherryPy](https://cherrypy.dev/)                     | [Integration Guide](https://github.com/TypeError/secure/blob/main/docs/frameworks.md#cherrypy)   |
+| [Django](https://www.djangoproject.com)               | [Integration Guide](https://github.com/TypeError/secure/blob/main/docs/frameworks.md#django)     |
+| [Falcon](https://falconframework.org)                 | [Integration Guide](https://github.com/TypeError/secure/blob/main/docs/frameworks.md#falcon)     |
+| [FastAPI](https://fastapi.tiangolo.com)               | [Integration Guide](https://github.com/TypeError/secure/blob/main/docs/frameworks.md#fastapi)    |
+| [Flask](http://flask.pocoo.org)                       | [Integration Guide](https://github.com/TypeError/secure/blob/main/docs/frameworks.md#flask)      |
+| [Masonite](https://docs.masoniteproject.com/)         | [Integration Guide](https://github.com/TypeError/secure/blob/main/docs/frameworks.md#masonite)   |
+| [Morepath](https://morepath.readthedocs.io)           | [Integration Guide](https://github.com/TypeError/secure/blob/main/docs/frameworks.md#morepath)   |
+| [Pyramid](https://trypyramid.com)                     | [Integration Guide](https://github.com/TypeError/secure/blob/main/docs/frameworks.md#pyramid)    |
+| [Quart](https://quart.palletsprojects.com/en/latest/) | [Integration Guide](https://github.com/TypeError/secure/blob/main/docs/frameworks.md#quart)      |
+| [Responder](https://responder.kennethreitz.org/)      | [Integration Guide](https://github.com/TypeError/secure/blob/main/docs/frameworks.md#responder)  |
+| [Sanic](https://sanicframework.org)                   | [Integration Guide](https://github.com/TypeError/secure/blob/main/docs/frameworks.md#sanic)      |
+| [Starlette](https://www.starlette.io/)                | [Integration Guide](https://github.com/TypeError/secure/blob/main/docs/frameworks.md#starlette)  |
+| [Tornado](https://www.tornadoweb.org/)                | [Integration Guide](https://github.com/TypeError/secure/blob/main/docs/frameworks.md#tornado)    |
+| [TurboGears](https://turbogears.org/)                 | [Integration Guide](https://github.com/TypeError/secure/blob/main/docs/frameworks.md#turbogears) |
 
 ---
 
