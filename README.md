@@ -4,6 +4,7 @@ _A simple, yet powerful way to secure your Python web applications across multip
 
 [![PyPI Version](https://img.shields.io/pypi/v/secure.svg)](https://pypi.org/project/secure/)
 [![Python Versions](https://img.shields.io/pypi/pyversions/secure.svg)](https://pypi.org/project/secure/)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Downloads](https://pepy.tech/badge/secure)](https://pepy.tech/project/secure)
 [![License](https://img.shields.io/pypi/l/secure.svg)](https://github.com/TypeError/secure/blob/main/LICENSE)
 [![GitHub Stars](https://img.shields.io/github/stars/TypeError/secure.svg)](https://github.com/TypeError/secure/stargazers)
@@ -180,7 +181,7 @@ csp = (
     secure.ContentSecurityPolicy()
     .default_src("'self'")
     .script_src("'self'", "cdn.example.com")
-    .style_src("'self'", "cdn.example.com")
+    .style_src("'unsafe-inline'")
     .img_src("'self'", "images.example.com")
     .connect_src("'self'", "api.example.com")
 )
@@ -192,7 +193,7 @@ secure_headers = secure.Secure(csp=csp)
 **Resulting HTTP headers:**
 
 ```http
-Content-Security-Policy: default-src 'self'; script-src 'self' cdn.example.com; style-src 'self' cdn.example.com; img-src 'self' images.example.com; connect-src 'self' api.example.com
+Content-Security-Policy: default-src 'self'; script-src 'self' cdn.example.com; style-src 'unsafe-inline'; img-src 'self' images.example.com; connect-src 'self' api.example.com
 ```
 
 ### **Permissions-Policy Example**
