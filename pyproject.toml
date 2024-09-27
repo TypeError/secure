@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "secure"
+version = "1.0.0"
+description = "A lightweight package that adds security headers for Python web frameworks."
+readme = { file = "README.md", "content-type" = "text/markdown" }
+license = { text = "MIT" }
+authors = [{ name = "Caleb Kinney", email = "caleb@typeerror.com" }]
+requires-python = ">=3.10"
+keywords = ["security", "headers", "web", "framework", "HTTP"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Typing :: Typed",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/TypeError/secure"
+Documentation = "https://github.com/TypeError/secure/tree/main/docs"
+Repository = "https://github.com/TypeError/secure"
+Issue-Tracker = "https://github.com/TypeError/secure/issues"
+
+[tool.setuptools.packages]
+find = { exclude = ["tests*", "docs*"] }
+
+[tool.setuptools.package-data]
+"secure" = ["py.typed"]

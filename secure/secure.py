@@ -1,239 +1,283 @@
-from typing import Any, Dict, List, Optional, Tuple, Union
+from __future__ import annotations
+
+import inspect
+from collections.abc import MutableMapping
+from enum import Enum
+from functools import cached_property
+from typing import Any, Protocol, runtime_checkable
 
 from .headers import (
+    BaseHeader,
     CacheControl,
     ContentSecurityPolicy,
+    CrossOriginEmbedderPolicy,
+    CrossOriginOpenerPolicy,
+    CustomHeader,
     PermissionsPolicy,
     ReferrerPolicy,
-    ReportTo,
     Server,
     StrictTransportSecurity,
     XContentTypeOptions,
     XFrameOptions,
-    XXSSProtection,
 )
 
 
+@runtime_checkable
+class HeadersProtocol(Protocol):
+    """Protocol for response objects that have a 'headers' attribute."""
+
+    headers: MutableMapping[str, str]
+
+
+@runtime_checkable
+class SetHeaderProtocol(Protocol):
+    """Protocol for response objects that have a 'set_header' method."""
+
+    def set_header(self, key: str, value: str) -> Any: ...
+
+
+ResponseProtocol = HeadersProtocol | SetHeaderProtocol
+"""
+Union type for response objects that conform to either HeadersProtocol or SetHeaderProtocol.
+This allows the Secure class to work with a variety of web frameworks.
+"""
+
+
+class Preset(Enum):
+    """Enumeration of predefined security presets for the Secure class."""
+
+    BASIC = "basic"
+    STRICT = "strict"
+
+
 class Secure:
-    """Set Secure Header options
-
-    :param server: Server header options
-    :param hsts: Strict-Transport-Security (HSTS) header options
-    :param xfo: X-Frame-Options (XFO) header options
-    :param xxp: X-XSS-Protection (XXP) header options
-    :param content: X-Content-Type-Options header options
-    :param csp: Content-Security-Policy (CSP) header options
-    :param referrer: Referrer-Policy header options
-    :param cache: Cache-control, Pragma and Expires headers options
-    :param feature: Feature-Policy header options
     """
+    A class to configure and apply security headers for web applications.
 
-    framework: "Framework"
+    The Secure class allows you to specify various HTTP security headers to enhance
+    the security of your web application. You can use predefined presets or customize
+    the headers as needed.
+
+    Attributes:
+        headers_list (list[BaseHeader]): List of header objects representing the configured headers.
+    """
 
     def __init__(
         self,
-        server: Optional[Server] = None,
-        hsts: Optional[StrictTransportSecurity] = StrictTransportSecurity(),
-        xfo: Optional[XFrameOptions] = XFrameOptions(),
-        xxp: Optional[XXSSProtection] = XXSSProtection(),
-        content: Optional[XContentTypeOptions] = XContentTypeOptions(),
-        csp: Optional[ContentSecurityPolicy] = None,
-        referrer: Optional[ReferrerPolicy] = ReferrerPolicy(),
-        cache: Optional[CacheControl] = CacheControl(),
-        permissions: Optional[PermissionsPolicy] = None,
-        report_to: Optional[ReportTo] = None,
+        *,
+        cache: CacheControl | None = None,
+        coep: CrossOriginEmbedderPolicy | None = None,
+        coop: CrossOriginOpenerPolicy | None = None,
+        csp: ContentSecurityPolicy | None = None,
+        custom: list[CustomHeader] | None = None,
+        hsts: StrictTransportSecurity | None = None,
+        permissions: PermissionsPolicy | None = None,
+        referrer: ReferrerPolicy | None = None,
+        server: Server | None = None,
+        xcto: XContentTypeOptions | None = None,
+        xfo: XFrameOptions | None = None,
     ) -> None:
-        self.server = server
-        self.hsts = hsts
-        self.xfo = xfo
-        self.xxp = xxp
-        self.content = content
-        self.csp = csp
-        self.referrer = referrer
-        self.cache = cache
-        self.permissions = permissions
-        self.report_to = report_to
+        """
+        Initialize the Secure instance with the specified security headers.
 
-        self.framework = self.Framework(self)
+        Args:
+            cache (CacheControl | None): The Cache-Control header configuration.
+            coep (CrossOriginEmbedderPolicy | None): The Cross-Origin-Embedder-Policy header configuration.
+            coop (CrossOriginOpenerPolicy | None): The Cross-Origin-Opener-Policy header configuration.
+            csp (ContentSecurityPolicy | None): The Content-Security-Policy header configuration.
+            custom (list[CustomHeader] | None): A list of custom headers to include.
+            hsts (StrictTransportSecurity | None): The Strict-Transport-Security header configuration.
+            permissions (PermissionsPolicy | None): The Permissions-Policy header configuration.
+            referrer (ReferrerPolicy | None): The Referrer-Policy header configuration.
+            server (Server | None): The Server header configuration.
+            xcto (XContentTypeOptions | None): The X-Content-Type-Options header configuration.
+            xfo (XFrameOptions | None): The X-Frame-Options header configuration.
+        """
+        # Store headers in the order defined by the parameters
+        self.headers_list: list[BaseHeader] = []
+        # List of header parameters in the desired order
+        params = [
+            cache,
+            coep,
+            coop,
+            csp,
+            hsts,
+            permissions,
+            referrer,
+            server,
+            xcto,
+            xfo,
+        ]
 
-    def __repr__(self) -> str:
-        return "\n".join(
-            [f"{header}:{value}" for header, value in self.headers().items()]
+        # Append non-None headers to the headers list
+        for header in params:
+            if header is not None:
+                self.headers_list.append(header)
+
+        # Add custom headers if provided
+        if custom:
+            self.headers_list.extend(custom)
+
+    @classmethod
+    def with_default_headers(cls) -> Secure:
+        """
+        Create a Secure instance with a default set of common security headers.
+
+        Returns:
+            Secure: An instance of Secure with default security headers configured.
+        """
+        return cls(
+            cache=CacheControl().no_store(),
+            coop=CrossOriginOpenerPolicy().same_origin(),
+            csp=ContentSecurityPolicy()
+            .default_src("'self'")
+            .script_src("'self'")
+            .style_src("'self'")
+            .object_src("'none'"),
+            hsts=StrictTransportSecurity().max_age(31536000),
+            permissions=PermissionsPolicy().geolocation().microphone().camera(),
+            referrer=ReferrerPolicy().strict_origin_when_cross_origin(),
+            server=Server().set(""),
+            xcto=XContentTypeOptions().nosniff(),
+            xfo=XFrameOptions().sameorigin(),
         )
 
-    def _header_list(
-        self,
-    ) -> List[
-        Union[
-            CacheControl,
-            ContentSecurityPolicy,
-            PermissionsPolicy,
-            ReferrerPolicy,
-            ReportTo,
-            Server,
-            StrictTransportSecurity,
-            XContentTypeOptions,
-            XFrameOptions,
-            XXSSProtection,
-        ]
-    ]:
-        headers = [
-            self.server,
-            self.hsts,
-            self.xfo,
-            self.xxp,
-            self.content,
-            self.csp,
-            self.referrer,
-            self.cache,
-            self.permissions,
-            self.report_to,
-        ]
-
-        return [header for header in headers if header is not None]
-
-    def headers(self) -> Dict[str, str]:
-        """Dictionary of secure headers
-
-        :return: dictionary containing security headers
-        :rtype: Dict[str, str]
+    @classmethod
+    def from_preset(cls, preset: Preset) -> Secure:
         """
-        headers: Dict[str, str] = {}
+        Create a Secure instance using a predefined security preset.
 
-        for header in self._header_list():
-            headers[header.header] = header.value
+        Args:
+            preset (Preset): The security preset to use (Preset.BASIC or Preset.STRICT).
 
-        return headers
+        Returns:
+            Secure: An instance of Secure configured with the selected preset.
 
-    def headers_tuple(self) -> List[Tuple[str, str]]:
-        """List of a tuple containing secure headers
-
-        :return: list of tuples containing security headers
-        :rtype: List[Tuple[str, str]]
+        Raises:
+            ValueError: If an unknown preset is provided.
         """
-        headers: List[Tuple[str, str]] = []
-        for header in self._header_list():
-            headers.append((header.header, header.value))
-        return headers
+        match preset:
+            case Preset.BASIC:
+                return cls(
+                    cache=CacheControl().no_store(),
+                    hsts=StrictTransportSecurity().max_age(31536000),
+                    referrer=ReferrerPolicy().strict_origin_when_cross_origin(),
+                    server=Server().set(""),
+                    xcto=XContentTypeOptions().nosniff(),
+                    xfo=XFrameOptions().sameorigin(),
+                )
+            case Preset.STRICT:
+                return cls(
+                    cache=CacheControl().no_store(),
+                    coep=CrossOriginEmbedderPolicy().require_corp(),
+                    coop=CrossOriginOpenerPolicy().same_origin(),
+                    csp=ContentSecurityPolicy()
+                    .default_src("'self'")
+                    .script_src("'self'")
+                    .style_src("'self'")
+                    .object_src("'none'")
+                    .base_uri("'none'")
+                    .frame_ancestors("'none'"),
+                    hsts=StrictTransportSecurity()
+                    .max_age(63072000)
+                    .include_subdomains()
+                    .preload(),
+                    permissions=PermissionsPolicy().geolocation().microphone().camera(),
+                    referrer=ReferrerPolicy().no_referrer(),
+                    server=Server().set(""),
+                    xcto=XContentTypeOptions().nosniff(),
+                    xfo=XFrameOptions().deny(),
+                )
+            case _:  # type: ignore
+                raise ValueError(f"Unknown preset: {preset}")
 
-    def _set_header_dict(self, response: Any) -> None:
-        for header in self._header_list():
-            response.headers[header.header] = header.value
-
-    def _set_header_tuple(self, response: Any) -> None:
-        for header in self._header_list():
-            response.set_header(header.header, header.value)
-
-    class Framework:
+    def __str__(self) -> str:
         """
-        Secure supported frameworks
+        Return a string representation of the security headers.
+
+        Returns:
+            str: A string listing the headers and their values.
         """
+        return "\n".join(
+            f"{header.header_name}: {header.header_value}"
+            for header in self.headers_list
+        )
 
-        def __init__(self, secure: "Secure") -> None:
-            self.secure = secure
+    def __repr__(self) -> str:
+        """
+        Return a detailed string representation of the Secure instance.
 
-        def aiohttp(self, response: Any) -> None:
-            """Update Secure Headers to aiohttp response object.
+        Returns:
+            str: A string representation including the list of headers.
+        """
+        return f"{self.__class__.__name__}(headers_list={self.headers_list!r})"
 
-            :param response: aiohttp response object.
-            """
-            self.secure._set_header_dict(response)
+    @cached_property
+    def headers(self) -> dict[str, str]:
+        """
+        Collect all configured headers as a dictionary.
 
-        def bottle(self, response: Any) -> None:
-            """Update Secure Headers to Bottle response object.
+        Returns:
+            dict[str, str]: A dictionary mapping header names to their values.
+        """
+        return {header.header_name: header.header_value for header in self.headers_list}
 
-            :param response: Bottle response object (bottle.response).
-            """
-            self.secure._set_header_dict(response)
+    def set_headers(self, response: ResponseProtocol) -> None:
+        """
+        Set security headers on the response object synchronously.
 
-        def cherrypy(self) -> List[Tuple[str, str]]:
-            """Return tuple of Secure Headers for CherryPy (tools.response_headers.headers).
+        The method checks for the presence of a 'set_header' method or 'headers' attribute
+        on the response object to set the headers appropriately.
 
-            :return: A list with a tuple of Secure Headers.
-            """
-            return self.secure.headers_tuple()
+        Args:
+            response (ResponseProtocol): The response object to modify.
 
-        def django(self, response: Any) -> None:
-            """Update Secure Headers to Django response object.
+        Raises:
+            RuntimeError: If an asynchronous 'set_header' method is used in a synchronous context.
+            AttributeError: If the response object does not support setting headers.
+        """
+        for header_name, header_value in self.headers.items():
+            if isinstance(response, SetHeaderProtocol):
+                # If response has set_header method, use it
+                set_header = response.set_header
+                if inspect.iscoroutinefunction(set_header):
+                    raise RuntimeError(
+                        "Encountered asynchronous 'set_header' in synchronous context."
+                    )
+                set_header(header_name, header_value)
+            elif isinstance(response, HeadersProtocol):  # type: ignore
+                # If response has headers dictionary, use it
+                response.headers[header_name] = header_value
+            else:
+                raise AttributeError(
+                    f"Response object of type '{type(response).__name__}' does not support setting headers."
+                )
 
-            :param response: Django response object (django.http.HttpResponse)
-            """
-            for header, value in self.secure.headers().items():
-                response[header] = value
+    async def set_headers_async(self, response: ResponseProtocol) -> None:
+        """
+        Set security headers on the response object asynchronously.
 
-        def falcon(self, response: Any) -> None:
-            """Update Secure Headers to Falcon response object.
+        This method handles both synchronous and asynchronous 'set_header' methods,
+        as well as response objects with a 'headers' attribute.
 
-            :param response: Falcon response object (falcon.Response)
-            """
-            self.secure._set_header_tuple(response)
+        Args:
+            response (ResponseProtocol): The response object to modify.
 
-        def flask(self, response: Any) -> None:
-            """Update Secure Headers to Flask response object.
-
-            :param response: Flask response object (flask.Response)
-            """
-            self.secure._set_header_dict(response)
-
-        def fastapi(self, response: Any) -> None:
-            """Update Secure Headers to FastAPI response object.
-
-            :param response: FastAPI response object.
-            """
-            self.secure._set_header_dict(response)
-
-        def hug(self, response: Any) -> None:
-            """Update Secure Headers to hug response object.
-
-            :param response: hug response object
-            """
-            self.secure._set_header_tuple(response)
-
-        def masonite(self, request: Any) -> None:
-            """Update Secure Headers to Masonite request object.
-
-            :param request: Masonite request object (masonite.request.Request)
-            """
-            request.header(self.secure.headers())
-
-        def pyramid(self, response: Any) -> None:
-            """Update Secure Headers to Pyramid response object.
-
-            :param response: Pyramid response object (pyramid.response).
-            """
-            self.secure._set_header_dict(response)
-
-        def quart(self, response: Any) -> None:
-            """Update Secure Headers to Quart response object.
-
-            :param response: Quart response object (quart.wrappers.response.Response)
-            """
-            self.secure._set_header_dict(response)
-
-        def responder(self, response: Any) -> None:
-            """Update Secure Headers to Responder response object.
-
-            :param response: Responder response object.
-            """
-            self.secure._set_header_dict(response)
-
-        def sanic(self, response: Any) -> None:
-            """Update Secure Headers to Sanic response object.
-
-            :param response: Sanic response object (sanic.response).
-            """
-            self.secure._set_header_dict(response)
-
-        def starlette(self, response: Any) -> None:
-            """Update Secure Headers to Starlette response object.
-
-            :param response: Starlette response object.
-            """
-            self.secure._set_header_dict(response)
-
-        def tornado(self, response: Any) -> None:
-            """Update Secure Headers to Tornado RequestHandler object.
-
-            :param response: Tornado RequestHandler object (tornado.web.RequestHandler).
-            """
-            self.secure._set_header_tuple(response)
+        Raises:
+            AttributeError: If the response object does not support setting headers.
+        """
+        for header_name, header_value in self.headers.items():
+            if isinstance(response, SetHeaderProtocol):
+                # If response has set_header method, use it
+                set_header = response.set_header
+                if inspect.iscoroutinefunction(set_header):
+                    await set_header(header_name, header_value)
+                else:
+                    set_header(header_name, header_value)
+            elif isinstance(response, HeadersProtocol):  # type: ignore
+                # If response has headers dictionary, use it
+                response.headers[header_name] = header_value
+            else:
+                raise AttributeError(
+                    f"Response object of type '{type(response).__name__}' does not support setting headers."
+                )
