@@ -236,22 +236,23 @@ class Secure:
             RuntimeError: If an asynchronous 'set_header' method is used in a synchronous context.
             AttributeError: If the response object does not support setting headers.
         """
-        for header_name, header_value in self.headers.items():
-            if isinstance(response, SetHeaderProtocol):
-                # If response has set_header method, use it
-                set_header = response.set_header
-                if inspect.iscoroutinefunction(set_header):
-                    raise RuntimeError(
-                        "Encountered asynchronous 'set_header' in synchronous context."
-                    )
-                set_header(header_name, header_value)
-            elif isinstance(response, HeadersProtocol):  # type: ignore
-                # If response has headers dictionary, use it
-                response.headers[header_name] = header_value
-            else:
-                raise AttributeError(
-                    f"Response object of type '{type(response).__name__}' does not support setting headers."
+        if isinstance(response, SetHeaderProtocol):
+            # Use the set_header method if available
+            set_header = response.set_header
+            if inspect.iscoroutinefunction(set_header):
+                raise RuntimeError(
+                    "Encountered asynchronous 'set_header' in synchronous context."
                 )
+            for header_name, header_value in self.headers.items():
+                set_header(header_name, header_value)
+        elif isinstance(response, HeadersProtocol):  # type: ignore
+            # Use the headers dictionary if available
+            for header_name, header_value in self.headers.items():
+                response.headers[header_name] = header_value
+        else:
+            raise AttributeError(
+                f"Response object of type '{type(response).__name__}' does not support setting headers."
+            )
 
     async def set_headers_async(self, response: ResponseProtocol) -> None:
         """
@@ -266,18 +267,20 @@ class Secure:
         Raises:
             AttributeError: If the response object does not support setting headers.
         """
-        for header_name, header_value in self.headers.items():
-            if isinstance(response, SetHeaderProtocol):
-                # If response has set_header method, use it
-                set_header = response.set_header
-                if inspect.iscoroutinefunction(set_header):
+        if isinstance(response, SetHeaderProtocol):
+            # Use the set_header method if available
+            set_header = response.set_header
+            if inspect.iscoroutinefunction(set_header):
+                for header_name, header_value in self.headers.items():
                     await set_header(header_name, header_value)
-                else:
-                    set_header(header_name, header_value)
-            elif isinstance(response, HeadersProtocol):  # type: ignore
-                # If response has headers dictionary, use it
-                response.headers[header_name] = header_value
             else:
-                raise AttributeError(
-                    f"Response object of type '{type(response).__name__}' does not support setting headers."
-                )
+                for header_name, header_value in self.headers.items():
+                    set_header(header_name, header_value)
+        elif isinstance(response, HeadersProtocol):  # type: ignore
+            # Use the headers dictionary if available
+            for header_name, header_value in self.headers.items():
+                response.headers[header_name] = header_value
+        else:
+            raise AttributeError(
+                f"Response object of type '{type(response).__name__}' does not support setting headers."
+            )
