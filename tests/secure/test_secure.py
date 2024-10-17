@@ -1,3 +1,4 @@
+import asyncio
 import unittest
 
 from secure import (
@@ -44,6 +45,20 @@ class MockResponseNoHeaders:
 
 
 class TestSecure(unittest.TestCase):
+    def setUp(self):
+        # Initialize Secure with some test headers
+        self.secure = Secure(
+            custom=[
+                CustomHeader("X-Test-Header-1", "Value1"),
+                CustomHeader("X-Test-Header-2", "Value2"),
+            ]
+        )
+        # Precompute headers dictionary
+        self.secure.headers = {
+            header.header_name: header.header_value
+            for header in self.secure.headers_list
+        }
+
     def test_with_default_headers(self):
         """Test that default headers are correctly applied."""
         secure_headers = Secure.with_default_headers()
@@ -210,8 +225,6 @@ class TestSecure(unittest.TestCase):
         async def mock_set_headers():
             await secure_headers.set_headers_async(response)
 
-        import asyncio
-
         asyncio.run(mock_set_headers())
 
         # Verify that headers are set asynchronously
@@ -235,43 +248,43 @@ class TestSecure(unittest.TestCase):
 
     def test_set_headers_with_set_header_method(self):
         """Test setting headers on a response object with set_header method."""
-        secure_headers = Secure.with_default_headers()
         response = MockResponseWithSetHeader()
-
-        # Apply the headers to the response object
-        secure_headers.set_headers(response)
+        self.secure.set_headers(response)
 
         # Verify that headers are set using set_header method
-        self.assertIn("Strict-Transport-Security", response.header_storage)
-        self.assertEqual(
-            response.header_storage["Strict-Transport-Security"],
-            "max-age=31536000",
-        )
+        self.assertEqual(response.header_storage, self.secure.headers)
+        # Ensure set_header was called correct number of times
+        self.assertEqual(len(response.header_storage), len(self.secure.headers))
 
-        self.assertIn("X-Content-Type-Options", response.header_storage)
-        self.assertEqual(response.header_storage["X-Content-Type-Options"], "nosniff")
+    def test_set_headers_with_headers_dict(self):
+        """Test set_headers with a response object that has a headers dictionary."""
+        response = MockResponse()
+        self.secure.set_headers(response)
 
-    def test_async_set_headers_with_async_set_header_method(self):
-        """Test async setting headers on a response object with async set_header method."""
-        secure_headers = Secure.with_default_headers()
+        # Verify that headers are set
+        self.assertEqual(response.headers, self.secure.headers)
+
+    def test_set_headers_async_with_async_set_header(self):
+        """Test set_headers_async with a response object that has an asynchronous set_header method."""
         response = MockResponseAsyncSetHeader()
 
-        async def mock_set_headers():
-            await secure_headers.set_headers_async(response)
+        async def test_async():
+            await self.secure.set_headers_async(response)
 
-        import asyncio
-
-        asyncio.run(mock_set_headers())
+        asyncio.run(test_async())
 
         # Verify that headers are set using async set_header method
-        self.assertIn("Strict-Transport-Security", response.header_storage)
-        self.assertEqual(
-            response.header_storage["Strict-Transport-Security"],
-            "max-age=31536000",
-        )
+        self.assertEqual(response.header_storage, self.secure.headers)
+        # Ensure set_header was called correct number of times
+        self.assertEqual(len(response.header_storage), len(self.secure.headers))
 
-        self.assertIn("X-Content-Type-Options", response.header_storage)
-        self.assertEqual(response.header_storage["X-Content-Type-Options"], "nosniff")
+    def test_set_headers_async_with_headers_dict(self):
+        """Test set_headers_async with a response object that has a headers dictionary."""
+        response = MockResponse()
+        asyncio.run(self.secure.set_headers_async(response))
+
+        # Verify that headers are set
+        self.assertEqual(response.headers, self.secure.headers)
 
     def test_set_headers_missing_interface(self):
         """Test that an error is raised when response object lacks required methods."""
@@ -285,6 +298,12 @@ class TestSecure(unittest.TestCase):
             "does not support setting headers",
             str(context.exception),
         )
+
+    def test_set_headers_with_async_set_header_in_sync_context(self):
+        """Test set_headers raises RuntimeError when encountering async set_header in sync context."""
+        response = MockResponseAsyncSetHeader()
+        with self.assertRaises(RuntimeError):
+            self.secure.set_headers(response)
 
     def test_set_headers_overwrites_existing_headers(self):
         """Test that existing headers are overwritten by Secure."""
@@ -347,10 +366,10 @@ class TestSecure(unittest.TestCase):
 
     def test_empty_secure_instance(self):
         """Test that an empty Secure instance does not set any headers."""
-        secure_headers = Secure()
+        self.secure = Secure()
         response = MockResponse()
 
-        secure_headers.set_headers(response)
+        self.secure.set_headers(response)
         self.assertEqual(len(response.headers), 0)
 
     def test_multiple_custom_headers(self):
@@ -430,16 +449,10 @@ class TestSecure(unittest.TestCase):
         async def mock_set_headers():
             await secure_headers.set_headers_async(response)
 
-        import asyncio
-
         asyncio.run(mock_set_headers())
 
         # Verify that headers are set using set_header method
-        self.assertIn("Strict-Transport-Security", response.header_storage)
-        self.assertEqual(
-            response.header_storage["Strict-Transport-Security"],
-            "max-age=31536000",
-        )
+        self.assertEqual(response.header_storage, secure_headers.headers)
 
     def test_set_headers_with_no_headers_or_set_header(self):
         """Test that an error is raised when response lacks both headers and set_header."""
