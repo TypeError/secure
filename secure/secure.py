@@ -96,7 +96,7 @@ class Secure:
         # Store headers in the order defined by the parameters
         self.headers_list: list[BaseHeader] = []
         # List of header parameters in the desired order
-        params = [
+        params: list[BaseHeader | None] = [
             cache,
             coep,
             coop,
