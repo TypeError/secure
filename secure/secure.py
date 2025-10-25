@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import inspect
 from collections.abc import MutableMapping
 from enum import Enum
@@ -189,7 +190,7 @@ class Secure:
                     xcto=XContentTypeOptions().nosniff(),
                     xfo=XFrameOptions().deny(),
                 )
-            case _:  # type: ignore
+            case _:
                 raise ValueError(f"Unknown preset: {preset}")
 
     def __str__(self) -> str:
@@ -237,26 +238,57 @@ class Secure:
             response (ResponseProtocol): The response object to modify.
 
         Raises:
-            RuntimeError: If an asynchronous 'set_header' method is used in a synchronous context.
+            RuntimeError: If an asynchronous header operation is required while an event loop is running.
             AttributeError: If the response object does not support setting headers.
         """
         if isinstance(response, SetHeaderProtocol):
-            # Use the set_header method if available
             set_header = response.set_header
             if inspect.iscoroutinefunction(set_header):
+                try:
+                    asyncio.get_running_loop()
+                except RuntimeError:
+
+                    async def _apply_all() -> None:
+                        for header_name, header_value in self.headers.items():
+                            await set_header(header_name, header_value)
+
+                    asyncio.run(_apply_all())
+                    return
                 raise RuntimeError(
-                    "Encountered asynchronous 'set_header' in synchronous context."
+                    "Asynchronous 'set_header' detected while an event loop is running. "
+                    "Use 'await set_headers_async(response)'."
                 )
             for header_name, header_value in self.headers.items():
-                set_header(header_name, header_value)
-        elif isinstance(response, HeadersProtocol):  # type: ignore
-            # Use the headers dictionary if available
+                res = set_header(header_name, header_value)
+                if inspect.isawaitable(res):
+                    try:
+                        asyncio.get_running_loop()
+                    except RuntimeError:
+
+                        async def _apply_one(a: Any) -> None:
+                            await a
+
+                        asyncio.run(_apply_one(a=res))
+                    else:
+                        raise RuntimeError(
+                            "Asynchronous header operation detected while an event loop is running. "
+                            "Use 'await set_headers_async(response)'."
+                        )
+            return
+
+        if hasattr(response, "headers"):
+            hdrs = response.headers
+            update = getattr(hdrs, "update", None)
+            if callable(update) and not inspect.iscoroutinefunction(update):
+                update(self.headers)
+                return
             for header_name, header_value in self.headers.items():
-                response.headers[header_name] = header_value
-        else:
-            raise AttributeError(
-                f"Response object of type '{type(response).__name__}' does not support setting headers."
-            )
+                hdrs[header_name] = header_value
+            return
+
+        raise AttributeError(
+            f"Response object of type '{type(response).__name__}' does not support setting headers."
+        )
 
     async def set_headers_async(self, response: ResponseProtocol) -> None:
         """
@@ -272,19 +304,33 @@ class Secure:
             AttributeError: If the response object does not support setting headers.
         """
         if isinstance(response, SetHeaderProtocol):
-            # Use the set_header method if available
             set_header = response.set_header
             if inspect.iscoroutinefunction(set_header):
                 for header_name, header_value in self.headers.items():
                     await set_header(header_name, header_value)
             else:
                 for header_name, header_value in self.headers.items():
-                    set_header(header_name, header_value)
-        elif isinstance(response, HeadersProtocol):  # type: ignore
-            # Use the headers dictionary if available
-            for header_name, header_value in self.headers.items():
-                response.headers[header_name] = header_value
-        else:
-            raise AttributeError(
-                f"Response object of type '{type(response).__name__}' does not support setting headers."
-            )
+                    res = set_header(header_name, header_value)
+                    if inspect.isawaitable(res):
+                        await res
+            return
+
+        if hasattr(response, "headers"):
+            hdrs = response.headers
+            update = getattr(hdrs, "update", None)
+            if callable(update):
+                if inspect.iscoroutinefunction(update):
+                    await update(self.headers)
+                else:
+                    update(self.headers)
+                return
+            setitem = getattr(hdrs, "__setitem__", None)
+            if inspect.iscoroutinefunction(setitem):
+                for header_name, header_value in self.headers.items():
+                    await setitem(header_name, header_value)
+            else:
+                for header_name, header_value in self.headers.items():
+                    hdrs[header_name] = header_value
+            return
+
+        raise AttributeError("Response object does not support setting headers.")
