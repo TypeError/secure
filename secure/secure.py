@@ -4,7 +4,8 @@ import inspect
 from collections.abc import MutableMapping
 from enum import Enum
 from functools import cached_property
-from typing import Any, Protocol, runtime_checkable
+from types import MappingProxyType
+from typing import Any, Mapping, Protocol, runtime_checkable
 
 from .headers import (
     BaseHeader,
@@ -213,14 +214,17 @@ class Secure:
         return f"{self.__class__.__name__}(headers_list={self.headers_list!r})"
 
     @cached_property
-    def headers(self) -> dict[str, str]:
+    def headers(self) -> Mapping[str, str]:
         """
-        Collect all configured headers as a dictionary.
+        Collect all configured headers as an immutable mapping.
 
-        Returns:
-            dict[str, str]: A dictionary mapping header names to their values.
+        Note:
+            This value is computed lazily and cached. Construction may occur more
+            than once under concurrent first access, but the result is identical.
+            The returned mapping is read-only.
         """
-        return {header.header_name: header.header_value for header in self.headers_list}
+        data = {header.header_name: header.header_value for header in self.headers_list}
+        return MappingProxyType(data)
 
     def set_headers(self, response: ResponseProtocol) -> None:
         """
