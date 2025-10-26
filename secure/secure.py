@@ -5,6 +5,8 @@ from collections import defaultdict
 from enum import Enum
 from functools import cached_property
 import inspect
+import logging
+import re
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
@@ -62,6 +64,19 @@ class Preset(Enum):
     STRICT = "strict"
 
 
+HTAB: int = 0x09
+SP: int = 0x20
+VCHAR_MIN: int = 0x21
+VCHAR_MAX: int = 0x7E
+OBS_MIN: int = 0x80
+OBS_MAX: int = 0xFF
+
+_LOG = logging.getLogger("secure")
+
+# RFC 7230 token for header field-name (field-name = token)
+_HEADER_NAME_RE = re.compile(r"^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$")
+
+
 class Secure:
     """
     A class to configure and apply security headers for web applications.
@@ -88,6 +103,9 @@ class Secure:
         server: Server | None = None,
         xcto: XContentTypeOptions | None = None,
         xfo: XFrameOptions | None = None,
+        strict: bool = False,
+        allow_obs_text: bool = True,
+        on_invalid: str = "drop",  # "drop" | "raise" | "warn"
     ) -> None:
         """
         Initialize the Secure instance with the specified security headers.
@@ -104,6 +122,12 @@ class Secure:
             server (Server | None): The Server header configuration.
             xcto (XContentTypeOptions | None): The X-Content-Type-Options header configuration.
             xfo (XFrameOptions | None): The X-Frame-Options header configuration.
+            strict: fail-fast on invalid headers (raises ValueError)
+            allow_obs_text: allow 0x80-0xFF in values (RFC7230 obs-text)
+            on_invalid (lenient mode only):
+                - "drop" (default): skip invalid headers
+                - "warn": drop and log a warning
+                - "raise": escalate even in lenient mode
         """
         # Store headers in the order defined by the parameters
         self.headers_list: list[BaseHeader] = []
@@ -129,6 +153,10 @@ class Secure:
         # Add custom headers if provided
         if custom:
             self.headers_list.extend(custom)
+
+        self._strict = strict
+        self._allow_obs_text = allow_obs_text
+        self._on_invalid = on_invalid
 
     @classmethod
     def with_default_headers(cls) -> Secure:
@@ -218,6 +246,65 @@ class Secure:
         """
         return f"{self.__class__.__name__}(headers_list={self.headers_list!r})"
 
+    def _validate_and_normalize_header(self, name: str | None, value: str | None) -> tuple[str, str] | None:
+        """
+        Validate a header field-name and field-value.
+
+        Returns:
+            (name, value) if acceptable/sanitized,
+            None in lenient 'drop'/'warn' modes when unsanitizable,
+            raises ValueError in 'strict' or 'raise' modes on invalid input.
+        """
+        # Read class-level switches if present; default to non-breaking behavior.
+
+        log = getattr(self, "_log", _LOG)
+
+        def _handle_invalid(msg: str) -> tuple[str, str] | None:
+            if self._strict or self._on_invalid == "raise":
+                raise ValueError(msg)
+            if self._on_invalid == "warn":
+                log.warning(msg)
+            # "drop" (default) falls through
+            return None
+
+        if name is None or value is None:
+            return _handle_invalid("Header name/value must not be None")
+
+        name = name.strip()
+        if not _HEADER_NAME_RE.match(name):
+            return _handle_invalid(f"Invalid header name {name!r} (RFC 7230 token required)")
+
+        # Block response-splitting
+        if ("\r" in value) or ("\n" in value):
+            if self._strict:
+                raise ValueError(f"Header {name!r} contained CR/LF")
+            # lenient: collapse newlines into a single space
+            value = " ".join(value.splitlines())
+
+        value = value.strip()
+
+        sanitized: list[str] = []
+        for ch in value:
+            code = ord(ch)
+            if (
+                ch == "\t"
+                or code == SP
+                or VCHAR_MIN <= code <= VCHAR_MAX
+                or (self._allow_obs_text and (OBS_MIN <= code <= OBS_MAX))
+            ):  # HTAB or SP
+                sanitized.append(ch)
+            else:
+                if self._strict:
+                    raise ValueError(f"Header {name!r} contains disallowed char U+{code:04X}")
+                sanitized.append(" ")
+
+        norm_value = "".join(sanitized).strip()
+        if not norm_value:
+            # Empty after sanitization: treat as invalid per on_invalid/strict
+            return _handle_invalid(f"Dropping header {name!r} due to empty/invalid value after sanitization")
+
+        return name, norm_value
+
     def header_items(self) -> tuple[tuple[str, str], ...]:
         """
         Return all headers as (name, value) pairs, preserving allowed multi-valued
@@ -306,7 +393,9 @@ class Secure:
 
                 async def _apply_one(name: str, value: str) -> None:
                     try:
-                        await set_header(name, value)
+                        nv = self._validate_and_normalize_header(name, value)
+                        if nv:
+                            await set_header(*nv)
                     except (TypeError, ValueError, AttributeError) as e:
                         raise HeaderSetError(f"Failed to set header {name!r}: {e}") from e
 
@@ -358,7 +447,9 @@ class Secure:
 
                 async def _apply_hdr_one(name: str, value: str) -> None:
                     try:
-                        await setitem(name, value)  # type: ignore[misc]
+                        nv = self._validate_and_normalize_header(name, value)
+                        if nv:
+                            await setitem(*nv)
                     except (TypeError, ValueError, AttributeError) as e:
                         raise HeaderSetError(f"Failed to set header {name!r}: {e}") from e
 
@@ -371,7 +462,9 @@ class Secure:
 
             def _hdrs_set_one(name: str, value: str) -> None:
                 try:
-                    hdrs[name] = value
+                    nv = self._validate_and_normalize_header(name, value)
+                    if nv:
+                        hdrs.__setitem__(*nv)
                 except (TypeError, ValueError, AttributeError) as e:
                     raise HeaderSetError(f"Failed to set header {name!r}: {e}") from e
 
@@ -406,7 +499,9 @@ class Secure:
 
                 async def _apply_one(name: str, value: str) -> None:
                     try:
-                        await set_header(name, value)
+                        nv = self._validate_and_normalize_header(name, value)
+                        if nv:
+                            await set_header(*nv)
                     except (TypeError, ValueError, AttributeError) as e:
                         raise HeaderSetError(f"Failed to set header {name!r}: {e}") from e
 
@@ -416,7 +511,7 @@ class Secure:
 
             async def _apply_one_syncish(name: str, value: str) -> None:
                 try:
-                    res = set_header(name, value)
+                    res = None if (nv := self._validate_and_normalize_header(name, value)) is None else set_header(*nv)
                     if inspect.isawaitable(res):
                         await res  # type: ignore[misc]
                 except (TypeError, ValueError, AttributeError) as e:
@@ -434,7 +529,9 @@ class Secure:
 
                 async def _apply_hdr_one(name: str, value: str) -> None:
                     try:
-                        await setitem(name, value)  # type: ignore[misc]
+                        nv = self._validate_and_normalize_header(name, value)
+                        if nv:
+                            await setitem(*nv)
                     except (TypeError, ValueError, AttributeError) as e:
                         raise HeaderSetError(f"Failed to set header {name!r}: {e}") from e
 
