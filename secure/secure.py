@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import asyncio
-import inspect
-from collections.abc import MutableMapping
 from enum import Enum
 from functools import cached_property
+import inspect
 from types import MappingProxyType
-from typing import Any, Mapping, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Mapping, MutableMapping
 
 from .headers import (
     BaseHeader,
@@ -35,7 +37,7 @@ class HeadersProtocol(Protocol):
 class SetHeaderProtocol(Protocol):
     """Protocol for response objects that have a 'set_header' method."""
 
-    def set_header(self, key: str, value: str) -> Any: ...
+    def set_header(self, key: str, value: str) -> None: ...
 
 
 ResponseProtocol = HeadersProtocol | SetHeaderProtocol
@@ -64,7 +66,7 @@ class Secure:
         headers_list (list[BaseHeader]): List of header objects representing the configured headers.
     """
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         *,
         cache: CacheControl | None = None,
@@ -180,10 +182,7 @@ class Secure:
                     .object_src("'none'")
                     .base_uri("'none'")
                     .frame_ancestors("'none'"),
-                    hsts=StrictTransportSecurity()
-                    .max_age(63072000)
-                    .include_subdomains()
-                    .preload(),
+                    hsts=StrictTransportSecurity().max_age(63072000).include_subdomains().preload(),
                     permissions=PermissionsPolicy().geolocation().microphone().camera(),
                     referrer=ReferrerPolicy().no_referrer(),
                     server=Server().set(""),
@@ -200,10 +199,7 @@ class Secure:
         Returns:
             str: A string listing the headers and their values.
         """
-        return "\n".join(
-            f"{header.header_name}: {header.header_value}"
-            for header in self.headers_list
-        )
+        return "\n".join(f"{header.header_name}: {header.header_value}" for header in self.headers_list)
 
     def __repr__(self) -> str:
         """
@@ -265,7 +261,7 @@ class Secure:
                         asyncio.get_running_loop()
                     except RuntimeError:
 
-                        async def _apply_one(a: Any) -> None:
+                        async def _apply_one(a: Awaitable[Any]) -> None:
                             await a
 
                         asyncio.run(_apply_one(a=res))
@@ -286,11 +282,9 @@ class Secure:
                 hdrs[header_name] = header_value
             return
 
-        raise AttributeError(
-            f"Response object of type '{type(response).__name__}' does not support setting headers."
-        )
+        raise AttributeError(f"Response object of type '{type(response).__name__}' does not support setting headers.")
 
-    async def set_headers_async(self, response: ResponseProtocol) -> None:
+    async def set_headers_async(self, response: ResponseProtocol) -> None:  # noqa: PLR0912
         """
         Set security headers on the response object asynchronously.
 
@@ -312,7 +306,7 @@ class Secure:
                 for header_name, header_value in self.headers.items():
                     res = set_header(header_name, header_value)
                     if inspect.isawaitable(res):
-                        await res
+                        await res  # type: ignore[misc]
             return
 
         if hasattr(response, "headers"):
