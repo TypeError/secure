@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections import defaultdict
 from enum import Enum
 from functools import cached_property
 import inspect
@@ -9,6 +10,7 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Mapping, MutableMapping
+
 
 from .headers import (
     BaseHeader,
@@ -24,6 +26,8 @@ from .headers import (
     XContentTypeOptions,
     XFrameOptions,
 )
+
+MULTI_OK: set[str] = {"content-security-policy", "set-cookie"}
 
 
 @runtime_checkable
@@ -210,17 +214,55 @@ class Secure:
         """
         return f"{self.__class__.__name__}(headers_list={self.headers_list!r})"
 
+    def header_items(self) -> tuple[tuple[str, str], ...]:
+        """
+        Return all headers as (name, value) pairs, preserving allowed multi-valued
+        headers (e.g., Content-Security-Policy, Set-Cookie) and rejecting unsafe
+        duplicates for other headers.
+        """
+        groups: defaultdict[str, list[tuple[str, str]]] = defaultdict(list)
+        for h in self.headers_list:
+            groups[h.header_name.lower()].append((h.header_name, h.header_value))
+
+        items: list[tuple[str, str]] = []
+        dup_errors: list[str] = []
+
+        for lname, pairs in groups.items():
+            if len(pairs) == 1:
+                items.append(pairs[0])
+                continue
+            if lname in MULTI_OK:
+                # Preserve multiple fields as separate items.
+                items.extend(pairs)
+            else:
+                # Keep original casing from the first occurrence for the error.
+                dup_errors.append(pairs[0][0])
+
+        if dup_errors:
+            raise ValueError(
+                "Duplicate header(s) not allowed: " + ", ".join(sorted(set(dup_errors))) + ". Define each at most once."
+            )
+
+        return tuple(items)
+
     @cached_property
     def headers(self) -> Mapping[str, str]:
         """
-        Collect all configured headers as an immutable mapping.
+        Single-valued, immutable mapping of headers.
 
-        Note:
-            This value is computed lazily and cached. Construction may occur more
-            than once under concurrent first access, but the result is identical.
-            The returned mapping is read-only.
+        Raises:
+            ValueError: if any header name appears more than once (case-insensitive),
+            including headers in MULTI_OK. Use `header_items()` or the setters to
+            emit multi-valued headers like Content-Security-Policy or Set-Cookie.
         """
-        data = {header.header_name: header.header_value for header in self.headers_list}
+        data: dict[str, str] = {}
+        seen: set[str] = set()
+        for name, value in self.header_items():
+            k = name.lower()
+            if k in seen:
+                raise ValueError(f"Multiple '{name}' headers present; use `header_items()` when emitting multiples.")
+            seen.add(k)
+            data[name] = value
         return MappingProxyType(data)
 
     def set_headers(self, response: ResponseProtocol) -> None:
@@ -237,54 +279,60 @@ class Secure:
             RuntimeError: If an asynchronous header operation is required while an event loop is running.
             AttributeError: If the response object does not support setting headers.
         """
+        items = self.header_items()
+
         if isinstance(response, SetHeaderProtocol):
             set_header = response.set_header
             if inspect.iscoroutinefunction(set_header):
-                try:
-                    asyncio.get_running_loop()
-                except RuntimeError:
-
-                    async def _apply_all() -> None:
-                        for header_name, header_value in self.headers.items():
-                            await set_header(header_name, header_value)
-
-                    asyncio.run(_apply_all())
-                    return
-                raise RuntimeError(
-                    "Asynchronous 'set_header' detected while an event loop is running. "
-                    "Use 'await set_headers_async(response)'."
-                )
-            for header_name, header_value in self.headers.items():
-                res = set_header(header_name, header_value)
-                if inspect.isawaitable(res):
+                # If there is a running loop, instruct the caller to use the async API.
+                def _check_and_raise_for_running_loop() -> None:
                     try:
                         asyncio.get_running_loop()
                     except RuntimeError:
+                        return
+                    raise RuntimeError(
+                        "Asynchronous 'set_header' detected while an event loop is running. "
+                        "Use 'await set_headers_async(response)'."
+                    )
 
-                        async def _apply_one(a: Awaitable[Any]) -> None:
-                            await a
+                _check_and_raise_for_running_loop()
 
-                        asyncio.run(_apply_one(a=res))
-                    else:
-                        raise RuntimeError(
-                            "Asynchronous header operation detected while an event loop is running. "
-                            "Use 'await set_headers_async(response)'."
-                        )
+                # No running loop — run the async setter to completion.
+                async def _apply_all() -> None:
+                    for header_name, header_value in items:
+                        await set_header(header_name, header_value)
+
+                asyncio.run(_apply_all())
+            else:
+                for header_name, header_value in items:
+                    res = set_header(header_name, header_value)
+                    if inspect.isawaitable(res):
+                        # No running loop — run the awaitable to completion.
+                        try:
+                            asyncio.get_running_loop()
+                        except RuntimeError:
+
+                            async def _apply_one(a: Awaitable[Any]) -> None:
+                                await a
+
+                            asyncio.run(_apply_one(res))
+                        else:
+                            raise RuntimeError(
+                                "Asynchronous header operation detected while an event loop is running. "
+                                "Use 'await set_headers_async(response)'."
+                            )
             return
 
         if hasattr(response, "headers"):
             hdrs = response.headers
-            update = getattr(hdrs, "update", None)
-            if callable(update) and not inspect.iscoroutinefunction(update):
-                update(self.headers)
-                return
-            for header_name, header_value in self.headers.items():
+            # Avoid bulk update(): it would drop duplicates. Set one-by-one.
+            for header_name, header_value in items:
                 hdrs[header_name] = header_value
             return
 
-        raise AttributeError(f"Response object of type '{type(response).__name__}' does not support setting headers.")
+        raise AttributeError("Response object does not support setting headers.")
 
-    async def set_headers_async(self, response: ResponseProtocol) -> None:  # noqa: PLR0912
+    async def set_headers_async(self, response: ResponseProtocol) -> None:
         """
         Set security headers on the response object asynchronously.
 
@@ -297,13 +345,15 @@ class Secure:
         Raises:
             AttributeError: If the response object does not support setting headers.
         """
+        items = self.header_items()
+
         if isinstance(response, SetHeaderProtocol):
             set_header = response.set_header
             if inspect.iscoroutinefunction(set_header):
-                for header_name, header_value in self.headers.items():
+                for header_name, header_value in items:
                     await set_header(header_name, header_value)
             else:
-                for header_name, header_value in self.headers.items():
+                for header_name, header_value in items:
                     res = set_header(header_name, header_value)
                     if inspect.isawaitable(res):
                         await res  # type: ignore[misc]
@@ -311,19 +361,13 @@ class Secure:
 
         if hasattr(response, "headers"):
             hdrs = response.headers
-            update = getattr(hdrs, "update", None)
-            if callable(update):
-                if inspect.iscoroutinefunction(update):
-                    await update(self.headers)
-                else:
-                    update(self.headers)
-                return
+            # Avoid bulk update(): preserve multiples by setting one-by-one.
             setitem = getattr(hdrs, "__setitem__", None)
             if inspect.iscoroutinefunction(setitem):
-                for header_name, header_value in self.headers.items():
+                for header_name, header_value in items:
                     await setitem(header_name, header_value)
             else:
-                for header_name, header_value in self.headers.items():
+                for header_name, header_value in items:
                     hdrs[header_name] = header_value
             return
 
