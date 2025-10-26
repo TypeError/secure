@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=77"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,22 +7,24 @@ name = "secure"
 version = "2.0.0"
 description = "A lightweight package that adds security headers for Python web frameworks."
 readme = { file = "README.md", content-type = "text/markdown" }
-license = "MIT"
-license-files = ["LICENSE"]
+license = { file = "LICENSE" }
 authors = [{ name = "Caleb Kinney", email = "caleb@typeerror.com" }]
 requires-python = ">=3.10"
 keywords = ["security", "headers", "web", "framework", "HTTP"]
 classifiers = [
-    "Development Status :: 5 - Production/Stable",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
-    "Programming Language :: Python :: 3.14",
-    "Typing :: Typed",
-    "Operating System :: OS Independent",
-    "Intended Audience :: Developers",
-    "Topic :: Software Development :: Libraries",
+  "Development Status :: 5 - Production/Stable",
+  "License :: OSI Approved :: MIT License",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  # "Programming Language :: Python :: 3.14",
+  "Typing :: Typed",
+  "Topic :: Software Development :: Libraries",
 ]
 dependencies = []
 
@@ -30,10 +32,64 @@ dependencies = []
 Homepage = "https://github.com/TypeError/secure"
 Documentation = "https://github.com/TypeError/secure/tree/main/docs"
 Repository = "https://github.com/TypeError/secure"
-Issue-Tracker = "https://github.com/TypeError/secure/issues"
+"Issue Tracker" = "https://github.com/TypeError/secure/issues"
 
-[tool.setuptools.packages]
-find = { exclude = ["tests*", "docs*"] }
+# --- Setuptools package discovery ---
+[tool.setuptools.packages.find]
+include = ["secure*"]
+exclude = ["tests*", "docs*"]
 
 [tool.setuptools.package-data]
-"secure" = ["py.typed"]
+secure = ["py.typed"]
+
+# --- Ruff (formatter + linter) ---
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+src = ["secure"]
+exclude = ["build", "dist", ".venv", "**/__pycache__"]
+fix = true
+
+[tool.ruff.format]
+quote-style = "preserve"
+indent-style = "space"
+docstring-code-format = true
+
+[tool.ruff.lint]
+select = [
+  # Core
+  "E","F",
+  # Import sorting (isort)
+  "I",
+  # Upgrades & quality
+  "UP","B","C4","SIM",
+  # Typing / type-checking hygiene
+  "ANN","TCH",
+  # Misc rule families used below
+  "DTZ","PTH","T20","ERA","ISC","TRY","S","PERF","N","Q","PL","RUF"
+]
+ignore = ["TRY003", "EM101"]
+
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101","S311","T20","PLR2004"]
+"examples/**" = ["T20"]
+
+[tool.ruff.lint.flake8-annotations]
+mypy-init-return = true
+suppress-dummy-args = true
+suppress-none-returning = false
+allow-star-arg-any = false
+ignore-fully-untyped = false
+
+[tool.ruff.lint.flake8-type-checking]
+exempt-modules = ["typing", "typing_extensions"]
+runtime-evaluated-base-classes = ["pydantic.BaseModel"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["secure"]
+combine-as-imports = true
+force-sort-within-sections = true
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
