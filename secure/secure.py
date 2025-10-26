@@ -6,7 +6,7 @@ from enum import Enum
 from functools import cached_property
 import inspect
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Mapping, MutableMapping
@@ -28,6 +28,10 @@ from .headers import (
 )
 
 MULTI_OK: set[str] = {"content-security-policy", "set-cookie"}
+
+
+class HeaderSetError(RuntimeError):
+    """Raised when applying a header to a response fails."""
 
 
 @runtime_checkable
@@ -265,110 +269,187 @@ class Secure:
             data[name] = value
         return MappingProxyType(data)
 
-    def set_headers(self, response: ResponseProtocol) -> None:
+    def set_headers(self, response: ResponseProtocol) -> None:  # noqa: PLR0915
         """
-        Set security headers on the response object synchronously.
+        Apply configured headers **synchronously** to `response`.
 
-        The method checks for the presence of a 'set_header' method or 'headers' attribute
-        on the response object to set the headers appropriately.
+        Supports:
+        - `set_header(key, value)`: async (driven with `asyncio.run` if no running loop) or sync
+        (awaits returned awaitable if present, else sets directly).
+        - `.headers` mapping: async `__setitem__` (driven with `asyncio.run`) or sync.
 
-        Args:
-            response (ResponseProtocol): The response object to modify.
-
-        Raises:
-            RuntimeError: If an asynchronous header operation is required while an event loop is running.
-            AttributeError: If the response object does not support setting headers.
+        Raises
+        ------
+        RuntimeError
+            If an async setter is detected while a loop is already running.
+        AttributeError
+            If the response lacks both `.set_header` and `.headers`.
+        HeaderSetError
+            If setting an individual header fails.
         """
+
         items = self.header_items()
 
         if isinstance(response, SetHeaderProtocol):
             set_header = response.set_header
+
             if inspect.iscoroutinefunction(set_header):
-                # If there is a running loop, instruct the caller to use the async API.
-                def _check_and_raise_for_running_loop() -> None:
-                    try:
-                        asyncio.get_running_loop()
-                    except RuntimeError:
-                        return
+                try:
+                    asyncio.get_running_loop()
+                except RuntimeError:
+                    pass
+                else:
                     raise RuntimeError(
                         "Asynchronous 'set_header' detected while an event loop is running. "
                         "Use 'await set_headers_async(response)'."
                     )
 
-                _check_and_raise_for_running_loop()
+                async def _apply_one(name: str, value: str) -> None:
+                    try:
+                        await set_header(name, value)
+                    except (TypeError, ValueError, AttributeError) as e:
+                        raise HeaderSetError(f"Failed to set header {name!r}: {e}") from e
 
-                # No running loop — run the async setter to completion.
                 async def _apply_all() -> None:
-                    for header_name, header_value in items:
-                        await set_header(header_name, header_value)
+                    for k, v in items:
+                        await _apply_one(k, v)
 
                 asyncio.run(_apply_all())
-            else:
-                for header_name, header_value in items:
-                    res = set_header(header_name, header_value)
+                return
+
+            def _set_header_one(name: str, value: str) -> None:
+                try:
+                    res = set_header(name, value)
                     if inspect.isawaitable(res):
-                        # No running loop — run the awaitable to completion.
                         try:
                             asyncio.get_running_loop()
                         except RuntimeError:
 
-                            async def _apply_one(a: Awaitable[Any]) -> None:
+                            async def _await_one(a: Awaitable[object]) -> None:
                                 await a
 
-                            asyncio.run(_apply_one(res))
+                            asyncio.run(_await_one(res))  # type: ignore[arg-type]
                         else:
                             raise RuntimeError(
                                 "Asynchronous header operation detected while an event loop is running. "
                                 "Use 'await set_headers_async(response)'."
                             )
+                except (TypeError, ValueError, AttributeError) as e:
+                    raise HeaderSetError(f"Failed to set header {name!r}: {e}") from e
+
+            for k, v in items:
+                _set_header_one(k, v)
             return
 
         if hasattr(response, "headers"):
             hdrs = response.headers
-            # Avoid bulk update(): it would drop duplicates. Set one-by-one.
-            for header_name, header_value in items:
-                hdrs[header_name] = header_value
+            setitem = getattr(hdrs, "__setitem__", None)
+
+            if inspect.iscoroutinefunction(setitem):
+                try:
+                    asyncio.get_running_loop()
+                except RuntimeError:
+                    pass
+                else:
+                    raise RuntimeError(
+                        "Asynchronous header operation detected while an event loop is running. "
+                        "Use 'await set_headers_async(response)'."
+                    )
+
+                async def _apply_hdr_one(name: str, value: str) -> None:
+                    try:
+                        await setitem(name, value)  # type: ignore[misc]
+                    except (TypeError, ValueError, AttributeError) as e:
+                        raise HeaderSetError(f"Failed to set header {name!r}: {e}") from e
+
+                async def _apply_all_hdrs() -> None:
+                    for k, v in items:
+                        await _apply_hdr_one(k, v)
+
+                asyncio.run(_apply_all_hdrs())
+                return
+
+            def _hdrs_set_one(name: str, value: str) -> None:
+                try:
+                    hdrs[name] = value
+                except (TypeError, ValueError, AttributeError) as e:
+                    raise HeaderSetError(f"Failed to set header {name!r}: {e}") from e
+
+            for k, v in items:
+                _hdrs_set_one(k, v)
             return
 
         raise AttributeError("Response object does not support setting headers.")
 
     async def set_headers_async(self, response: ResponseProtocol) -> None:
         """
-        Set security headers on the response object asynchronously.
+        Apply configured headers **asynchronously** to `response`.
 
-        This method handles both synchronous and asynchronous 'set_header' methods,
-        as well as response objects with a 'headers' attribute.
+        Supports:
+        - `set_header(key, value)`: async (awaited) or sync (awaits returned awaitable if present).
+        - `.headers` mapping: async `__setitem__` (awaited) or sync setitem.
 
-        Args:
-            response (ResponseProtocol): The response object to modify.
-
-        Raises:
-            AttributeError: If the response object does not support setting headers.
+        Raises
+        ------
+        AttributeError
+            If the response lacks both `.set_header` and `.headers`.
+        HeaderSetError
+            If setting an individual header fails.
         """
+
         items = self.header_items()
 
         if isinstance(response, SetHeaderProtocol):
             set_header = response.set_header
+
             if inspect.iscoroutinefunction(set_header):
-                for header_name, header_value in items:
-                    await set_header(header_name, header_value)
-            else:
-                for header_name, header_value in items:
-                    res = set_header(header_name, header_value)
+
+                async def _apply_one(name: str, value: str) -> None:
+                    try:
+                        await set_header(name, value)
+                    except (TypeError, ValueError, AttributeError) as e:
+                        raise HeaderSetError(f"Failed to set header {name!r}: {e}") from e
+
+                for k, v in items:
+                    await _apply_one(k, v)
+                return
+
+            async def _apply_one_syncish(name: str, value: str) -> None:
+                try:
+                    res = set_header(name, value)
                     if inspect.isawaitable(res):
                         await res  # type: ignore[misc]
+                except (TypeError, ValueError, AttributeError) as e:
+                    raise HeaderSetError(f"Failed to set header {name!r}: {e}") from e
+
+            for k, v in items:
+                await _apply_one_syncish(k, v)
             return
 
         if hasattr(response, "headers"):
             hdrs = response.headers
-            # Avoid bulk update(): preserve multiples by setting one-by-one.
             setitem = getattr(hdrs, "__setitem__", None)
+
             if inspect.iscoroutinefunction(setitem):
-                for header_name, header_value in items:
-                    await setitem(header_name, header_value)
-            else:
-                for header_name, header_value in items:
-                    hdrs[header_name] = header_value
+
+                async def _apply_hdr_one(name: str, value: str) -> None:
+                    try:
+                        await setitem(name, value)  # type: ignore[misc]
+                    except (TypeError, ValueError, AttributeError) as e:
+                        raise HeaderSetError(f"Failed to set header {name!r}: {e}") from e
+
+                for k, v in items:
+                    await _apply_hdr_one(k, v)
+                return
+
+            def _hdrs_set_one(name: str, value: str) -> None:
+                try:
+                    hdrs[name] = value
+                except (TypeError, ValueError, AttributeError) as e:
+                    raise HeaderSetError(f"Failed to set header {name!r}: {e}") from e
+
+            for k, v in items:
+                _hdrs_set_one(k, v)
             return
 
         raise AttributeError("Response object does not support setting headers.")
