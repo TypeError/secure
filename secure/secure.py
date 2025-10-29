@@ -64,19 +64,6 @@ class Preset(Enum):
     STRICT = "strict"
 
 
-HTAB: int = 0x09
-SP: int = 0x20
-VCHAR_MIN: int = 0x21
-VCHAR_MAX: int = 0x7E
-OBS_MIN: int = 0x80
-OBS_MAX: int = 0xFF
-
-_LOG = logging.getLogger("secure")
-
-# RFC 7230 token for header field-name (field-name = token)
-_HEADER_NAME_RE = re.compile(r"^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$")
-
-
 class Secure:
     """
     A class to configure and apply security headers for web applications.
@@ -103,9 +90,6 @@ class Secure:
         server: Server | None = None,
         xcto: XContentTypeOptions | None = None,
         xfo: XFrameOptions | None = None,
-        strict: bool = False,
-        allow_obs_text: bool = True,
-        on_invalid: str = "drop",  # "drop" | "raise" | "warn"
     ) -> None:
         """
         Initialize the Secure instance with the specified security headers.
@@ -122,12 +106,6 @@ class Secure:
             server (Server | None): The Server header configuration.
             xcto (XContentTypeOptions | None): The X-Content-Type-Options header configuration.
             xfo (XFrameOptions | None): The X-Frame-Options header configuration.
-            strict: fail-fast on invalid headers (raises ValueError)
-            allow_obs_text: allow 0x80-0xFF in values (RFC7230 obs-text)
-            on_invalid (lenient mode only):
-                - "drop" (default): skip invalid headers
-                - "warn": drop and log a warning
-                - "raise": escalate even in lenient mode
         """
         # Store headers in the order defined by the parameters
         self.headers_list: list[BaseHeader] = []
@@ -153,10 +131,6 @@ class Secure:
         # Add custom headers if provided
         if custom:
             self.headers_list.extend(custom)
-
-        self._strict = strict
-        self._allow_obs_text = allow_obs_text
-        self._on_invalid = on_invalid
 
     @classmethod
     def with_default_headers(cls) -> Secure:
@@ -246,64 +220,122 @@ class Secure:
         """
         return f"{self.__class__.__name__}(headers_list={self.headers_list!r})"
 
-    def _validate_and_normalize_header(self, name: str | None, value: str | None) -> tuple[str, str] | None:
+    def validate_and_normalize_headers(  # noqa: PLR0915
+        self,
+        *,
+        on_invalid: str = "drop",  # "drop" | "warn" | "raise"
+        strict: bool = False,  # hard-fail on CR/LF + illegal chars
+        allow_obs_text: bool = False,
+        logger: logging.Logger | None = None,
+    ) -> Secure:
         """
-        Validate a header field-name and field-value.
+        Validate/normalize the *current* headers and replace the cached mapping in-place.
+        No persistent class state is added; behavior is controlled only by call arguments.
 
         Returns:
-            (name, value) if acceptable/sanitized,
-            None in lenient 'drop'/'warn' modes when unsanitizable,
-            raises ValueError in 'strict' or 'raise' modes on invalid input.
+            self (chainable)
         """
-        # Read class-level switches if present; default to non-breaking behavior.
 
-        log = getattr(self, "_log", _LOG)
+        log = logger or logging.getLogger("secure")
 
-        def _handle_invalid(msg: str) -> tuple[str, str] | None:
-            if self._strict or self._on_invalid == "raise":
-                raise ValueError(msg)
-            if self._on_invalid == "warn":
+        # Token per RFC 7230 tchar (visible ASCII except separators).
+        header_name_re = re.compile(r"^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$")
+
+        # Visible ASCII per RFCs
+        sp = 0x20
+        vchar_min, vchar_max = 0x21, 0x7E
+        # obs-text (RFC 7230 §3.2.4) — rarely needed
+        obs_min, obs_max = 0x80, 0xFF
+
+        def _handle_invalid(msg: str) -> None:
+            if on_invalid == "warn":
                 log.warning(msg)
-            # "drop" (default) falls through
-            return None
+            elif on_invalid == "raise" or strict:
+                raise ValueError(msg)
+            # "drop" does nothing; caller will skip the pair
 
-        if name is None or value is None:
-            return _handle_invalid("Header name/value must not be None")
+        def _validate_pair(name: str, value: str) -> tuple[str, str] | None:
+            # Normalize header name casing to canonical case-insensitive form.
 
-        name = name.strip()
-        if not _HEADER_NAME_RE.match(name):
-            return _handle_invalid(f"Invalid header name {name!r} (RFC 7230 token required)")
+            name = name.strip()
+            if not header_name_re.match(name):
+                _handle_invalid(f"Invalid header name {name!r} (RFC 7230 token required)")
+                return None  # already raised if strict/raise
 
-        # Block response-splitting
-        if ("\r" in value) or ("\n" in value):
-            if self._strict:
-                raise ValueError(f"Header {name!r} contained CR/LF")
-            # lenient: collapse newlines into a single space
-            value = " ".join(value.splitlines())
+            # CR/LF must never appear in header values. If not strict, coalesce lines.
+            if ("\r" in value) or ("\n" in value):
+                if strict:
+                    raise ValueError(f"Header {name!r} contained CR/LF")
+                value = " ".join(value.splitlines())
 
-        value = value.strip()
+            value = value.strip()
+            if not value:
+                _handle_invalid(f"Dropping header {name!r}: empty value")
+                return None
 
-        sanitized: list[str] = []
-        for ch in value:
-            code = ord(ch)
-            if (
-                ch == "\t"
-                or code == SP
-                or VCHAR_MIN <= code <= VCHAR_MAX
-                or (self._allow_obs_text and (OBS_MIN <= code <= OBS_MAX))
-            ):  # HTAB or SP
-                sanitized.append(ch)
-            else:
-                if self._strict:
-                    raise ValueError(f"Header {name!r} contains disallowed char U+{code:04X}")
-                sanitized.append(" ")
+            # Fast path: if all chars are HTAB/SP/VCHAR (and optional obs-text), keep as-is.
+            # Bind lookups locally for speed in tight loops.
+            _sp = sp
+            _vmin, _vmax = vchar_min, vchar_max
+            _allow_obs = allow_obs_text
+            _omin, _omax = obs_min, obs_max
 
-        norm_value = "".join(sanitized).strip()
-        if not norm_value:
-            # Empty after sanitization: treat as invalid per on_invalid/strict
-            return _handle_invalid(f"Dropping header {name!r} due to empty/invalid value after sanitization")
+            # Check if sanitization is needed; avoid building a new string if not.
+            needs_sanitize = False
+            for ch in value:
+                code = ord(ch)
+                if not (
+                    ch == "\t" or code == _sp or (_vmin <= code <= _vmax) or (_allow_obs and (_omin <= code <= _omax))
+                ):
+                    needs_sanitize = True
+                    break
 
-        return name, norm_value
+            if not needs_sanitize:
+                return name, value
+
+            # Sanitize disallowed characters: strict -> error, else replace with SP.
+            sanitized_chars: list[str] = []
+            append = sanitized_chars.append
+            for ch in value:
+                code = ord(ch)
+                if ch == "\t" or code == _sp or (_vmin <= code <= _vmax) or (_allow_obs and (_omin <= code <= _omax)):
+                    append(ch)
+                else:
+                    if strict:
+                        raise ValueError(f"Header {name!r} contains disallowed char U+{code:04X}")
+                    append(" ")
+
+            norm_value = "".join(sanitized_chars).strip()
+            if not norm_value:
+                _handle_invalid(f"Dropping header {name!r}: empty after sanitization")
+                return None
+
+            return name, norm_value
+
+        # Pull the current cached mapping (a MappingProxyType) and rebuild it.
+        try:
+            current = dict(self.headers)
+        except Exception as e:  # pragma: no cover
+            raise RuntimeError(
+                "Secure.validate_and_normalize_headers() expected self.headers to be mapping-like"
+            ) from e
+
+        cleaned: dict[str, str] = {}
+        for k, v in current.items():
+            pair = _validate_pair(k, v)
+            if pair is None:
+                continue
+            name, value = pair
+            cleaned[name] = value
+
+        # Ensure `headers` is a @cached_property so we can swap its cached value.
+        hdr_descr = getattr(type(self), "headers", None)
+        if not isinstance(hdr_descr, cached_property):
+            raise TypeError("`headers` must be a @cached_property to swap it in-place.")
+
+        # Overwrite the cached property value with a read-only mapping.
+        self.__dict__["headers"] = MappingProxyType(cleaned)
+        return self
 
     def header_items(self) -> tuple[tuple[str, str], ...]:
         """
@@ -393,9 +425,7 @@ class Secure:
 
                 async def _apply_one(name: str, value: str) -> None:
                     try:
-                        nv = self._validate_and_normalize_header(name, value)
-                        if nv:
-                            await set_header(*nv)
+                        await set_header(name, value)
                     except (TypeError, ValueError, AttributeError) as e:
                         raise HeaderSetError(f"Failed to set header {name!r}: {e}") from e
 
@@ -447,9 +477,7 @@ class Secure:
 
                 async def _apply_hdr_one(name: str, value: str) -> None:
                     try:
-                        nv = self._validate_and_normalize_header(name, value)
-                        if nv:
-                            await setitem(*nv)
+                        await setitem(name, value)  # type: ignore[misc]
                     except (TypeError, ValueError, AttributeError) as e:
                         raise HeaderSetError(f"Failed to set header {name!r}: {e}") from e
 
@@ -462,9 +490,7 @@ class Secure:
 
             def _hdrs_set_one(name: str, value: str) -> None:
                 try:
-                    nv = self._validate_and_normalize_header(name, value)
-                    if nv:
-                        hdrs.__setitem__(*nv)
+                    hdrs[name] = value
                 except (TypeError, ValueError, AttributeError) as e:
                     raise HeaderSetError(f"Failed to set header {name!r}: {e}") from e
 
@@ -499,9 +525,7 @@ class Secure:
 
                 async def _apply_one(name: str, value: str) -> None:
                     try:
-                        nv = self._validate_and_normalize_header(name, value)
-                        if nv:
-                            await set_header(*nv)
+                        await set_header(name, value)
                     except (TypeError, ValueError, AttributeError) as e:
                         raise HeaderSetError(f"Failed to set header {name!r}: {e}") from e
 
@@ -511,7 +535,7 @@ class Secure:
 
             async def _apply_one_syncish(name: str, value: str) -> None:
                 try:
-                    res = None if (nv := self._validate_and_normalize_header(name, value)) is None else set_header(*nv)
+                    res = set_header(name, value)
                     if inspect.isawaitable(res):
                         await res  # type: ignore[misc]
                 except (TypeError, ValueError, AttributeError) as e:
@@ -529,9 +553,7 @@ class Secure:
 
                 async def _apply_hdr_one(name: str, value: str) -> None:
                     try:
-                        nv = self._validate_and_normalize_header(name, value)
-                        if nv:
-                            await setitem(*nv)
+                        await setitem(name, value)  # type: ignore[misc]
                     except (TypeError, ValueError, AttributeError) as e:
                         raise HeaderSetError(f"Failed to set header {name!r}: {e}") from e
 
