@@ -29,7 +29,15 @@ from .headers import (
     XFrameOptions,
 )
 
-MULTI_OK: set[str] = {"content-security-policy", "set-cookie"}
+# Headers that may appear multiple times as separate fields.
+MULTI_OK: frozenset[str] = frozenset(
+    {
+        "content-security-policy",
+    }
+)
+
+# Headers where RFC7230-style comma merging is safe/expected
+COMMA_JOIN_OK: frozenset[str] = frozenset({"cache-control"})
 
 
 class HeaderSetError(RuntimeError):
@@ -256,6 +264,7 @@ class Secure:
 
         def _validate_pair(name: str, value: str) -> tuple[str, str] | None:
             # Normalize header name casing to canonical case-insensitive form.
+            nonlocal strict
 
             name = name.strip()
             if not header_name_re.match(name):
@@ -337,34 +346,122 @@ class Secure:
         self.__dict__["headers"] = MappingProxyType(cleaned)
         return self
 
-    def header_items(self) -> tuple[tuple[str, str], ...]:
+    def deduplicate_headers(
+        self,
+        *,
+        action: str = "raise",  # "raise" | "first" | "last" | "concat"
+        comma_join_ok: frozenset[str] = COMMA_JOIN_OK,
+        multi_ok: frozenset[str] = MULTI_OK,
+        logger: logging.Logger | None = None,
+    ) -> Secure:
         """
-        Return all headers as (name, value) pairs, preserving allowed multi-valued
-        headers (e.g., Content-Security-Policy, Set-Cookie) and rejecting unsafe
-        duplicates for other headers.
-        """
-        groups: defaultdict[str, list[tuple[str, str]]] = defaultdict(list)
-        for h in self.headers_list:
-            groups[h.header_name.lower()].append((h.header_name, h.header_value))
+        Deduplicate current headers in-place according to the chosen policy,
+        while respecting headers explicitly allowed to be multi-valued.
 
-        items: list[tuple[str, str]] = []
+        Returns:
+            self (chainable)
+        """
+        log = logger or logging.getLogger("secure")
+
+        # Group by lowercase name; store (first_index, OriginalName, value)
+        groups: dict[str, list[tuple[int, str, str]]] = defaultdict(list)
+
+        # Read items robustly (object with attrs or 2-tuple)
+        for idx, h in enumerate(self.headers_list):
+            try:
+                nm = h.header_name
+                val = h.header_value
+            except AttributeError:
+                nm, val = h  # type: ignore[misc]
+            groups[nm.lower()].append((idx, nm, val))
+
+        # Stable processing order by first appearance
+        ordered_keys = sorted(groups.keys(), key=lambda k: groups[k][0][0])
+
+        def _make_pair(name: str, value: str) -> tuple[str, str]:
+            return (name, value)
+
+        def _handle_disallowed_dupes(
+            lname: str, entries: list[tuple[int, str, str]]
+        ) -> tuple[list[tuple[str, str]], str | None]:
+            """Return (new_items, dup_error_name_if_any)."""
+            if action == "first":
+                _, nm, val = entries[0]
+                if len(entries) > 1:
+                    log.warning("Dropping duplicate header(s) for %r (keeping first)", nm)
+                return [_make_pair(nm, val)], None
+
+            if action == "last":
+                _, nm, val = entries[-1]
+                if len(entries) > 1:
+                    log.warning("Dropping duplicate header(s) for %r (keeping last)", nm)
+                return [_make_pair(nm, val)], None
+
+            if action == "concat":
+                if lname in comma_join_ok:
+                    _, nm0, _ = entries[0]
+                    joined = ", ".join(v for _, _, v in entries)
+                    return [_make_pair(nm0, joined)], None
+                # not safe to join → error
+                return [], entries[0][1]
+
+            # default "raise"
+            return [], entries[0][1]
+
+        new_list: list[tuple[str, str]] = []
         dup_errors: list[str] = []
 
-        for lname, pairs in groups.items():
-            if len(pairs) == 1:
-                items.append(pairs[0])
+        for lname in ordered_keys:
+            entries = groups[lname]
+            if len(entries) == 1:
+                _, nm, val = entries[0]
+                new_list.append(_make_pair(nm, val))
                 continue
-            if lname in MULTI_OK:
-                # Preserve multiple fields as separate items.
-                items.extend(pairs)
-            else:
-                # Keep original casing from the first occurrence for the error.
-                dup_errors.append(pairs[0][0])
+
+            if lname in multi_ok:
+                # keep all, preserve order
+                for _, nm, val in entries:
+                    new_list.append(_make_pair(nm, val))
+                continue
+
+            produced, err = _handle_disallowed_dupes(lname, entries)
+            new_list.extend(produced)
+            if err is not None:
+                dup_errors.append(err)
 
         if dup_errors:
-            raise ValueError(
-                "Duplicate header(s) not allowed: " + ", ".join(sorted(set(dup_errors))) + ". Define each at most once."
-            )
+            names = ", ".join(sorted(set(dup_errors)))
+            raise ValueError(f"Duplicate header(s) not allowed: {names}. Define each at most once.")
+
+        # Swap in the rebuilt list as simple (name, value) pairs.
+        self.headers_list = new_list  # type: ignore[assignment]
+
+        # Invalidate any cached mapping derived from headers_list (if present).
+        if "headers" in self.__dict__:
+            self.__dict__.pop("headers", None)
+
+        return self
+
+    def header_items(self) -> tuple[tuple[str, str], ...]:
+        """
+        Serialize the current headers into (name, value) pairs.
+
+        Assumes duplicate handling (if any) has already been performed elsewhere,
+        e.g., via `self.deduplicate_headers(...)`.
+        """
+
+        header_tuple_size = 2
+        items: list[tuple[str, str]] = []
+        append = items.append
+
+        for h in self.headers_list:
+            # Support both object form (header_name/header_value) and 2-tuples.
+            if hasattr(h, "header_name") and hasattr(h, "header_value"):
+                append((h.header_name, h.header_value))  # BaseHeader-style
+            elif isinstance(h, (tuple, list)) and len(h) >= header_tuple_size:
+                append((h[0], h[1]))  # tuple-like
+            else:
+                raise TypeError("header_items() expected elements with .header_name/.header_value or 2-tuples")
 
         return tuple(items)
 
@@ -425,7 +522,9 @@ class Secure:
 
                 async def _apply_one(name: str, value: str) -> None:
                     try:
-                        await set_header(name, value)
+                        result = set_header(name, value)
+                        if inspect.isawaitable(result):
+                            await result
                     except (TypeError, ValueError, AttributeError) as e:
                         raise HeaderSetError(f"Failed to set header {name!r}: {e}") from e
 
@@ -525,7 +624,9 @@ class Secure:
 
                 async def _apply_one(name: str, value: str) -> None:
                     try:
-                        await set_header(name, value)
+                        result = set_header(name, value)
+                        if inspect.isawaitable(result):
+                            await result
                     except (TypeError, ValueError, AttributeError) as e:
                         raise HeaderSetError(f"Failed to set header {name!r}: {e}") from e
 
