@@ -11,7 +11,7 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Mapping, MutableMapping
+    from collections.abc import Awaitable, Iterable, Mapping, MutableMapping
 
 
 from .headers import (
@@ -38,6 +38,23 @@ MULTI_OK: frozenset[str] = frozenset(
 
 # Headers where RFC7230-style comma merging is safe/expected
 COMMA_JOIN_OK: frozenset[str] = frozenset({"cache-control"})
+
+# A default allowlist of secure headers.
+DEFAULT_ALLOWED_HEADERS: frozenset[str] = frozenset(
+    {
+        "cache-control",
+        "content-security-policy",
+        "content-security-policy-report-only",
+        "cross-origin-embedder-policy",
+        "cross-origin-opener-policy",
+        "cross-origin-resource-policy",
+        "permissions-policy",
+        "referrer-policy",
+        "strict-transport-security",
+        "x-content-type-options",
+        "x-frame-options",
+    }
+)
 
 
 class HeaderSetError(RuntimeError):
@@ -435,6 +452,85 @@ class Secure:
 
         # Swap in the rebuilt list as simple (name, value) pairs.
         self.headers_list = new_list  # type: ignore[assignment]
+
+        # Invalidate any cached mapping derived from headers_list (if present).
+        if "headers" in self.__dict__:
+            self.__dict__.pop("headers", None)
+
+        return self
+
+    def allowlist_headers(  # chainable, like deduplicate_headers()
+        self,
+        *,
+        allowed: Iterable[str] = DEFAULT_ALLOWED_HEADERS,
+        allow_extra: Iterable[str] | None = None,
+        on_unexpected: str = "raise",  # "raise" | "drop" | "warn"
+        allow_x_prefixed: bool = False,  # opt-in for private X-* headers
+        logger: logging.Logger | None = None,
+    ) -> Secure:
+        """
+        Enforce a case-insensitive allowlist for header names in `self.headers_list`.
+
+        Args:
+            allowed: Base allowlist of header names (case-insensitive).
+            allow_extra: Additional names to allow (e.g., app-specific).
+            on_unexpected:
+                - "raise": error on any name not in the allowlist (default).
+                - "drop":  remove unexpected headers silently (or with warn if logger set).
+                - "warn":  keep unexpected headers but log a warning.
+            allow_x_prefixed: If True, allows any header starting with "x-".
+            logger: Optional logger; used for "warn" or "drop" notifications.
+
+        Returns:
+            self (chainable).
+        """
+        log = logger or logging.getLogger("secure")
+
+        # Build the lowercase allowlist.
+        allowed_lc = {h.lower() for h in allowed}
+        if allow_extra:
+            allowed_lc.update(h.lower() for h in allow_extra)
+
+        def _pair(h: BaseHeader | tuple[str, str]) -> tuple[str, str]:
+            # Support object with attributes or plain 2-tuple.
+            try:
+                return (h.header_name, h.header_value)  # type: ignore[attr-defined]
+            except AttributeError:
+                return (h[0], h[1])  # type: ignore[index]
+
+        def _keep(name_lc: str) -> bool:
+            return (name_lc in allowed_lc) or (allow_x_prefixed and name_lc.startswith("x-"))
+
+        kept: list[tuple[str, str]] = []
+        unexpected_names: list[str] = []
+
+        for h in self.headers_list:
+            name, value = _pair(h)
+            lname = name.lower()
+
+            if _keep(lname):
+                kept.append((name, value))
+                continue
+
+            # Unexpected header handling
+            if on_unexpected == "warn":
+                log.warning("Unexpected header %r kept (not in allowlist)", name)
+                kept.append((name, value))
+            elif on_unexpected == "drop":
+                log.warning("Unexpected header %r dropped (not in allowlist)", name)
+                # do not append
+            else:  # "raise" (default)
+                unexpected_names.append(name)
+
+        if unexpected_names:
+            names = ", ".join(sorted(set(unexpected_names)))
+            raise ValueError(
+                f"Unexpected header(s) not in allowlist: {names}. "
+                "Enable allow_extra or set on_unexpected to 'drop'/'warn'."
+            )
+
+        # Replace with normalized (name, value) pairs (like deduplicate_headers).
+        self.headers_list = kept  # type: ignore[assignment]
 
         # Invalidate any cached mapping derived from headers_list (if present).
         if "headers" in self.__dict__:
