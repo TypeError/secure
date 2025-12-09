@@ -353,6 +353,13 @@ class Secure:
             if pair is None:
                 continue
             k, v = pair
+
+            if k in cleaned:
+                raise ValueError(
+                    f"Duplicate header {k!r} encountered during normalization. "
+                    "Run deduplicate_headers() first or use header_items() for multi-valued headers."
+                )
+
             cleaned[k] = v
 
         self._headers_override = MappingProxyType(cleaned)
@@ -646,14 +653,16 @@ class Secure:
         """
         Apply configured headers **asynchronously** to `response`.
 
-        This method is STRICTLY async-only.
+        This method is STRICTLY async-only and must be awaited.
 
         Supported patterns:
-        - await response.set_header(name, value)
-        - await response.headers.__setitem__(name, value)
+        - `await response.set_header(name, value)` for async frameworks
+        - `response.set_header(name, value)` for sync setters returning `None`
+        - `await response.headers.__setitem__(name, value)` for async mappings
+        - `response.headers[name] = value` for sync mappings
 
-        If a sync-only setter is detected, it is called directly.
-        If an async setter is detected, it is awaited.
+        If a setter returns an awaitable, it is awaited.
+        If it returns `None`, it is treated as a synchronous operation.
 
         Raises
         ------
