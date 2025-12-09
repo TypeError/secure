@@ -648,9 +648,14 @@ class Secure:
         """
         Apply configured headers **asynchronously** to `response`.
 
-        Supports:
-        - `set_header(key, value)`: async (awaited) or sync (awaits returned awaitable if present).
-        - `.headers` mapping: async `__setitem__` (awaited) or sync setitem.
+        This method is STRICTLY async-only.
+
+        Supported patterns:
+        - await response.set_header(name, value)
+        - await response.headers.__setitem__(name, value)
+
+        If a sync-only setter is detected, it is called directly.
+        If an async setter is detected, it is awaited.
 
         Raises
         ------
@@ -662,59 +667,33 @@ class Secure:
 
         items = self.header_items()
 
-        if isinstance(response, SetHeaderProtocol):
+        # --- Path 1: response.set_header(...) ---
+        if hasattr(response, "set_header"):
             set_header = response.set_header
 
-            if inspect.iscoroutinefunction(set_header):
+            try:
+                for name, value in items:
+                    result = set_header(name, value)
+                    if inspect.isawaitable(result):
+                        await result
+            except (TypeError, ValueError, AttributeError) as e:
+                raise HeaderSetError(f"Failed to set headers: {e}") from e
 
-                async def _apply_one(name: str, value: str) -> None:
-                    try:
-                        result = set_header(name, value)
-                        if inspect.isawaitable(result):
-                            await result
-                    except (TypeError, ValueError, AttributeError) as e:
-                        raise HeaderSetError(f"Failed to set header {name!r}: {e}") from e
-
-                for k, v in items:
-                    await _apply_one(k, v)
-                return
-
-            async def _apply_one_syncish(name: str, value: str) -> None:
-                try:
-                    res = set_header(name, value)
-                    if inspect.isawaitable(res):
-                        await res  # type: ignore[misc]
-                except (TypeError, ValueError, AttributeError) as e:
-                    raise HeaderSetError(f"Failed to set header {name!r}: {e}") from e
-
-            for k, v in items:
-                await _apply_one_syncish(k, v)
             return
 
+        # --- Path 2: response.headers[...] mapping ---
         if hasattr(response, "headers"):
             hdrs = response.headers
-            setitem = getattr(hdrs, "__setitem__", None)
 
-            if inspect.iscoroutinefunction(setitem):
+            try:
+                for name, value in items:
+                    result = hdrs.__setitem__(name, value)  # type: ignore[misc]
+                    if inspect.isawaitable(result):
+                        await result
+            except (TypeError, ValueError, AttributeError) as e:
+                raise HeaderSetError(f"Failed to set headers: {e}") from e
 
-                async def _apply_hdr_one(name: str, value: str) -> None:
-                    try:
-                        await setitem(name, value)  # type: ignore[misc]
-                    except (TypeError, ValueError, AttributeError) as e:
-                        raise HeaderSetError(f"Failed to set header {name!r}: {e}") from e
-
-                for k, v in items:
-                    await _apply_hdr_one(k, v)
-                return
-
-            def _hdrs_set_one(name: str, value: str) -> None:
-                try:
-                    hdrs[name] = value
-                except (TypeError, ValueError, AttributeError) as e:
-                    raise HeaderSetError(f"Failed to set header {name!r}: {e}") from e
-
-            for k, v in items:
-                _hdrs_set_one(k, v)
             return
 
+        # --- Unsupported response ---
         raise AttributeError("Response object does not support setting headers.")
