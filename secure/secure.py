@@ -157,6 +157,8 @@ class Secure:
         if custom:
             self.headers_list.extend(custom)
 
+        self._headers_override: Mapping[str, str] | None = None
+
     @classmethod
     def with_default_headers(cls) -> Secure:
         """
@@ -254,22 +256,26 @@ class Secure:
         logger: logging.Logger | None = None,
     ) -> Secure:
         """
-        Validate/normalize the *current* headers and replace the cached mapping in-place.
-        No persistent class state is added; behavior is controlled only by call arguments.
+        Validate and normalize the *current* header items and replace the
+        immutable headers mapping override in-place.
+
+        This operates on `header_items()` (not `headers`) to preserve:
+        - ordering
+        - multi-valued headers
+        - deduplicated state
 
         Returns:
             self (chainable)
         """
 
-        log = logger or logging.getLogger("secure")
+        log = logger or logging.getLogger(__name__)
 
-        # Token per RFC 7230 tchar (visible ASCII except separators).
+        # RFC 7230 token (visible ASCII except separators)
         header_name_re = re.compile(r"^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$")
 
         # Visible ASCII per RFCs
         sp = 0x20
         vchar_min, vchar_max = 0x21, 0x7E
-        # obs-text (RFC 7230 §3.2.4) — rarely needed
         obs_min, obs_max = 0x80, 0xFF
 
         def _handle_invalid(msg: str) -> None:
@@ -277,20 +283,22 @@ class Secure:
                 log.warning(msg)
             elif on_invalid == "raise" or strict:
                 raise ValueError(msg)
-            # "drop" does nothing; caller will skip the pair
 
-        def _validate_pair(name: str, value: str) -> tuple[str, str] | None:
-            # Normalize header name casing to canonical case-insensitive form.
-            nonlocal strict
-
+        def _validate_pair(name: str, value: str, strict_mode: bool = strict) -> tuple[str, str] | None:  # noqa: PLR0912
             name = name.strip()
+
             if not header_name_re.match(name):
                 _handle_invalid(f"Invalid header name {name!r} (RFC 7230 token required)")
-                return None  # already raised if strict/raise
+                return None
 
-            # CR/LF must never appear in header values. If not strict, coalesce lines.
+            # Prevent folded-header smuggling
+            if value.startswith((" ", "\t")):
+                _handle_invalid(f"Header {name!r} starts with forbidden whitespace")
+                return None
+
+            # CR/LF must never appear in values
             if ("\r" in value) or ("\n" in value):
-                if strict:
+                if strict_mode:
                     raise ValueError(f"Header {name!r} contained CR/LF")
                 value = " ".join(value.splitlines())
 
@@ -299,19 +307,16 @@ class Secure:
                 _handle_invalid(f"Dropping header {name!r}: empty value")
                 return None
 
-            # Fast path: if all chars are HTAB/SP/VCHAR (and optional obs-text), keep as-is.
-            # Bind lookups locally for speed in tight loops.
-            _sp = sp
-            _vmin, _vmax = vchar_min, vchar_max
             _allow_obs = allow_obs_text
-            _omin, _omax = obs_min, obs_max
 
-            # Check if sanitization is needed; avoid building a new string if not.
             needs_sanitize = False
             for ch in value:
                 code = ord(ch)
                 if not (
-                    ch == "\t" or code == _sp or (_vmin <= code <= _vmax) or (_allow_obs and (_omin <= code <= _omax))
+                    ch == "\t"
+                    or code == sp
+                    or (vchar_min <= code <= vchar_max)
+                    or (_allow_obs and (obs_min <= code <= obs_max))
                 ):
                     needs_sanitize = True
                     break
@@ -319,48 +324,44 @@ class Secure:
             if not needs_sanitize:
                 return name, value
 
-            # Sanitize disallowed characters: strict -> error, else replace with SP.
-            sanitized_chars: list[str] = []
-            append = sanitized_chars.append
+            sanitized: list[str] = []
+            append = sanitized.append
+
             for ch in value:
                 code = ord(ch)
-                if ch == "\t" or code == _sp or (_vmin <= code <= _vmax) or (_allow_obs and (_omin <= code <= _omax)):
+                if (
+                    ch == "\t"
+                    or code == sp
+                    or (vchar_min <= code <= vchar_max)
+                    or (_allow_obs and (obs_min <= code <= obs_max))
+                ):
                     append(ch)
                 else:
-                    if strict:
+                    if strict_mode:
                         raise ValueError(f"Header {name!r} contains disallowed char U+{code:04X}")
                     append(" ")
 
-            norm_value = "".join(sanitized_chars).strip()
+            norm_value = "".join(sanitized).strip()
             if not norm_value:
                 _handle_invalid(f"Dropping header {name!r}: empty after sanitization")
                 return None
 
             return name, norm_value
 
-        # Pull the current cached mapping (a MappingProxyType) and rebuild it.
-        try:
-            current = dict(self.headers)
-        except Exception as e:  # pragma: no cover
-            raise RuntimeError(
-                "Secure.validate_and_normalize_headers() expected self.headers to be mapping-like"
-            ) from e
+        items = self.header_items()
 
         cleaned: dict[str, str] = {}
-        for k, v in current.items():
-            pair = _validate_pair(k, v)
+        for name, value in items:
+            pair = _validate_pair(name, value)
             if pair is None:
                 continue
-            name, value = pair
-            cleaned[name] = value
+            k, v = pair
+            cleaned[k] = v
 
-        # Ensure `headers` is a @cached_property so we can swap its cached value.
-        hdr_descr = getattr(type(self), "headers", None)
-        if not isinstance(hdr_descr, cached_property):
-            raise TypeError("`headers` must be a @cached_property to swap it in-place.")
+        self._headers_override = MappingProxyType(cleaned)
 
-        # Overwrite the cached property value with a read-only mapping.
-        self.__dict__["headers"] = MappingProxyType(cleaned)
+        self.__dict__.pop("headers", None)
+
         return self
 
     def deduplicate_headers(
@@ -378,71 +379,72 @@ class Secure:
         Returns:
             self (chainable)
         """
-        log = logger or logging.getLogger("secure")
+        log = logger or logging.getLogger(__name__)
 
-        # Group by lowercase name; store (first_index, OriginalName, value)
-        groups: dict[str, list[tuple[int, str, str]]] = defaultdict(list)
+        # Group by lowercase name; store (first_index, BaseHeader)
+        groups: dict[str, list[tuple[int, BaseHeader]]] = defaultdict(list)
 
-        # Read items robustly (object with attrs or 2-tuple)
         for idx, h in enumerate(self.headers_list):
-            try:
-                nm = h.header_name
-                val = h.header_value
-            except AttributeError:
-                nm, val = h  # type: ignore[misc]
-            groups[nm.lower()].append((idx, nm, val))
+            if not hasattr(h, "header_name") or not hasattr(h, "header_value"):
+                raise TypeError("deduplicate_headers() requires BaseHeader objects only")
+            groups[h.header_name.lower()].append((idx, h))
 
         # Stable processing order by first appearance
         ordered_keys = sorted(groups.keys(), key=lambda k: groups[k][0][0])
 
-        def _make_pair(name: str, value: str) -> tuple[str, str]:
-            return (name, value)
+        def _clone(name: str, value: str) -> BaseHeader:
+            # Preserve type stability using CustomHeader as neutral carrier
+            return CustomHeader(header=name, value=value)
 
         def _handle_disallowed_dupes(
-            lname: str, entries: list[tuple[int, str, str]]
-        ) -> tuple[list[tuple[str, str]], str | None]:
+            lname: str,
+            entries: list[tuple[int, BaseHeader]],
+        ) -> tuple[list[BaseHeader], str | None]:
             """Return (new_items, dup_error_name_if_any)."""
+
             if action == "first":
-                _, nm, val = entries[0]
+                _, h = entries[0]
                 if len(entries) > 1:
-                    log.warning("Dropping duplicate header(s) for %r (keeping first)", nm)
-                return [_make_pair(nm, val)], None
+                    log.warning("Dropping duplicate header(s) for %r (keeping first)", h.header_name)
+                return [_clone(h.header_name, h.header_value)], None
 
             if action == "last":
-                _, nm, val = entries[-1]
+                _, h = entries[-1]
                 if len(entries) > 1:
-                    log.warning("Dropping duplicate header(s) for %r (keeping last)", nm)
-                return [_make_pair(nm, val)], None
+                    log.warning("Dropping duplicate header(s) for %r (keeping last)", h.header_name)
+                return [_clone(h.header_name, h.header_value)], None
 
             if action == "concat":
                 if lname in comma_join_ok:
-                    _, nm0, _ = entries[0]
-                    joined = ", ".join(v for _, _, v in entries)
-                    return [_make_pair(nm0, joined)], None
-                # not safe to join → error
-                return [], entries[0][1]
+                    nm = entries[0][1].header_name
+                    joined = ", ".join(h.header_value for _, h in entries)
+                    return [_clone(nm, joined)], None
+
+                # not safe to join
+                return [], entries[0][1].header_name
 
             # default "raise"
-            return [], entries[0][1]
+            return [], entries[0][1].header_name
 
-        new_list: list[tuple[str, str]] = []
+        new_list: list[BaseHeader] = []
         dup_errors: list[str] = []
 
         for lname in ordered_keys:
             entries = groups[lname]
+
             if len(entries) == 1:
-                _, nm, val = entries[0]
-                new_list.append(_make_pair(nm, val))
+                _, h = entries[0]
+                new_list.append(_clone(h.header_name, h.header_value))
                 continue
 
             if lname in multi_ok:
-                # keep all, preserve order
-                for _, nm, val in entries:
-                    new_list.append(_make_pair(nm, val))
+                for _, h in entries:
+                    new_list.append(_clone(h.header_name, h.header_value))
                 continue
 
             produced, err = _handle_disallowed_dupes(lname, entries)
             new_list.extend(produced)
+
             if err is not None:
                 dup_errors.append(err)
 
@@ -450,12 +452,9 @@ class Secure:
             names = ", ".join(sorted(set(dup_errors)))
             raise ValueError(f"Duplicate header(s) not allowed: {names}. Define each at most once.")
 
-        # Swap in the rebuilt list as simple (name, value) pairs.
-        self.headers_list = new_list  # type: ignore[assignment]
+        self.headers_list = new_list
 
-        # Invalidate any cached mapping derived from headers_list (if present).
-        if "headers" in self.__dict__:
-            self.__dict__.pop("headers", None)
+        self.__dict__.pop("headers", None)
 
         return self
 
@@ -476,7 +475,7 @@ class Secure:
             allow_extra: Additional names to allow (e.g., app-specific).
             on_unexpected:
                 - "raise": error on any name not in the allowlist (default).
-                - "drop":  remove unexpected headers silently (or with warn if logger set).
+                - "drop":  remove unexpected headers (logs if logger is set).
                 - "warn":  keep unexpected headers but log a warning.
             allow_x_prefixed: If True, allows any header starting with "x-".
             logger: Optional logger; used for "warn" or "drop" notifications.
@@ -484,38 +483,34 @@ class Secure:
         Returns:
             self (chainable).
         """
-        log = logger or logging.getLogger("secure")
+        log = logger or logging.getLogger(__name__)
 
         # Build the lowercase allowlist.
         allowed_lc = {h.lower() for h in allowed}
         if allow_extra:
             allowed_lc.update(h.lower() for h in allow_extra)
 
-        def _pair(h: BaseHeader | tuple[str, str]) -> tuple[str, str]:
-            # Support object with attributes or plain 2-tuple.
-            try:
-                return (h.header_name, h.header_value)  # type: ignore[attr-defined]
-            except AttributeError:
-                return (h[0], h[1])  # type: ignore[index]
-
         def _keep(name_lc: str) -> bool:
             return (name_lc in allowed_lc) or (allow_x_prefixed and name_lc.startswith("x-"))
 
-        kept: list[tuple[str, str]] = []
+        kept: list[BaseHeader] = []
         unexpected_names: list[str] = []
 
         for h in self.headers_list:
-            name, value = _pair(h)
+            if not hasattr(h, "header_name") or not hasattr(h, "header_value"):
+                raise TypeError("allowlist_headers() requires BaseHeader objects only")
+
+            name = h.header_name
             lname = name.lower()
 
             if _keep(lname):
-                kept.append((name, value))
+                kept.append(h)
                 continue
 
             # Unexpected header handling
             if on_unexpected == "warn":
                 log.warning("Unexpected header %r kept (not in allowlist)", name)
-                kept.append((name, value))
+                kept.append(h)
             elif on_unexpected == "drop":
                 log.warning("Unexpected header %r dropped (not in allowlist)", name)
                 # do not append
@@ -529,12 +524,11 @@ class Secure:
                 "Enable allow_extra or set on_unexpected to 'drop'/'warn'."
             )
 
-        # Replace with normalized (name, value) pairs (like deduplicate_headers).
-        self.headers_list = kept  # type: ignore[assignment]
+        self.headers_list = kept
 
-        # Invalidate any cached mapping derived from headers_list (if present).
-        if "headers" in self.__dict__:
-            self.__dict__.pop("headers", None)
+        # Invalidate any cached mapping / overrides derived from headers_list.
+        self._headers_override = None
+        self.__dict__.pop("headers", None)
 
         return self
 
@@ -571,14 +565,19 @@ class Secure:
             including headers in MULTI_OK. Use `header_items()` or the setters to
             emit multi-valued headers like Content-Security-Policy or Set-Cookie.
         """
+        if self._headers_override is not None:
+            return self._headers_override
+
         data: dict[str, str] = {}
         seen: set[str] = set()
+
         for name, value in self.header_items():
             k = name.lower()
             if k in seen:
                 raise ValueError(f"Multiple '{name}' headers present; use `header_items()` when emitting multiples.")
             seen.add(k)
             data[name] = value
+
         return MappingProxyType(data)
 
     def set_headers(self, response: ResponseProtocol) -> None:  # noqa: PLR0915
