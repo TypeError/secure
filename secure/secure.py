@@ -7,7 +7,7 @@ import inspect
 import logging
 import re
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping, MutableMapping
@@ -60,14 +60,12 @@ class HeaderSetError(RuntimeError):
     """Raised when applying a header to a response fails."""
 
 
-@runtime_checkable
 class HeadersProtocol(Protocol):
     """Protocol for response objects that have a 'headers' attribute."""
 
     headers: MutableMapping[str, str]
 
 
-@runtime_checkable
 class SetHeaderProtocol(Protocol):
     """Protocol for response objects that have a 'set_header' method."""
 
@@ -452,7 +450,7 @@ class Secure:
             raise ValueError(f"Duplicate header(s) not allowed: {names}. Define each at most once.")
 
         self.headers_list = new_list
-
+        self._headers_override = None
         self.__dict__.pop("headers", None)
 
         return self
