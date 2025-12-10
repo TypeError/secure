@@ -325,6 +325,7 @@ class Secure:
             - ``"raise"``: raise :class:`ValueError` on invalid entries.
         strict :
             If true, treat CR/LF and disallowed characters as hard errors.
+            Other invalid cases (name/value) are governed by ``on_invalid``.
         allow_obs_text :
             If true, allow "obs-text" (bytes 0x80-0xFF) as per older RFCs.
         logger :
@@ -339,8 +340,9 @@ class Secure:
         Raises
         ------
         ValueError
-            If a header name is invalid or if duplicates are found when building
-            the single-valued mapping.
+            If a header name is invalid (when ``on_invalid="raise"``),
+            if duplicates are found when building the single-valued mapping,
+            or if ``strict=True`` and CR/LF or disallowed characters are present.
         """
         log = logger or logging.getLogger(__name__)
 
@@ -352,10 +354,12 @@ class Secure:
         def _handle_invalid(msg: str) -> None:
             if on_invalid == "warn":
                 log.warning(msg)
-            elif on_invalid == "raise" or strict:
+            elif on_invalid == "raise":
                 raise ValueError(msg)
+            # on_invalid == "drop": silently drop
 
-        def _validate_pair(name: str, value: str, strict_mode: bool = strict) -> tuple[str, str] | None:  # noqa: PLR0912
+        def _validate_pair(name: str, value: str) -> tuple[str, str] | None:  # noqa: PLR0912
+            strict_flag = bool(strict)
             name = name.strip()
 
             if not HEADER_NAME_RE.match(name):
@@ -369,7 +373,7 @@ class Secure:
 
             # CR/LF must never appear in values.
             if ("\r" in value) or ("\n" in value):
-                if strict_mode:
+                if strict_flag:
                     raise ValueError(f"Header {name!r} contained CR/LF")
                 value = " ".join(value.splitlines())
 
@@ -408,7 +412,7 @@ class Secure:
                 ):
                     append(ch)
                 else:
-                    if strict_mode:
+                    if strict_flag:
                         raise ValueError(f"Header {name!r} contains disallowed char U+{code:04X}")
                     append(" ")
 
@@ -849,7 +853,7 @@ class Secure:
 
             try:
                 for name, value in items:
-                    result = hdrs.__setitem__(name, value)  # type: ignore[misc]
+                    result = hdrs.__setitem__(name, value)
                     if inspect.isawaitable(result):
                         await result
             except (TypeError, ValueError, AttributeError) as e:
