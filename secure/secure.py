@@ -7,11 +7,10 @@ import inspect
 import logging
 import re
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Literal, Protocol
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping, MutableMapping
-
 
 from .headers import (
     BaseHeader,
@@ -28,6 +27,10 @@ from .headers import (
     XFrameOptions,
 )
 
+# ---------------------------------------------------------------------------
+# Configuration / constants
+# ---------------------------------------------------------------------------
+
 # Headers that may appear multiple times as separate fields.
 MULTI_OK: frozenset[str] = frozenset(
     {
@@ -35,7 +38,7 @@ MULTI_OK: frozenset[str] = frozenset(
     }
 )
 
-# Headers where RFC7230-style comma merging is safe/expected
+# Headers where RFC7230-style comma merging is safe/expected.
 COMMA_JOIN_OK: frozenset[str] = frozenset({"cache-control"})
 
 # A default allowlist of secure headers.
@@ -55,47 +58,83 @@ DEFAULT_ALLOWED_HEADERS: frozenset[str] = frozenset(
     }
 )
 
+# RFC 7230 token (visible ASCII except separators).
+HEADER_NAME_RE = re.compile(r"^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$")
+
+OnInvalidPolicy = Literal["drop", "warn", "raise"]
+DeduplicateAction = Literal["raise", "first", "last", "concat"]
+OnUnexpectedPolicy = Literal["raise", "drop", "warn"]
+
+
+# ---------------------------------------------------------------------------
+# Protocols / errors
+# ---------------------------------------------------------------------------
+
 
 class HeaderSetError(RuntimeError):
     """Raised when applying a header to a response fails."""
 
 
 class HeadersProtocol(Protocol):
-    """Protocol for response objects that have a 'headers' attribute."""
+    """Protocol for response objects that expose a `headers` mapping."""
 
     headers: MutableMapping[str, str]
 
 
 class SetHeaderProtocol(Protocol):
-    """Protocol for response objects that have a 'set_header' method."""
+    """Protocol for response objects that expose a `set_header(name, value)` method."""
 
-    def set_header(self, key: str, value: str) -> None: ...
+    def set_header(self, key: str, value: str) -> object | None: ...
 
 
+# Union type for supported response objects. This keeps the public API broad
+# enough to cover FastAPI/Starlette, Flask, Django, etc.
 ResponseProtocol = HeadersProtocol | SetHeaderProtocol
-"""
-Union type for response objects that conform to either HeadersProtocol or SetHeaderProtocol.
-This allows the Secure class to work with a variety of web frameworks.
-"""
+
+
+# ---------------------------------------------------------------------------
+# Presets
+# ---------------------------------------------------------------------------
 
 
 class Preset(Enum):
-    """Enumeration of predefined security presets for the Secure class."""
+    """Predefined security header presets for :class:`Secure`."""
 
     BASIC = "basic"
     STRICT = "strict"
 
 
+# ---------------------------------------------------------------------------
+# Core API
+# ---------------------------------------------------------------------------
+
+
 class Secure:
     """
-    A class to configure and apply security headers for web applications.
+    Configure and apply HTTP security headers for web applications.
 
-    The Secure class allows you to specify various HTTP security headers to enhance
-    the security of your web application. You can use predefined presets or customize
-    the headers as needed.
+    A :class:`Secure` instance encapsulates a set of header objects that can be
+    applied to response objects from common Python web frameworks (FastAPI,
+    Starlette, Flask, Django, etc.).
 
-    Attributes:
-        headers_list (list[BaseHeader]): List of header objects representing the configured headers.
+    Typical pipeline:
+
+    >>> secure = (
+    ...     Secure.with_default_headers().allowlist_headers().deduplicate_headers().validate_and_normalize_headers()
+    ... )
+
+    Then, inside your framework integration:
+
+    >>> secure.set_headers(response)
+    >>> # or in async contexts:
+    >>> await secure.set_headers_async(response)
+
+    Attributes
+    ----------
+    headers_list :
+        Ordered list of header objects representing the configured headers.
+        Methods like :meth:`allowlist_headers` and :meth:`deduplicate_headers`
+        operate on this list in place and return ``self`` for chaining.
     """
 
     def __init__(  # noqa: PLR0913
@@ -114,24 +153,35 @@ class Secure:
         xfo: XFrameOptions | None = None,
     ) -> None:
         """
-        Initialize the Secure instance with the specified security headers.
+        Initialize a :class:`Secure` instance with the specified security headers.
 
-        Args:
-            cache (CacheControl | None): The Cache-Control header configuration.
-            coep (CrossOriginEmbedderPolicy | None): The Cross-Origin-Embedder-Policy header configuration.
-            coop (CrossOriginOpenerPolicy | None): The Cross-Origin-Opener-Policy header configuration.
-            csp (ContentSecurityPolicy | None): The Content-Security-Policy header configuration.
-            custom (list[CustomHeader] | None): A list of custom headers to include.
-            hsts (StrictTransportSecurity | None): The Strict-Transport-Security header configuration.
-            permissions (PermissionsPolicy | None): The Permissions-Policy header configuration.
-            referrer (ReferrerPolicy | None): The Referrer-Policy header configuration.
-            server (Server | None): The Server header configuration.
-            xcto (XContentTypeOptions | None): The X-Content-Type-Options header configuration.
-            xfo (XFrameOptions | None): The X-Frame-Options header configuration.
+        Parameters
+        ----------
+        cache :
+            Cache-Control header configuration.
+        coep :
+            Cross-Origin-Embedder-Policy header configuration.
+        coop :
+            Cross-Origin-Opener-Policy header configuration.
+        csp :
+            Content-Security-Policy header configuration.
+        custom :
+            Additional custom headers to include (app-specific).
+        hsts :
+            Strict-Transport-Security header configuration.
+        permissions :
+            Permissions-Policy header configuration.
+        referrer :
+            Referrer-Policy header configuration.
+        server :
+            Server header configuration.
+        xcto :
+            X-Content-Type-Options header configuration.
+        xfo :
+            X-Frame-Options header configuration.
         """
-        # Store headers in the order defined by the parameters
         self.headers_list: list[BaseHeader] = []
-        # List of header parameters in the desired order
+
         params: list[BaseHeader | None] = [
             cache,
             coep,
@@ -145,12 +195,10 @@ class Secure:
             xfo,
         ]
 
-        # Append non-None headers to the headers list
         for header in params:
             if header is not None:
                 self.headers_list.append(header)
 
-        # Add custom headers if provided
         if custom:
             self.headers_list.extend(custom)
 
@@ -159,10 +207,16 @@ class Secure:
     @classmethod
     def with_default_headers(cls) -> Secure:
         """
-        Create a Secure instance with a default set of common security headers.
+        Create a :class:`Secure` instance with a sensible default set of headers.
 
-        Returns:
-            Secure: An instance of Secure with default security headers configured.
+        This preset is suitable for many modern applications and can be further
+        customized with methods like :meth:`allowlist_headers` or by adding
+        additional header objects.
+
+        Returns
+        -------
+        Secure
+            Instance preconfigured with a default set of headers.
         """
         return cls(
             cache=CacheControl().no_store(),
@@ -183,16 +237,23 @@ class Secure:
     @classmethod
     def from_preset(cls, preset: Preset) -> Secure:
         """
-        Create a Secure instance using a predefined security preset.
+        Create a :class:`Secure` instance using a predefined security preset.
 
-        Args:
-            preset (Preset): The security preset to use (Preset.BASIC or Preset.STRICT).
+        Parameters
+        ----------
+        preset :
+            The security preset to use, for example :data:`Preset.BASIC`
+            or :data:`Preset.STRICT`.
 
-        Returns:
-            Secure: An instance of Secure configured with the selected preset.
+        Returns
+        -------
+        Secure
+            Instance configured with the selected preset.
 
-        Raises:
-            ValueError: If an unknown preset is provided.
+        Raises
+        ------
+        ValueError
+            If an unknown preset is provided.
         """
         match preset:
             case Preset.BASIC:
@@ -227,50 +288,63 @@ class Secure:
                 raise ValueError(f"Unknown preset: {preset}")
 
     def __str__(self) -> str:
-        """
-        Return a string representation of the security headers.
-
-        Returns:
-            str: A string listing the headers and their values.
-        """
+        """Return a human-readable listing of headers and their values."""
         return "\n".join(f"{header.header_name}: {header.header_value}" for header in self.headers_list)
 
     def __repr__(self) -> str:
-        """
-        Return a detailed string representation of the Secure instance.
-
-        Returns:
-            str: A string representation including the list of headers.
-        """
+        """Return a detailed representation of the :class:`Secure` instance."""
         return f"{self.__class__.__name__}(headers_list={self.headers_list!r})"
 
-    def validate_and_normalize_headers(  # noqa: PLR0915
+    # ------------------------------------------------------------------
+    # Header normalization / safety helpers
+    # ------------------------------------------------------------------
+
+    def validate_and_normalize_headers(
         self,
         *,
-        on_invalid: str = "drop",  # "drop" | "warn" | "raise"
-        strict: bool = False,  # hard-fail on CR/LF + illegal chars
+        on_invalid: OnInvalidPolicy = "drop",
+        strict: bool = False,
         allow_obs_text: bool = False,
         logger: logging.Logger | None = None,
     ) -> Secure:
         """
-        Validate and normalize the *current* header items and replace the
-        immutable headers mapping override in-place.
+        Validate and normalize the current header items and cache an immutable mapping.
 
-        This operates on `header_items()` (not `headers`) to preserve:
-        - ordering
-        - multi-valued headers
-        - deduplicated state
+        This operates on :meth:`header_items` (not ``headers_list`` directly) to
+        preserve ordering, multi-valued behavior, and any prior deduplication.
 
-        Returns:
-            self (chainable)
+        The resulting mapping is stored as an internal override that is returned
+        by :attr:`headers`.
+
+        Parameters
+        ----------
+        on_invalid :
+            Policy for invalid headers:
+            - ``"drop"``: silently drop invalid entries (default).
+            - ``"warn"``: log a warning and drop invalid entries.
+            - ``"raise"``: raise :class:`ValueError` on invalid entries.
+        strict :
+            If true, treat CR/LF and disallowed characters as hard errors.
+        allow_obs_text :
+            If true, allow "obs-text" (bytes 0x80-0xFF) as per older RFCs.
+        logger :
+            Optional :class:`logging.Logger` used when ``on_invalid="warn"`` or
+            when dropping headers with ``on_invalid="drop"`` but logging is desired.
+
+        Returns
+        -------
+        Secure
+            The same instance, for call chaining.
+
+        Raises
+        ------
+        ValueError
+            If a header name is invalid or if duplicates are found when building
+            the single-valued mapping.
         """
-
         log = logger or logging.getLogger(__name__)
 
-        # RFC 7230 token (visible ASCII except separators)
-        header_name_re = re.compile(r"^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$")
-
-        # Visible ASCII per RFCs
+        # Visible ASCII per RFCs.
         sp = 0x20
         vchar_min, vchar_max = 0x21, 0x7E
         obs_min, obs_max = 0x80, 0xFF
@@ -281,19 +355,19 @@ class Secure:
             elif on_invalid == "raise" or strict:
                 raise ValueError(msg)
 
-        def _validate_pair(name: str, value: str, strict_mode: bool = strict) -> tuple[str, str] | None:  # noqa: PLR0912
+        def _validate_pair(name: str, value: str, strict_mode: bool = strict) -> tuple[str, str] | None:
             name = name.strip()
 
-            if not header_name_re.match(name):
+            if not HEADER_NAME_RE.match(name):
                 _handle_invalid(f"Invalid header name {name!r} (RFC 7230 token required)")
                 return None
 
-            # Prevent folded-header smuggling
+            # Prevent folded-header smuggling.
             if value.startswith((" ", "\t")):
                 _handle_invalid(f"Header {name!r} starts with forbidden whitespace")
                 return None
 
-            # CR/LF must never appear in values
+            # CR/LF must never appear in values.
             if ("\r" in value) or ("\n" in value):
                 if strict_mode:
                     raise ValueError(f"Header {name!r} contained CR/LF")
@@ -348,22 +422,28 @@ class Secure:
         items = self.header_items()
 
         cleaned: dict[str, str] = {}
+        seen_lc: set[str] = set()
+
         for name, value in items:
             pair = _validate_pair(name, value)
             if pair is None:
                 continue
-            k, v = pair
 
-            if k in cleaned:
+            norm_name, norm_value = pair
+            lname = norm_name.lower()
+
+            if lname in seen_lc:
                 raise ValueError(
-                    f"Duplicate header {k!r} encountered during normalization. "
+                    f"Duplicate header {norm_name!r} encountered during normalization. "
                     "Run deduplicate_headers() first or use header_items() for multi-valued headers."
                 )
 
-            cleaned[k] = v
+            seen_lc.add(lname)
+            cleaned[norm_name] = norm_value
 
         self._headers_override = MappingProxyType(cleaned)
 
+        # Reset cached_property.
         self.__dict__.pop("headers", None)
 
         return self
@@ -371,21 +451,45 @@ class Secure:
     def deduplicate_headers(
         self,
         *,
-        action: str = "raise",  # "raise" | "first" | "last" | "concat"
+        action: DeduplicateAction = "raise",
         comma_join_ok: frozenset[str] = COMMA_JOIN_OK,
         multi_ok: frozenset[str] = MULTI_OK,
         logger: logging.Logger | None = None,
     ) -> Secure:
         """
-        Deduplicate current headers in-place according to the chosen policy,
-        while respecting headers explicitly allowed to be multi-valued.
+        Deduplicate headers in :attr:`headers_list` according to the chosen policy.
 
-        Returns:
-            self (chainable)
+        Parameters
+        ----------
+        action :
+            Policy when encountering disallowed duplicates:
+            - ``"raise"``: raise :class:`ValueError` (default).
+            - ``"first"``: keep the first instance and drop others.
+            - ``"last"``: keep the last instance and drop others.
+            - ``"concat"``: join values with commas when safe.
+        comma_join_ok :
+            Names (lowercased) for which RFC 7230-style comma joining is safe.
+        multi_ok :
+            Names (lowercased) that are allowed to appear multiple times
+            (for example Content-Security-Policy).
+        logger :
+            Optional :class:`logging.Logger` used for warning messages when
+            dropping duplicates in non-``"raise"`` modes.
+
+        Returns
+        -------
+        Secure
+            The same instance, for call chaining.
+
+        Raises
+        ------
+        ValueError
+            If duplicates are found for headers that are not in ``multi_ok``
+            and the action is ``"raise"`` or ``"concat"`` for unsafe headers.
         """
         log = logger or logging.getLogger(__name__)
 
-        # Group by lowercase name; store (first_index, BaseHeader)
+        # Group by lowercase name; store (first_index, BaseHeader).
         groups: dict[str, list[tuple[int, BaseHeader]]] = defaultdict(list)
 
         for idx, h in enumerate(self.headers_list):
@@ -393,11 +497,11 @@ class Secure:
                 raise TypeError("deduplicate_headers() requires BaseHeader objects only")
             groups[h.header_name.lower()].append((idx, h))
 
-        # Stable processing order by first appearance
+        # Stable processing order by first appearance.
         ordered_keys = sorted(groups.keys(), key=lambda k: groups[k][0][0])
 
         def _clone(name: str, value: str) -> BaseHeader:
-            # Preserve type stability using CustomHeader as neutral carrier
+            # Preserve type stability using CustomHeader as neutral carrier.
             return CustomHeader(header=name, value=value)
 
         def _handle_disallowed_dupes(
@@ -405,7 +509,6 @@ class Secure:
             entries: list[tuple[int, BaseHeader]],
         ) -> tuple[list[BaseHeader], str | None]:
             """Return (new_items, dup_error_name_if_any)."""
-
             if action == "first":
                 _, h = entries[0]
                 if len(entries) > 1:
@@ -424,10 +527,10 @@ class Secure:
                     joined = ", ".join(h.header_value for _, h in entries)
                     return [_clone(nm, joined)], None
 
-                # not safe to join
+                # Not safe to join.
                 return [], entries[0][1].header_name
 
-            # default "raise"
+            # Default "raise".
             return [], entries[0][1].header_name
 
         new_list: list[BaseHeader] = []
@@ -462,30 +565,44 @@ class Secure:
 
         return self
 
-    def allowlist_headers(  # chainable, like deduplicate_headers()
+    def allowlist_headers(
         self,
         *,
         allowed: Iterable[str] = DEFAULT_ALLOWED_HEADERS,
         allow_extra: Iterable[str] | None = None,
-        on_unexpected: str = "raise",  # "raise" | "drop" | "warn"
-        allow_x_prefixed: bool = False,  # opt-in for private X-* headers
+        on_unexpected: OnUnexpectedPolicy = "raise",
+        allow_x_prefixed: bool = False,
         logger: logging.Logger | None = None,
     ) -> Secure:
         """
-        Enforce a case-insensitive allowlist for header names in `self.headers_list`.
+        Enforce a case-insensitive allowlist for header names in :attr:`headers_list`.
 
-        Args:
-            allowed: Base allowlist of header names (case-insensitive).
-            allow_extra: Additional names to allow (e.g., app-specific).
-            on_unexpected:
-                - "raise": error on any name not in the allowlist (default).
-                - "drop":  remove unexpected headers (logs if logger is set).
-                - "warn":  keep unexpected headers but log a warning.
-            allow_x_prefixed: If True, allows any header starting with "x-".
-            logger: Optional logger; used for "warn" or "drop" notifications.
+        Parameters
+        ----------
+        allowed :
+            Base allowlist of header names (case-insensitive).
+        allow_extra :
+            Additional names to allow, for example app-specific headers.
+        on_unexpected :
+            Policy for headers not in the allowlist:
+            - ``"raise"``: error on any name not in the allowlist (default).
+            - ``"drop"``: remove unexpected headers (logs if logger is set).
+            - ``"warn"``: keep unexpected headers but log a warning.
+        allow_x_prefixed :
+            If true, allows any header starting with ``"x-"``.
+        logger :
+            Optional :class:`logging.Logger` used for warnings in ``"drop"`` and
+            ``"warn"`` modes.
 
-        Returns:
-            self (chainable).
+        Returns
+        -------
+        Secure
+            The same instance, for call chaining.
+
+        Raises
+        ------
+        ValueError
+            If ``on_unexpected="raise"`` and any header is not in the allowlist.
         """
         log = logger or logging.getLogger(__name__)
 
@@ -511,13 +628,11 @@ class Secure:
                 kept.append(h)
                 continue
 
-            # Unexpected header handling
             if on_unexpected == "warn":
                 log.warning("Unexpected header %r kept (not in allowlist)", name)
                 kept.append(h)
             elif on_unexpected == "drop":
                 log.warning("Unexpected header %r dropped (not in allowlist)", name)
-                # do not append
             else:  # "raise" (default)
                 unexpected_names.append(name)
 
@@ -536,24 +651,37 @@ class Secure:
 
         return self
 
+    # ------------------------------------------------------------------
+    # Serialization / access
+    # ------------------------------------------------------------------
+
     def header_items(self) -> tuple[tuple[str, str], ...]:
         """
-        Serialize the current headers into (name, value) pairs.
+        Serialize the current headers into ``(name, value)`` pairs.
 
-        Assumes duplicate handling (if any) has already been performed elsewhere,
-        e.g., via `self.deduplicate_headers(...)`.
+        This method supports two forms in :attr:`headers_list`:
+
+        * Header objects with ``.header_name`` and ``.header_value`` attributes.
+        * Tuple-like items with at least two elements (name, value).
+
+        It does not enforce uniqueness. Use :meth:`deduplicate_headers` or
+        :meth:`validate_and_normalize_headers` when you need a single-valued
+        mapping.
+
+        Returns
+        -------
+        tuple[tuple[str, str], ...]
+            Immutable sequence of ``(name, value)`` pairs.
         """
-
         header_tuple_size = 2
         items: list[tuple[str, str]] = []
         append = items.append
 
         for h in self.headers_list:
-            # Support both object form (header_name/header_value) and 2-tuples.
             if hasattr(h, "header_name") and hasattr(h, "header_value"):
-                append((h.header_name, h.header_value))  # BaseHeader-style
+                append((h.header_name, h.header_value))
             elif isinstance(h, (tuple, list)) and len(h) >= header_tuple_size:
-                append((h[0], h[1]))  # tuple-like
+                append((h[0], h[1]))
             else:
                 raise TypeError("header_items() expected elements with .header_name/.header_value or 2-tuples")
 
@@ -564,10 +692,22 @@ class Secure:
         """
         Single-valued, immutable mapping of headers.
 
-        Raises:
-            ValueError: if any header name appears more than once (case-insensitive),
-            including headers in MULTI_OK. Use `header_items()` or the setters to
-            emit multi-valued headers like Content-Security-Policy or Set-Cookie.
+        By default, this is derived from :meth:`header_items`. If
+        :meth:`validate_and_normalize_headers` has been called, the mapping
+        returned here is the normalized override produced by that method.
+
+        Returns
+        -------
+        Mapping[str, str]
+            Immutable mapping of header names to header values.
+
+        Raises
+        ------
+        ValueError
+            If any header name appears more than once (case-insensitive) when
+            building the mapping and no override is set. This includes headers
+            in :data:`MULTI_OK`. Use :meth:`header_items` to emit multi-valued
+            headers or call :meth:`deduplicate_headers` first.
         """
         if self._headers_override is not None:
             return self._headers_override
@@ -584,30 +724,41 @@ class Secure:
 
         return MappingProxyType(data)
 
+    # ------------------------------------------------------------------
+    # Application to framework responses
+    # ------------------------------------------------------------------
+
     def set_headers(self, response: ResponseProtocol) -> None:
         """
-        Apply configured headers **synchronously** to `response`.
+        Apply configured headers synchronously to ``response``.
 
-        This method is STRICTLY sync-only.
-        If an async setter is detected, a RuntimeError is raised.
+        This method is strictly sync-only. It is suitable for synchronous
+        frameworks or sync response objects in async frameworks.
 
-        Supported patterns:
-        - response.set_header(name, value)  → sync only
-        - response.headers[name] = value    → sync mapping
+        Supported patterns
+        ------------------
+        * ``response.set_header(name, value)`` (synchronous).
+        * ``response.headers[name] = value`` (mapping interface).
+
+        Parameters
+        ----------
+        response :
+            Response object implementing either :class:`SetHeaderProtocol` or
+            :class:`HeadersProtocol`.
 
         Raises
         ------
         RuntimeError
-            If any async setter is detected.
+            If an async setter is detected (for example an async method is used
+            in a sync context).
         AttributeError
-            If the response lacks both `.set_header` and `.headers`.
+            If the response lacks both ``.set_header`` and ``.headers``.
         HeaderSetError
             If setting an individual header fails.
         """
-
         items = self.header_items()
 
-        # --- Path 1: response.set_header(...) ---
+        # Path 1: response.set_header(...)
         if hasattr(response, "set_header"):
             set_header = response.set_header
 
@@ -629,7 +780,7 @@ class Secure:
 
             return
 
-        # --- Path 2: response.headers[...] mapping ---
+        # Path 2: response.headers[...] mapping
         if hasattr(response, "headers"):
             hdrs = response.headers
             setitem = getattr(hdrs, "__setitem__", None)
@@ -651,30 +802,34 @@ class Secure:
 
     async def set_headers_async(self, response: ResponseProtocol) -> None:
         """
-        Apply configured headers **asynchronously** to `response`.
+        Apply configured headers asynchronously to ``response``.
 
-        This method is STRICTLY async-only and must be awaited.
+        This method is designed for async frameworks such as FastAPI and
+        Starlette. It transparently supports sync or async setters.
 
-        Supported patterns:
-        - `await response.set_header(name, value)` for async frameworks
-        - `response.set_header(name, value)` for sync setters returning `None`
-        - `await response.headers.__setitem__(name, value)` for async mappings
-        - `response.headers[name] = value` for sync mappings
+        Supported patterns
+        ------------------
+        * ``await response.set_header(name, value)`` for async setters.
+        * ``response.set_header(name, value)`` for sync setters returning ``None``.
+        * ``await response.headers.__setitem__(name, value)`` for async mappings.
+        * ``response.headers[name] = value`` for sync mappings.
 
-        If a setter returns an awaitable, it is awaited.
-        If it returns `None`, it is treated as a synchronous operation.
+        Parameters
+        ----------
+        response :
+            Response object implementing either :class:`SetHeaderProtocol` or
+            :class:`HeadersProtocol`.
 
         Raises
         ------
         AttributeError
-            If the response lacks both `.set_header` and `.headers`.
+            If the response lacks both ``.set_header`` and ``.headers``.
         HeaderSetError
             If setting an individual header fails.
         """
-
         items = self.header_items()
 
-        # --- Path 1: response.set_header(...) ---
+        # Path 1: response.set_header(...)
         if hasattr(response, "set_header"):
             set_header = response.set_header
 
@@ -688,7 +843,7 @@ class Secure:
 
             return
 
-        # --- Path 2: response.headers[...] mapping ---
+        # Path 2: response.headers[...] mapping
         if hasattr(response, "headers"):
             hdrs = response.headers
 
@@ -702,5 +857,4 @@ class Secure:
 
             return
 
-        # --- Unsupported response ---
         raise AttributeError("Response object does not support setting headers.")
