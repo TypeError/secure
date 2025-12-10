@@ -209,30 +209,16 @@ class Secure:
         """
         Create a :class:`Secure` instance with a sensible default set of headers.
 
-        This preset is suitable for many modern applications and can be further
+        This configuration is suitable for many modern applications and can be
         customized with methods like :meth:`allowlist_headers` or by adding
-        additional header objects.
+        additional header builder objects.
 
         Returns
         -------
         Secure
             Instance preconfigured with a default set of headers.
         """
-        return cls(
-            cache=CacheControl().no_store(),
-            coop=CrossOriginOpenerPolicy().same_origin(),
-            csp=ContentSecurityPolicy()
-            .default_src("'self'")
-            .script_src("'self'")
-            .style_src("'self'")
-            .object_src("'none'"),
-            hsts=StrictTransportSecurity().max_age(31536000),
-            permissions=PermissionsPolicy().geolocation().microphone().camera(),
-            referrer=ReferrerPolicy().strict_origin_when_cross_origin(),
-            server=Server().set(""),
-            xcto=XContentTypeOptions().nosniff(),
-            xfo=XFrameOptions().sameorigin(),
-        )
+        return cls.from_preset(Preset.BASIC)
 
     @classmethod
     def from_preset(cls, preset: Preset) -> Secure:
@@ -242,8 +228,9 @@ class Secure:
         Parameters
         ----------
         preset :
-            The security preset to use, for example :data:`Preset.BASIC`
-            or :data:`Preset.STRICT`.
+            The security preset to use, for example :data:`Preset.BASIC` for a
+            balanced default profile or :data:`Preset.STRICT` for a hardened
+            configuration with stronger guarantees.
 
         Returns
         -------
@@ -258,8 +245,16 @@ class Secure:
         match preset:
             case Preset.BASIC:
                 return cls(
-                    cache=CacheControl().no_store(),
+                    coop=CrossOriginOpenerPolicy().same_origin(),
+                    csp=(
+                        ContentSecurityPolicy()
+                        .default_src("'self'")
+                        .script_src("'self'")
+                        .style_src("'self'")
+                        .object_src("'none'")
+                    ),
                     hsts=StrictTransportSecurity().max_age(31536000),
+                    permissions=PermissionsPolicy().geolocation().microphone().camera(),
                     referrer=ReferrerPolicy().strict_origin_when_cross_origin(),
                     server=Server().set(""),
                     xcto=XContentTypeOptions().nosniff(),
@@ -270,14 +265,16 @@ class Secure:
                     cache=CacheControl().no_store(),
                     coep=CrossOriginEmbedderPolicy().require_corp(),
                     coop=CrossOriginOpenerPolicy().same_origin(),
-                    csp=ContentSecurityPolicy()
-                    .default_src("'self'")
-                    .script_src("'self'")
-                    .style_src("'self'")
-                    .object_src("'none'")
-                    .base_uri("'none'")
-                    .frame_ancestors("'none'"),
-                    hsts=StrictTransportSecurity().max_age(63072000).include_subdomains().preload(),
+                    csp=(
+                        ContentSecurityPolicy()
+                        .default_src("'self'")
+                        .script_src("'self'")
+                        .style_src("'self'")
+                        .object_src("'none'")
+                        .base_uri("'none'")
+                        .frame_ancestors("'none'")
+                    ),
+                    hsts=(StrictTransportSecurity().max_age(63072000).include_subdomains().preload()),
                     permissions=PermissionsPolicy().geolocation().microphone().camera(),
                     referrer=ReferrerPolicy().no_referrer(),
                     server=Server().set(""),
