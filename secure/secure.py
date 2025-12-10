@@ -299,7 +299,7 @@ class Secure:
     # Header normalization / safety helpers
     # ------------------------------------------------------------------
 
-    def validate_and_normalize_headers(
+    def validate_and_normalize_headers(  # noqa: PLR0915
         self,
         *,
         on_invalid: OnInvalidPolicy = "drop",
@@ -355,7 +355,7 @@ class Secure:
             elif on_invalid == "raise" or strict:
                 raise ValueError(msg)
 
-        def _validate_pair(name: str, value: str, strict_mode: bool = strict) -> tuple[str, str] | None:
+        def _validate_pair(name: str, value: str, strict_mode: bool = strict) -> tuple[str, str] | None:  # noqa: PLR0912
             name = name.strip()
 
             if not HEADER_NAME_RE.match(name):
