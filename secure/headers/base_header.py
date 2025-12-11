@@ -67,7 +67,7 @@ class HeaderDefaultValue(Enum):
     """
 
     # Cache-Control to prevent caching of sensitive data
-    CACHE_CONTROL = "no-store"
+    CACHE_CONTROL = "no-store, max-age=0"
 
     # Basic Content Security Policy to allow resources only from the same origin
     CONTENT_SECURITY_POLICY = "default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'"

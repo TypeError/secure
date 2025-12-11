@@ -20,7 +20,11 @@ class CacheControl(BaseHeader):
 
     If no directives are added, it returns the default value.
 
-    Default header value: `no-store`
+    This class also provides helpers for request directives such as
+    `max-stale`, `min-fresh`, and `only-if-cached`, for cases where
+    you want to construct `Cache-Control` on outgoing requests.
+
+    Default header value: `no-store, max-age=0`
 
     Example:
         cache_control = CacheControl().no_cache().no_store().max_age(0)
@@ -100,6 +104,34 @@ class CacheControl(BaseHeader):
         self._build(f"max-age={seconds}")
         return self
 
+    def max_stale(self, seconds: int | None = None) -> CacheControl:
+        """Add the 'max-stale' request directive, optionally with a limit.
+
+        If `seconds` is omitted, any stale age is acceptable (per MDN).
+
+        Resources:
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control#max-stale
+        """
+        if seconds is None:
+            directive = "max-stale"
+        else:
+            if seconds < 0:
+                raise ValueError("seconds must be a non-negative integer")
+            directive = f"max-stale={seconds}"
+        self._build(directive)
+        return self
+
+    def min_fresh(self, seconds: int) -> CacheControl:
+        """Add the 'min-fresh' request directive.
+
+        Resources:
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control#min-fresh
+        """
+        if seconds < 0:
+            raise ValueError("seconds must be a non-negative integer")
+        self._build(f"min-fresh={seconds}")
+        return self
+
     def must_revalidate(self) -> CacheControl:
         """Add the 'must-revalidate' directive.
 
@@ -114,6 +146,9 @@ class CacheControl(BaseHeader):
 
     def must_understand(self) -> CacheControl:
         """Add the 'must-understand' directive.
+
+        Typically paired with 'no-store' to ensure caches only store responses whose
+        caching requirements they understand.
 
         Resources:
             https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control#must-understand
@@ -137,7 +172,7 @@ class CacheControl(BaseHeader):
         return self
 
     def no_store(self) -> CacheControl:
-        """Add the 'no-store' directive, preventing caching entirely.
+        """Add the 'no-store' directive, preventing the response from being stored by any cache.
 
         Resources:
             https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control#no-store
@@ -158,6 +193,15 @@ class CacheControl(BaseHeader):
             The `CacheControl` instance for method chaining.
         """
         self._build("no-transform")
+        return self
+
+    def only_if_cached(self) -> CacheControl:
+        """Add the 'only-if-cached' request directive.
+
+        Resources:
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control#only-if-cached
+        """
+        self._build("only-if-cached")
         return self
 
     def private(self) -> CacheControl:
