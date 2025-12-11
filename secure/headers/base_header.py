@@ -70,7 +70,15 @@ class HeaderDefaultValue(Enum):
     CACHE_CONTROL = "no-store, max-age=0"
 
     # Basic Content Security Policy to allow resources only from the same origin
-    CONTENT_SECURITY_POLICY = "default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'"
+    CONTENT_SECURITY_POLICY = (
+        "default-src 'self'; "
+        "script-src 'self'; "
+        "style-src 'self'; "
+        "object-src 'none'; "
+        "base-uri 'self'; "
+        "frame-ancestors 'self'; "
+        "form-action 'self'"
+    )
 
     # Cross-Origin Embedder Policy set to 'require-corp' to enforce stricter security.
     # This ensures that embedded cross-origin resources must explicitly allow being embedded.
