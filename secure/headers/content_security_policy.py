@@ -256,6 +256,17 @@ class ContentSecurityPolicy(BaseHeader):
         """
         return self.custom_directive("script-src", *sources)
 
+    def script_src_attr(self, *sources: str) -> ContentSecurityPolicy:
+        """Set valid origins for JavaScript sources.
+
+        Resources:
+            https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/script-src-attr
+
+        Returns:
+            The `ContentSecurityPolicy` instance for method chaining.
+        """
+        return self.custom_directive("script-src-attr", *sources)
+
     def style_src(self, *sources: str) -> ContentSecurityPolicy:
         """Set valid origins for CSS and styles.
 

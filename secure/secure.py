@@ -18,13 +18,16 @@ from .headers import (
     ContentSecurityPolicy,
     CrossOriginEmbedderPolicy,
     CrossOriginOpenerPolicy,
+    CrossOriginResourcePolicy,
     CustomHeader,
     PermissionsPolicy,
     ReferrerPolicy,
     Server,
     StrictTransportSecurity,
     XContentTypeOptions,
+    XDnsPrefetchControl,
     XFrameOptions,
+    XPermittedCrossDomainPolicies,
 )
 
 # ---------------------------------------------------------------------------
@@ -50,11 +53,16 @@ DEFAULT_ALLOWED_HEADERS: frozenset[str] = frozenset(
         "cross-origin-embedder-policy",
         "cross-origin-opener-policy",
         "cross-origin-resource-policy",
+        "origin-agent-cluster",
         "permissions-policy",
         "referrer-policy",
         "strict-transport-security",
         "x-content-type-options",
+        "x-dns-prefetch-control",
+        "x-download-options",
         "x-frame-options",
+        "x-permitted-cross-domain-policies",
+        "x-xss-protection",
     }
 )
 
@@ -101,6 +109,7 @@ class Preset(Enum):
     """Predefined security header presets for :class:`Secure`."""
 
     BASIC = "basic"
+    MODERN = "modern"
     STRICT = "strict"
 
 
@@ -143,11 +152,14 @@ class Secure:
         cache: CacheControl | None = None,
         coep: CrossOriginEmbedderPolicy | None = None,
         coop: CrossOriginOpenerPolicy | None = None,
+        corp: CrossOriginResourcePolicy | None = None,
         csp: ContentSecurityPolicy | None = None,
         custom: list[CustomHeader] | None = None,
         hsts: StrictTransportSecurity | None = None,
         permissions: PermissionsPolicy | None = None,
         referrer: ReferrerPolicy | None = None,
+        xpcdp: XPermittedCrossDomainPolicies | None = None,
+        xdfc: XDnsPrefetchControl | None = None,
         server: Server | None = None,
         xcto: XContentTypeOptions | None = None,
         xfo: XFrameOptions | None = None,
@@ -163,6 +175,8 @@ class Secure:
             Cross-Origin-Embedder-Policy header configuration.
         coop :
             Cross-Origin-Opener-Policy header configuration.
+        corp :
+            Cross-Origin-Resource-Policy header configuration.
         csp :
             Content-Security-Policy header configuration.
         custom :
@@ -173,6 +187,10 @@ class Secure:
             Permissions-Policy header configuration.
         referrer :
             Referrer-Policy header configuration.
+        xpcdp :
+            X-Permitted-Cross-Domain-Policies header configuration.
+        xdfc :
+            X-DNS-Prefetch-Control header configuration.
         server :
             Server header configuration.
         xcto :
@@ -186,10 +204,13 @@ class Secure:
             cache,
             coep,
             coop,
+            corp,
             csp,
             hsts,
             permissions,
             referrer,
+            xpcdp,
+            xdfc,
             server,
             xcto,
             xfo,
@@ -244,6 +265,51 @@ class Secure:
         """
         match preset:
             case Preset.BASIC:
+                csp = (
+                    ContentSecurityPolicy()
+                    .default_src("'self'")
+                    .base_uri("'self'")
+                    .font_src("'self'", "https:", "data:")
+                    .form_action("'self'")
+                    .frame_ancestors("'self'")
+                    .img_src("'self'", "data:")
+                    .object_src("'none'")
+                    .script_src("'self'")
+                    .script_src_attr("'none'")
+                    .style_src("'self'", "https:", "'unsafe-inline'")
+                    .upgrade_insecure_requests()
+                )
+
+                return cls(
+                    coop=CrossOriginOpenerPolicy().same_origin(),
+                    coep=None,
+                    csp=csp,
+                    corp=CrossOriginResourcePolicy().same_origin(),
+                    hsts=StrictTransportSecurity().max_age(31536000).include_subdomains(),
+                    permissions=None,
+                    referrer=ReferrerPolicy().no_referrer(),
+                    server=Server().set(""),
+                    xcto=XContentTypeOptions().nosniff(),
+                    xfo=XFrameOptions().sameorigin(),
+                    xdfc=XDnsPrefetchControl().disable(),
+                    xpcdp=XPermittedCrossDomainPolicies().none(),
+                    custom=[
+                        CustomHeader(
+                            header="Origin-Agent-Cluster",
+                            value="?1",
+                        ),
+                        CustomHeader(
+                            header="X-Download-Options",
+                            value="noopen",
+                        ),
+                        CustomHeader(
+                            header="X-XSS-Protection",
+                            value="0",
+                        ),
+                    ],
+                )
+
+            case Preset.MODERN:
                 return cls(
                     coop=CrossOriginOpenerPolicy().same_origin(),
                     csp=(
@@ -260,6 +326,7 @@ class Secure:
                     xcto=XContentTypeOptions().nosniff(),
                     xfo=XFrameOptions().sameorigin(),
                 )
+
             case Preset.STRICT:
                 return cls(
                     cache=CacheControl().no_store(),
@@ -281,6 +348,7 @@ class Secure:
                     xcto=XContentTypeOptions().nosniff(),
                     xfo=XFrameOptions().deny(),
                 )
+
             case _:
                 raise ValueError(f"Unknown preset: {preset}")
 
