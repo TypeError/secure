@@ -9,87 +9,161 @@
 from __future__ import annotations  # type: ignore
 
 from dataclasses import dataclass, field
+import re
 
 from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderName
+
+_DIRECTIVE_NAME_RE = re.compile(r"^[A-Za-z0-9-]+$")
+_NONCE_RE = re.compile(r"^[A-Za-z0-9+/_=-]+$")
+_ASCII_SPACE = 0x20
+_ASCII_DEL = 0x7F
 
 
 @dataclass
 class ContentSecurityPolicy(BaseHeader):
     """
-    Represents the `Content-Security-Policy` HTTP header, which helps prevent cross-site injections
-    by specifying allowed sources for content.
+    Represents the `Content-Security-Policy` HTTP response header.
 
-    Default header value: `default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'`
+    This header allows you to define a policy controlling which resources the user
+    agent is allowed to load for a given page, helping mitigate cross-site scripting
+    and related injection attacks.
+
+    If no directives are configured, this class returns the library default:
+
+        Default header value:
+            ``default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'``
+
+    Minimal example:
+        csp = (
+            ContentSecurityPolicy()
+            .default_src(ContentSecurityPolicy.keyword("self"))
+            .object_src(ContentSecurityPolicy.keyword("none"))
+            .base_uri(ContentSecurityPolicy.keyword("self"))
+        )
+        print(csp.header_name)   # "Content-Security-Policy"
+        print(csp.header_value)  # "default-src 'self'; object-src 'none'; base-uri 'self'"
+
+    Notes:
+        - This helper intentionally does not try to fully validate CSP semantics.
+          Use ``.value(...)`` if you need to set an exact policy string.
+        - CSP can be delivered more than once. If you need multiple policies, add
+          multiple ``ContentSecurityPolicy`` instances to ``Secure.headers_list``.
+        - MDN describes fallback behavior between directives (for example, `default-src`
+          is a fallback for other fetch directives).
 
     Resources:
         - https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy
         - https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP
-        - https://developers.google.com/web/fundamentals/security/csp
         - https://owasp.org/www-project-secure-headers/#content-security-policy
     """
 
-    header_name: str = HeaderName.CONTENT_SECURITY_POLICY.value
-    _directives: list[str] = field(default_factory=list)
-    _default_value: str = HeaderDefaultValue.CONTENT_SECURITY_POLICY.value
+    header_name: str = field(init=False, default=HeaderName.CONTENT_SECURITY_POLICY.value, repr=False)
+
+    # Structured directives built via fluent helpers. Each directive appears at most once.
+    # Values are stored as tokens (space-separated in serialization). A value of ``None``
+    # means the directive is valueless (for example: ``upgrade-insecure-requests``).
+    _directives: dict[str, list[str] | None] = field(default_factory=dict, repr=False)
+
+    # Escape hatch: if set, this raw string is used as the header value.
+    _raw_value: str | None = field(default=None, repr=False)
+
+    _default_value: str = field(init=False, default=HeaderDefaultValue.CONTENT_SECURITY_POLICY.value, repr=False)
 
     @property
     def header_value(self) -> str:
         """Return the current `Content-Security-Policy` header value."""
-        return "; ".join(self._directives) if self._directives else self._default_value
+        if self._raw_value is not None:
+            return self._raw_value
 
-    def _build(self, directive: str, *sources: str) -> None:
-        """Add a directive to the policy.
+        if not self._directives:
+            return self._default_value
 
-        Args:
-            directive: The directive name.
-            *sources: The allowed sources for the directive.
+        parts: list[str] = []
+        for directive, values in self._directives.items():
+            if values:
+                parts.append(f"{directive} {' '.join(values)}")
+            else:
+                parts.append(directive)
+        return "; ".join(parts)
+
+    # -------------------------------------------------------------------------
+    # Low-level helpers / escape hatches
+    # -------------------------------------------------------------------------
+
+    def value(self, value: str) -> ContentSecurityPolicy:
+        """Set an exact header value (escape hatch).
+
+        This replaces any structured directives previously configured.
         """
-        if sources:
-            self._directives.append(f"{directive} {' '.join(sources)}")
-        else:
-            self._directives.append(directive)
-
-    def set(self, value: str) -> ContentSecurityPolicy:
-        """Set a custom value for the `Content-Security-Policy` header.
-
-        Args:
-            value: Custom header value.
-
-        Returns:
-            The `ContentSecurityPolicy` instance for method chaining.
-        """
-        self._directives = [value]
+        self._raw_value = value
+        self._directives.clear()
         return self
 
-    def clear(self) -> ContentSecurityPolicy:
-        """Clear all directives from the `Content-Security-Policy` header.
+    # Backwards-compatible alias.
+    def set(self, value: str) -> ContentSecurityPolicy:
+        """Alias for :meth:`value`."""
+        return self.value(value)
 
-        Returns:
-            The `ContentSecurityPolicy` instance for method chaining.
+    def clear(self) -> ContentSecurityPolicy:
+        """Clear all configured directives and any raw override.
+
+        After calling this, the header value falls back to the library default.
         """
+        self._raw_value = None
         self._directives.clear()
         return self
 
     def report_only(self) -> ContentSecurityPolicy:
-        """Set header name to `Content-Security-Policy-Report-Only` for report-only mode.
-
-        Returns:
-            The `ContentSecurityPolicy` instance for method chaining.
-        """
+        """Use the report-only header name (`Content-Security-Policy-Report-Only`)."""
         self.header_name = HeaderName.CONTENT_SECURITY_POLICY_REPORT_ONLY.value
         return self
 
-    def custom_directive(self, directive: str, *sources: str) -> ContentSecurityPolicy:
-        """Add a custom directive and its allowed sources.
+    def enforce(self) -> ContentSecurityPolicy:
+        """Use the enforcing header name (`Content-Security-Policy`)."""
+        self.header_name = HeaderName.CONTENT_SECURITY_POLICY.value
+        return self
+
+    def custom(self, directive: str, *values: str) -> ContentSecurityPolicy:
+        """Alias for :meth:`custom_directive`."""
+        return self.custom_directive(directive, *values)
+
+    def custom_directive(self, directive: str, *values: str) -> ContentSecurityPolicy:
+        """Add (or update) a directive.
+
+        - Directives are de-duplicated: each directive name appears at most once.
+        - Values are treated as tokens: duplicates are removed (preserving order).
+        - Passing no values sets a valueless directive (overwriting prior values).
 
         Args:
-            directive: Custom directive.
-            *sources: Allowed sources for the directive.
+            directive: Directive name (for example, ``default-src``).
+            *values: Directive tokens (for example, ``'self'``, ``https:``, ``example.com``).
 
         Returns:
-            The `ContentSecurityPolicy` instance for method chaining.
+            The same instance, for method chaining.
         """
-        self._build(directive, *sources)
+        self._touch_structured()
+        d = self._normalize_directive_name(directive)
+
+        if not values:
+            # Valueless directive (or explicit "clear values" for a directive).
+            self._directives[d] = None
+            return self
+
+        tokens = [self._validate_token(v) for v in values]
+
+        existing = self._directives.get(d)
+        if existing is None:
+            existing_list: list[str] = []
+            self._directives[d] = existing_list
+        else:
+            existing_list = existing
+
+        # De-dupe while preserving insertion order.
+        seen = set(existing_list)
+        for t in tokens:
+            if t not in seen:
+                existing_list.append(t)
+                seen.add(t)
         return self
 
     # -------------------------------------------------------------------------
@@ -97,308 +171,178 @@ class ContentSecurityPolicy(BaseHeader):
     # -------------------------------------------------------------------------
 
     def base_uri(self, *sources: str) -> ContentSecurityPolicy:
-        """Set valid sources for the document `<base>` element.
-
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/base-uri
-
-        Returns:
-            The `ContentSecurityPolicy` instance for method chaining.
-        """
+        """Set valid sources for the document `<base>` element."""
         return self.custom_directive("base-uri", *sources)
 
-    def child_src(self, *sources: str) -> ContentSecurityPolicy:
-        """Set valid sources for web workers and nested browsing contexts.
+    def block_all_mixed_content(self) -> ContentSecurityPolicy:
+        """Prevent loading any assets using HTTP when the page is loaded using HTTPS.
 
-        Note:
-            In CSP Level 3, `frame-src` and `worker-src` are preferred. `child-src`
-            acts mainly as a fallback for those directives.
-
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/child-src
-
-        Returns:
-            The `ContentSecurityPolicy` instance for method chaining.
+        Deprecated in MDN's reference; prefer modern HTTPS-only deployments and
+        consider `upgrade-insecure-requests` instead when appropriate.
         """
+        return self.custom_directive("block-all-mixed-content")
+
+    def child_src(self, *sources: str) -> ContentSecurityPolicy:
+        """Set valid sources for web workers and nested browsing contexts."""
         return self.custom_directive("child-src", *sources)
 
     def connect_src(self, *sources: str) -> ContentSecurityPolicy:
-        """Set valid sources for script interfaces (for example, XHR, Fetch, WebSocket).
-
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/connect-src
-
-        Returns:
-            The `ContentSecurityPolicy` instance for method chaining.
-        """
+        """Set valid sources for script interfaces (for example, XHR, Fetch, WebSocket)."""
         return self.custom_directive("connect-src", *sources)
 
     def default_src(self, *sources: str) -> ContentSecurityPolicy:
-        """Set fallback sources for other fetch directives.
-
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/default-src
-
-        Returns:
-            The `ContentSecurityPolicy` instance for method chaining.
-        """
+        """Set the fallback policy for all fetch directives."""
         return self.custom_directive("default-src", *sources)
 
     def fenced_frame_src(self, *sources: str) -> ContentSecurityPolicy:
-        """Set valid sources for `<fencedframe>` nested browsing contexts.
-
-        Note:
-            This directive is currently experimental and not supported in all browsers.
-
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/fenced-frame-src
-
-        Returns:
-            The `ContentSecurityPolicy` instance for method chaining.
-        """
+        """Set valid sources for nested browsing contexts loaded into `<fencedframe>`."""
         return self.custom_directive("fenced-frame-src", *sources)
 
     def font_src(self, *sources: str) -> ContentSecurityPolicy:
-        """Set valid sources for font resources (for `@font-face`, etc.).
-
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/font-src
-
-        Returns:
-            The `ContentSecurityPolicy` instance for method chaining.
-        """
+        """Set valid sources for fonts."""
         return self.custom_directive("font-src", *sources)
 
     def form_action(self, *sources: str) -> ContentSecurityPolicy:
-        """Set valid action URLs for form submissions.
-
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/form-action
-
-        Returns:
-            The `ContentSecurityPolicy` instance for method chaining.
-        """
+        """Restrict the URLs which can be used as the target of form submissions."""
         return self.custom_directive("form-action", *sources)
 
     def frame_ancestors(self, *sources: str) -> ContentSecurityPolicy:
-        """Set valid sources that can embed this resource (for example, in `<iframe>`).
-
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/frame-ancestors
-
-        Returns:
-            The `ContentSecurityPolicy` instance for method chaining.
-        """
+        """Set valid parent sources that may embed the page in a frame."""
         return self.custom_directive("frame-ancestors", *sources)
 
     def frame_src(self, *sources: str) -> ContentSecurityPolicy:
-        """Set valid sources for nested browsing contexts (`<frame>`, `<iframe>`).
-
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/frame-src
-
-        Returns:
-            The `ContentSecurityPolicy` instance for method chaining.
-        """
+        """Set valid sources for nested browsing contexts loaded into frames/iframes."""
         return self.custom_directive("frame-src", *sources)
 
     def img_src(self, *sources: str) -> ContentSecurityPolicy:
-        """Set valid sources for images.
-
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/img-src
-
-        Returns:
-            The `ContentSecurityPolicy` instance for method chaining.
-        """
+        """Set valid sources for images and favicons."""
         return self.custom_directive("img-src", *sources)
 
     def manifest_src(self, *sources: str) -> ContentSecurityPolicy:
-        """Set valid sources for manifest files.
-
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/manifest-src
-
-        Returns:
-            The `ContentSecurityPolicy` instance for method chaining.
-        """
+        """Set valid sources for application manifests."""
         return self.custom_directive("manifest-src", *sources)
 
     def media_src(self, *sources: str) -> ContentSecurityPolicy:
-        """Set valid sources for media (audio, video, track).
-
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/media-src
-
-        Returns:
-            The `ContentSecurityPolicy` instance for method chaining.
-        """
+        """Set valid sources for media (audio, video, track)."""
         return self.custom_directive("media-src", *sources)
 
     def object_src(self, *sources: str) -> ContentSecurityPolicy:
-        """Set valid sources for plugin-like objects (for example, `<object>`, `<embed>`, `<applet>`).
-
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/object-src
-
-        Returns:
-            The `ContentSecurityPolicy` instance for method chaining.
-        """
+        """Set valid sources for plugin-like objects (for example, `<object>`, `<embed>`)."""
         return self.custom_directive("object-src", *sources)
 
-    def report_to(self, *values: str) -> ContentSecurityPolicy:
-        """Configure reporting endpoints via `report-to` groups.
+    def prefetch_src(self, *sources: str) -> ContentSecurityPolicy:
+        """Set valid sources to be prefetched or prerendered.
 
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/report-to
-
-        Returns:
-            The `ContentSecurityPolicy` instance for method chaining.
+        Deprecated and non-standard in MDN's reference; use only if you have a
+        specific compatibility need.
         """
+        return self.custom_directive("prefetch-src", *sources)
+
+    def report_to(self, *values: str) -> ContentSecurityPolicy:
+        """Configure reporting endpoints via `report-to` groups."""
         return self.custom_directive("report-to", *values)
 
-    def require_trusted_types_for(self, *values: str) -> ContentSecurityPolicy:
-        """Enforce Trusted Types at DOM XSS sinks.
+    def report_uri(self, *uris: str) -> ContentSecurityPolicy:
+        """Configure the legacy reporting endpoint(s) via `report-uri`.
 
-        Typically used with the `'script'` value.
-
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/require-trusted-types-for
-            https://developer.mozilla.org/en-US/docs/Web/API/Trusted_Types_API
-
-        Returns:
-            The `ContentSecurityPolicy` instance for method chaining.
+        Deprecated in MDN's reference. If you use `report-to`, note that browsers
+        that support `report-to` ignore `report-uri`.
         """
+        return self.custom_directive("report-uri", *uris)
+
+    def require_trusted_types_for(self, *values: str) -> ContentSecurityPolicy:
+        """Enforce Trusted Types at specific DOM injection sinks."""
         return self.custom_directive("require-trusted-types-for", *values)
 
     def sandbox(self, *values: str) -> ContentSecurityPolicy:
-        """Enable sandboxing for the document (similar to `<iframe sandbox>`).
-
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/sandbox
-
-        Returns:
-            The `ContentSecurityPolicy` instance for method chaining.
-        """
+        """Enable a sandbox for the requested resource (similar to `<iframe sandbox>`)."""
         return self.custom_directive("sandbox", *values)
 
     def script_src(self, *sources: str) -> ContentSecurityPolicy:
-        """Set valid sources for JavaScript execution.
-
-        Applies to `<script>` elements, inline event handlers, and other script execution contexts.
-
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/script-src
-
-        Returns:
-            The `ContentSecurityPolicy` instance for method chaining.
-        """
+        """Set valid sources for JavaScript and WebAssembly resources."""
         return self.custom_directive("script-src", *sources)
 
     def script_src_attr(self, *sources: str) -> ContentSecurityPolicy:
-        """Set valid sources for JavaScript inline event handlers (for example, `onclick`).
-
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/script-src-attr
-
-        Returns:
-            The `ContentSecurityPolicy` instance for method chaining.
-        """
+        """Set valid sources for inline event handlers."""
         return self.custom_directive("script-src-attr", *sources)
 
     def script_src_elem(self, *sources: str) -> ContentSecurityPolicy:
-        """Set valid sources for JavaScript `<script>` elements.
-
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/script-src-elem
-
-        Returns:
-            The `ContentSecurityPolicy` instance for method chaining.
-        """
+        """Set valid sources for `<script>` elements."""
         return self.custom_directive("script-src-elem", *sources)
 
     def style_src(self, *sources: str) -> ContentSecurityPolicy:
-        """Set valid sources for stylesheets.
-
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/style-src
-
-        Returns:
-            The `ContentSecurityPolicy` instance for method chaining.
-        """
+        """Set valid sources for stylesheets."""
         return self.custom_directive("style-src", *sources)
 
     def style_src_attr(self, *sources: str) -> ContentSecurityPolicy:
-        """Set valid sources for inline `style` attributes on DOM elements.
-
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/style-src-attr
-
-        Returns:
-            The `ContentSecurityPolicy` instance for method chaining.
-        """
+        """Set valid sources for inline styles on individual elements."""
         return self.custom_directive("style-src-attr", *sources)
 
     def style_src_elem(self, *sources: str) -> ContentSecurityPolicy:
-        """Set valid sources for `<style>` elements and `<link rel=\"stylesheet\">`.
-
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/style-src-elem
-
-        Returns:
-            The `ContentSecurityPolicy` instance for method chaining.
-        """
+        """Set valid sources for `<style>` and stylesheet `<link>` elements."""
         return self.custom_directive("style-src-elem", *sources)
 
-    def trusted_types(self, *policies: str) -> ContentSecurityPolicy:
-        """Allowlist Trusted Types policy names that can be created.
-
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/trusted-types
-            https://developer.mozilla.org/en-US/docs/Web/API/Trusted_Types_API
-
-        Returns:
-            The `ContentSecurityPolicy` instance for method chaining.
-        """
-        return self.custom_directive("trusted-types", *policies)
+    def trusted_types(self, *values: str) -> ContentSecurityPolicy:
+        """Specify an allowlist of Trusted Types policies."""
+        return self.custom_directive("trusted-types", *values)
 
     def upgrade_insecure_requests(self) -> ContentSecurityPolicy:
-        """Upgrade insecure HTTP requests to HTTPS.
-
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/upgrade-insecure-requests
-
-        Returns:
-            The `ContentSecurityPolicy` instance for method chaining.
-        """
+        """Upgrade insecure HTTP requests to HTTPS."""
         return self.custom_directive("upgrade-insecure-requests")
 
     def worker_src(self, *sources: str) -> ContentSecurityPolicy:
-        """Set valid sources for `Worker`, `SharedWorker`, and `ServiceWorker` scripts.
-
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/worker-src
-
-        Returns:
-            The `ContentSecurityPolicy` instance for method chaining.
-        """
+        """Set valid sources for `Worker`, `SharedWorker`, and `ServiceWorker` scripts."""
         return self.custom_directive("worker-src", *sources)
 
     # -------------------------------------------------------------------------
-    # Helpers
+    # CSP value helpers
     # -------------------------------------------------------------------------
 
     @staticmethod
+    def keyword(name: str) -> str:
+        """Return a quoted CSP keyword/source expression (for example, ``'self'``)."""
+        if not name:
+            raise ValueError("CSP keyword must be non-empty")
+        if any(ch.isspace() for ch in name) or any(ch in name for ch in "'\";\r\n"):
+            raise ValueError("CSP keyword contains invalid characters")
+        return f"'{name}'"
+
+    @staticmethod
     def nonce(value: str) -> str:
-        """Create a nonce source for inline scripts or styles.
+        """Create a nonce source expression for inline scripts or styles.
 
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/nonce
-
-        Args:
-            value: The nonce value.
-
-        Returns:
-            A string formatted as a CSP nonce source.
+        The provided value should be Base64 or URL-safe Base64.
         """
+        if not value or not _NONCE_RE.fullmatch(value):
+            raise ValueError("nonce value must be Base64 (or URL-safe Base64) characters only")
         return f"'nonce-{value}'"
+
+    # -------------------------------------------------------------------------
+    # Internal helpers
+    # -------------------------------------------------------------------------
+
+    def _touch_structured(self) -> None:
+        """Switch from raw override to structured directive building (if needed)."""
+        if self._raw_value is not None:
+            self._raw_value = None
+
+    @staticmethod
+    def _normalize_directive_name(directive: str) -> str:
+        if not directive:
+            raise ValueError("directive name must be non-empty")
+        if any(ch.isspace() for ch in directive) or any(ch in directive for ch in ";\r\n"):
+            raise ValueError("directive name contains invalid characters")
+        if not _DIRECTIVE_NAME_RE.fullmatch(directive):
+            raise ValueError(f"invalid directive name: {directive!r}")
+        return directive
+
+    @staticmethod
+    def _validate_token(token: str) -> str:
+        if not token:
+            raise ValueError("directive value tokens must be non-empty")
+        if any(ch.isspace() for ch in token) or any(ch in token for ch in ";\r\n"):
+            raise ValueError(f"directive token contains invalid characters: {token!r}")
+        # Disallow other ASCII control characters.
+        if any(ord(ch) < _ASCII_SPACE or ord(ch) == _ASCII_DEL for ch in token):
+            raise ValueError(f"directive token contains control characters: {token!r}")
+        return token
