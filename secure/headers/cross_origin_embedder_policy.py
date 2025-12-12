@@ -1,100 +1,116 @@
 # Security header recommendations and information from the MDN Web Docs and the OWASP Secure Headers Project
-# https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Embedder-Policy
+# https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cross-Origin-Embedder-Policy
 # https://owasp.org/www-project-secure-headers/#cross-origin-embedder-policy
 #
 # Cross-Origin-Embedder-Policy by Mozilla Contributors is licensed under CC-BY-SA 2.5.
 # https://developer.mozilla.org/en-US/docs/MDN/Community/Roles_teams#contributor
 # https://creativecommons.org/licenses/by-sa/2.5/
 
-
 from __future__ import annotations  # type: ignore
 
 from dataclasses import dataclass, field
+from typing import Literal
 
 from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderName
+
+COEPDirective = Literal["unsafe-none", "require-corp", "credentialless"]
 
 
 @dataclass
 class CrossOriginEmbedderPolicy(BaseHeader):
-    """
-    Represents the `Cross-Origin-Embedder-Policy` HTTP header, which prevents a document from loading
-    any cross-origin resources that don’t explicitly grant the document permission.
+    """Build the ``Cross-Origin-Embedder-Policy`` (COEP) response header.
 
-    - `CORP` applies on the loaded resource side (resource owner).
-    - `COEP` applies on the “loader” of the resource side (consumer of the resource).
+    COEP configures the current document's policy for loading and embedding
+    cross-origin resources. It can require opt-in via CORP
+    (``Cross-Origin-Resource-Policy``) for ``no-cors`` fetches, or via CORS
+    for ``cors`` fetches.
 
-    Default header value: `require-corp`
+    Supported directives (MDN):
+        - ``unsafe-none``: allow loading cross-origin resources without explicit CORP/CORS opt-in.
+        - ``require-corp``: block cross-origin resource loading unless CORP or CORS permits it.
+        - ``credentialless``: allow certain cross-origin loads without CORP opt-in, but strip credentials
+          (cookies omitted on the request and ignored in the response).
+
+    Default header value: ``require-corp``
+
+    Note:
+        Per MDN, the default behavior *when this header is not sent* is ``unsafe-none``.
+
+    Example:
+        >>> from secure import Secure
+        >>> from secure.headers import CrossOriginEmbedderPolicy, CrossOriginOpenerPolicy
+        >>>
+        >>> secure = Secure(
+        ...     coep=CrossOriginEmbedderPolicy().require_corp(),
+        ...     coop=CrossOriginOpenerPolicy().same_origin(),
+        ... )
+        >>> secure.header_items()
+        (('Cross-Origin-Embedder-Policy', 'require-corp'), ('Cross-Origin-Opener-Policy', 'same-origin'))
 
     Resources:
-        - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Embedder-Policy
+        - https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cross-Origin-Embedder-Policy
         - https://owasp.org/www-project-secure-headers/#cross-origin-embedder-policy
     """
 
     header_name: str = HeaderName.CROSS_ORIGIN_EMBEDDER_POLICY.value
-    _directive: str = field(
-        default=HeaderDefaultValue.CROSS_ORIGIN_EMBEDDER_POLICY.value
-    )
+    _directive: str = field(default=HeaderDefaultValue.CROSS_ORIGIN_EMBEDDER_POLICY.value)
+
+    def _normalize(self, value: str) -> str:
+        """Normalize a directive value (trim + lowercase)."""
+        v = value.strip()
+        if not v:
+            return HeaderDefaultValue.CROSS_ORIGIN_EMBEDDER_POLICY.value
+        return v.lower()
 
     @property
     def header_value(self) -> str:
-        """Return the current `Cross-Origin-Embedder-Policy` header value.
+        """Return the current ``Cross-Origin-Embedder-Policy`` header value."""
+        return self._normalize(self._directive)
 
-        Returns:
-            The current COEP policy as a string.
-        """
-        return self._directive
+    def set(self, value: COEPDirective | str) -> CrossOriginEmbedderPolicy:
+        """Set a COEP directive.
 
-    def set(self, value: str) -> CrossOriginEmbedderPolicy:
-        """
-        Set a custom value for the `Cross-Origin-Embedder-Policy` header.
+        This method accepts any string as an escape hatch. For MDN-defined values,
+        prefer :meth:`unsafe_none`, :meth:`require_corp`, or :meth:`credentialless`.
 
         Args:
-            value: Custom header value.
+            value: Directive value (e.g., ``"require-corp"``).
 
         Returns:
-            The `CrossOriginEmbedderPolicy` instance for method chaining.
+            This instance for method chaining.
         """
-        self._directive = value
+        self._directive = self._normalize(str(value))
         return self
 
     def clear(self) -> CrossOriginEmbedderPolicy:
-        """
-        Reset the `Cross-Origin-Embedder-Policy` header to its default value.
-
-        Returns:
-            The `CrossOriginEmbedderPolicy` instance for method chaining.
-        """
+        """Reset to the library default directive."""
         self._directive = HeaderDefaultValue.CROSS_ORIGIN_EMBEDDER_POLICY.value
         return self
 
     def unsafe_none(self) -> CrossOriginEmbedderPolicy:
-        """
-        Set the header to `'unsafe-none'`.
+        """Set COEP to ``unsafe-none``.
 
-        This allows the document to fetch cross-origin resources without giving explicit permission
-        through the CORS protocol or the `Cross-Origin-Resource-Policy` header (this is the default value).
-
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Embedder-Policy
-
-        Returns:
-            The `CrossOriginEmbedderPolicy` instance for method chaining.
+        ``unsafe-none`` allows the document to load cross-origin resources without
+        explicit CORP/CORS permission.
         """
         self._directive = "unsafe-none"
         return self
 
     def require_corp(self) -> CrossOriginEmbedderPolicy:
-        """
-        Set the header to `'require-corp'`.
+        """Set COEP to ``require-corp``.
 
-        This ensures a document can only load resources from the same origin, or resources explicitly
-        marked as loadable from another origin.
-
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Embedder-Policy
-
-        Returns:
-            The `CrossOriginEmbedderPolicy` instance for method chaining.
+        ``require-corp`` blocks cross-origin resource loading unless the resource
+        is explicitly permitted via CORP (for ``no-cors``) or via CORS (for ``cors``).
         """
         self._directive = "require-corp"
+        return self
+
+    def credentialless(self) -> CrossOriginEmbedderPolicy:
+        """Set COEP to ``credentialless``.
+
+        ``credentialless`` allows loading some cross-origin resources without
+        explicit CORP opt-in, but strips credentials (cookies are omitted on the
+        request and ignored in the response).
+        """
+        self._directive = "credentialless"
         return self
