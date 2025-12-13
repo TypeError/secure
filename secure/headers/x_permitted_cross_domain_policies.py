@@ -1,5 +1,5 @@
 # Security header recommendations and information from the MDN Web Docs and the OWASP Secure Headers Project
-# https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Permitted-Cross-Domain-Policies
+# https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/X-Permitted-Cross-Domain-Policies
 # https://owasp.org/www-project-secure-headers/#x-permitted-cross-domain-policies
 #
 # X-Permitted-Cross-Domain-Policies by Mozilla Contributors is licensed under CC-BY-SA 2.5.
@@ -9,33 +9,62 @@
 from __future__ import annotations  # type: ignore
 
 from dataclasses import dataclass, field
+from typing import Final, Literal
 
 from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderName
+
+PermittedCrossDomainPolicy = Literal[
+    "none",
+    "master-only",
+    "by-content-type",
+    "by-ftp-filename",
+    "all",
+    "none-this-response",
+]
+
+_ALLOWED_POLICIES: Final[set[str]] = {
+    "none",
+    "master-only",
+    "by-content-type",
+    "by-ftp-filename",
+    "all",
+    "none-this-response",
+}
+
+
+def _normalize_header_value(value: str) -> str:
+    """
+    Normalize a header value for safe serialization.
+
+    This strips leading/trailing whitespace and replaces any CR/LF with spaces.
+    Further validation (RFC conformance, obs-text handling) is performed by
+    Secure.validate_and_normalize_headers().
+    """
+    return value.replace("\r", " ").replace("\n", " ").strip()
 
 
 @dataclass
 class XPermittedCrossDomainPolicies(BaseHeader):
     """
-    Represents the `X-Permitted-Cross-Domain-Policies` HTTP header.
+    Represents the `X-Permitted-Cross-Domain-Policies` HTTP response header.
 
-    This header controls which cross-domain policy files (for example for Adobe
-    products) are allowed to control access to your content.
+    This header defines a meta-policy controlling whether site resources can be accessed
+    cross-origin by documents running in legacy web clients (for example, Adobe Acrobat
+    or Microsoft Silverlight).
+
+    Usage is less common since Adobe Flash Player and Microsoft Silverlight have been
+    deprecated, but many security tools still check for `X-Permitted-Cross-Domain-Policies: none`
+    to mitigate the risk of an overly-permissive cross-domain policy file being present.
 
     Default header value: `none`
 
-    Valid values:
-        - `none`            No cross-domain policies are allowed.
-        - `master-only`     Only a master policy file is allowed.
-        - `by-content-type` Only policy files served with an appropriate
-                              content type are allowed.
-        - `all`             All policy files on this domain are allowed.
     Example:
         xpcdp = XPermittedCrossDomainPolicies().none()
         print(xpcdp.header_name)   # 'X-Permitted-Cross-Domain-Policies'
         print(xpcdp.header_value)  # 'none'
 
     Resources:
-        - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Permitted-Cross-Domain-Policies
+        - https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/X-Permitted-Cross-Domain-Policies
         - https://owasp.org/www-project-secure-headers/#x-permitted-cross-domain-policies
     """
 
@@ -47,57 +76,60 @@ class XPermittedCrossDomainPolicies(BaseHeader):
         """Return the current header value."""
         return self._value
 
-    def set(self, value: str) -> XPermittedCrossDomainPolicies:
-        """
-        Set a custom value for the `X-Permitted-Cross-Domain-Policies` header.
+    # --- Escape hatches / lifecycle -------------------------------------------------
 
-        Args:
-            value:
-                The header value to use. It should be one of `none`,
-                `master-only`, `by-content-type`, or `all`.
-
-        Returns:
-            The `XPermittedCrossDomainPolicies` instance for method chaining.
-        """
-        self._value = value
+    def clear(self) -> XPermittedCrossDomainPolicies:
+        """Reset the header to the default value (`none`)."""
+        self._value = HeaderDefaultValue.X_PERMITTED_CROSS_DOMAIN_POLICIES.value
         return self
+
+    def value(self, value: str) -> XPermittedCrossDomainPolicies:
+        """
+        Set a custom header value.
+
+        Prefer the directive helper methods (e.g., :meth:`none`, :meth:`master_only`)
+        when you want a well-known policy.
+        """
+        self._value = _normalize_header_value(value)
+        return self
+
+    def custom(self, value: str) -> XPermittedCrossDomainPolicies:
+        """Alias for :meth:`value`."""
+        return self.value(value)
+
+    def set(self, value: str) -> XPermittedCrossDomainPolicies:
+        """Backwards-compatible alias for :meth:`value`."""
+        return self.value(value)
+
+    def policy(self, policy: PermittedCrossDomainPolicy) -> XPermittedCrossDomainPolicies:
+        """Set the header to one of the known directive values."""
+        if policy not in _ALLOWED_POLICIES:
+            raise ValueError(f"Unsupported X-Permitted-Cross-Domain-Policies value: {policy!r}")
+        self._value = policy
+        return self
+
+    # --- Directive helpers ----------------------------------------------------------
 
     def none(self) -> XPermittedCrossDomainPolicies:
-        """
-        Disallow all cross-domain policy files.
-
-        Returns:
-            The `XPermittedCrossDomainPolicies` instance for method chaining.
-        """
-        self._value = "none"
-        return self
+        """Disallow policy files anywhere on the target server, including a master policy file."""
+        return self.policy("none")
 
     def master_only(self) -> XPermittedCrossDomainPolicies:
-        """
-        Allow only a single master cross-domain policy file.
-
-        Returns:
-            The `XPermittedCrossDomainPolicies` instance for method chaining.
-        """
-        self._value = "master-only"
-        return self
+        """Allow cross-domain access to the master policy file defined on the same domain."""
+        return self.policy("master-only")
 
     def by_content_type(self) -> XPermittedCrossDomainPolicies:
-        """
-        Allow policy files that are served with an appropriate content type.
+        """Allow only policy files served with `Content-Type: text/x-cross-domain-policy` (HTTP/HTTPS only)."""
+        return self.policy("by-content-type")
 
-        Returns:
-            The `XPermittedCrossDomainPolicies` instance for method chaining.
-        """
-        self._value = "by-content-type"
-        return self
+    def by_ftp_filename(self) -> XPermittedCrossDomainPolicies:
+        """Allow only policy files named `crossdomain.xml` (FTP only)."""
+        return self.policy("by-ftp-filename")
 
     def all(self) -> XPermittedCrossDomainPolicies:
-        """
-        Allow all cross-domain policy files on this domain.
+        """Allow all policy files on this target domain."""
+        return self.policy("all")
 
-        Returns:
-            The `XPermittedCrossDomainPolicies` instance for method chaining.
-        """
-        self._value = "all"
-        return self
+    def none_this_response(self) -> XPermittedCrossDomainPolicies:
+        """Indicate the current document should not be used as a policy file."""
+        return self.policy("none-this-response")
