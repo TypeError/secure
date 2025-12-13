@@ -1,55 +1,83 @@
-# X-Content-Type-Options Header
+# X-Content-Type-Options
 
 ## Purpose
 
-The `X-Content-Type-Options` header prevents browsers from MIME-sniffing a response away from the declared `Content-Type`. This helps protect against certain types of attacks, such as cross-site scripting (XSS) and drive-by downloads, where an attacker tries to disguise a file's MIME type in order to trick the browser into executing malicious content.
+The `X-Content-Type-Options` header tells browsers to **respect the MIME type declared in `Content-Type`** instead of trying to guess ("sniff") a different type.
+
+In practice, setting `X-Content-Type-Options: nosniff` can cause browsers to **block**:
+
+- `style` requests not served as `text/css`
+- `script` requests not served with a JavaScript MIME type
+
+This helps reduce the risk of content being interpreted as executable when it should not be.
 
 ## Best Practices
 
-- **Set to `nosniff`**: This is the recommended value, as it tells the browser to strictly follow the declared `Content-Type` and not attempt to guess or "sniff" the MIME type. This helps prevent MIME-based attacks.
+- **Set to `nosniff`** (recommended): This is the standard and widely supported directive.
+- **Use correct `Content-Type` values**: `nosniff` is most effective when your server sends accurate MIME types.
 
-## Configuration in `secure.py`
+## Configuration in `secure`
 
-The `XContentTypeOptions` class in `secure.py` allows you to easily configure the `X-Content-Type-Options` header. The default value is `nosniff`, which is the recommended setting.
+The `XContentTypeOptions` class configures `X-Content-Type-Options`.
 
-### Example Configuration
+**Default header value:** `nosniff`
+
+### Minimal configuration
 
 ```python
+from secure import Secure
+from secure.headers import XContentTypeOptions
+
 secure_headers = Secure(
-    xcto=XContentTypeOptions().nosniff()
+    xcto=XContentTypeOptions().nosniff(),
 )
 ```
 
-### Methods Available
+````
 
-- **`nosniff()`**: Sets the `X-Content-Type-Options` header to `nosniff`, which prevents MIME-sniffing by browsers.
-- **`set(value)`**: Sets a custom value for the `X-Content-Type-Options` header.
-- **`clear()`**: Clears any custom value and reverts the header to its default value (`nosniff`).
+### Methods available
 
-## Example Usage
+- **`nosniff()`**: Sets the header to `nosniff`, which blocks certain `script`/`style` requests when MIME types are incorrect.
+- **`set(value)`**: Sets a raw/custom header value (escape hatch).
+- **`value(value)`**: Alias for `set(value)`.
+- **`custom(value)`**: Alias for `set(value)`.
+- **`clear()`**: Resets the header to the library default (`nosniff`).
 
-To set up the `X-Content-Type-Options` header and prevent MIME-sniffing:
+> Note: `set/value/custom` are escape hatches. If you use `Secure.validate_and_normalize_headers(...)`, that layer is responsible for sanitization and safety checks.
 
-```python
-xcto_header = XContentTypeOptions().nosniff()
-print(xcto_header.header_name)   # Output: 'X-Content-Type-Options'
-print(xcto_header.header_value)  # Output: 'nosniff'
-```
-
-This can then be applied as part of your Secure headers configuration:
+## Example usage
 
 ```python
-secure_headers = Secure(xcto=xcto_header)
+from secure.headers import XContentTypeOptions
+
+xcto = XContentTypeOptions().nosniff()
+print(xcto.header_name)   # 'X-Content-Type-Options'
+print(xcto.header_value)  # 'nosniff'
 ```
 
-## **Resources**
+Apply via `Secure`:
 
-- [MDN Web Docs: X-Content-Type-Options](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Content-Type-Options)
-- [OWASP Secure Headers Project: X-Content-Type-Options](https://owasp.org/www-project-secure-headers/#x-content-type-options)
+```python
+from secure import Secure
+from secure.headers import XContentTypeOptions
 
-## **Attribution**
+secure_headers = Secure(xcto=XContentTypeOptions().nosniff())
+```
+
+## Resources
+
+- MDN Web Docs: X-Content-Type-Options
+  [https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Content-Type-Options](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Content-Type-Options)
+- OWASP Secure Headers Project: X-Content-Type-Options
+  [https://owasp.org/www-project-secure-headers/#x-content-type-options](https://owasp.org/www-project-secure-headers/#x-content-type-options)
+
+## Attribution
 
 This library implements security recommendations from trusted sources:
 
-- [MDN Web Docs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Content-Type-Options) (licensed under [CC-BY-SA 2.5](https://creativecommons.org/licenses/by-sa/2.5/))
-- [OWASP Secure Headers Project](https://owasp.org/www-project-secure-headers/#x-content-type-options) (licensed under [CC-BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/))
+- MDN Web Docs (CC-BY-SA 2.5)
+  [https://developer.mozilla.org/en-US/docs/MDN/Community/Roles_teams#contributor](https://developer.mozilla.org/en-US/docs/MDN/Community/Roles_teams#contributor)
+  [https://creativecommons.org/licenses/by-sa/2.5/](https://creativecommons.org/licenses/by-sa/2.5/)
+- OWASP Secure Headers Project (CC-BY-SA 4.0)
+  [https://creativecommons.org/licenses/by-sa/4.0/](https://creativecommons.org/licenses/by-sa/4.0/)
+````
