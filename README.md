@@ -321,6 +321,7 @@ Key ideas:
 - `allowlist_headers` enforces a case insensitive allowlist of header names and decides what to do with unexpected headers.
 - `deduplicate_headers` resolves repeated header names so that you end up with clean `name, value` pairs.
 - `validate_and_normalize_headers` validates header names and values, then freezes them into a single valued, immutable mapping exposed via the `.headers` property.
+- After the pipeline runs through `validate_and_normalize_headers()`, `Secure` uses the normalized `.headers` mapping when `set_headers` or `set_headers_async` apply the headers, ensuring dropped entries never reach the wire and sanitized values replace unsafe input.
 
 If you need to emit multi valued headers, such as multiple `Set-Cookie` fields, you can bypass the single valued mapping and work with `header_items()` directly:
 
