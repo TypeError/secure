@@ -117,16 +117,13 @@ class TestSecure(unittest.TestCase):
         self.secure.headers = {header.header_name: header.header_value for header in self.secure.headers_list}
 
     def test_with_default_headers(self) -> None:
-        """Test that default headers are correctly applied."""
+        """Test that the Balanced defaults are correctly applied."""
         secure_headers = Secure.with_default_headers()
         response = MockResponse()
 
-        # Apply the headers to the response object
         secure_headers.set_headers(response)
 
-        # Check if the expected default headers are applied
-        self.assertIn("Cache-Control", response.headers)
-        self.assertEqual(response.headers["Cache-Control"], "no-store, max-age=0")
+        self.assertNotIn("Cache-Control", response.headers)
 
         self.assertIn("Content-Security-Policy", response.headers)
         self.assertEqual(
@@ -136,25 +133,9 @@ class TestSecure(unittest.TestCase):
 
         self.assertIn("Cross-Origin-Opener-Policy", response.headers)
         self.assertEqual(response.headers["Cross-Origin-Opener-Policy"], "same-origin")
+
         self.assertIn("Cross-Origin-Resource-Policy", response.headers)
         self.assertEqual(response.headers["Cross-Origin-Resource-Policy"], "same-origin")
-
-        self.assertIn("X-Permitted-Cross-Domain-Policies", response.headers)
-        self.assertEqual(response.headers["X-Permitted-Cross-Domain-Policies"], "none")
-
-        self.assertIn("X-DNS-Prefetch-Control", response.headers)
-        self.assertEqual(response.headers["X-DNS-Prefetch-Control"], "off")
-
-        self.assertIn("Origin-Agent-Cluster", response.headers)
-        self.assertEqual(response.headers["Origin-Agent-Cluster"], "?1")
-
-        self.assertIn("X-Download-Options", response.headers)
-        self.assertEqual(response.headers["X-Download-Options"], "noopen")
-
-        self.assertIn("X-XSS-Protection", response.headers)
-        self.assertEqual(response.headers["X-XSS-Protection"], "0")
-
-        self.assertNotIn("Cross-Origin-Embedder-Policy", response.headers)
 
         self.assertIn("Permissions-Policy", response.headers)
         self.assertEqual(
@@ -180,6 +161,24 @@ class TestSecure(unittest.TestCase):
         self.assertIn("X-Frame-Options", response.headers)
         self.assertEqual(response.headers["X-Frame-Options"], "SAMEORIGIN")
 
+        self.assertNotIn("Origin-Agent-Cluster", response.headers)
+        self.assertNotIn("X-Download-Options", response.headers)
+        self.assertNotIn("X-XSS-Protection", response.headers)
+        self.assertNotIn("X-Permitted-Cross-Domain-Policies", response.headers)
+        self.assertNotIn("X-DNS-Prefetch-Control", response.headers)
+
+    def test_with_default_headers_matches_balanced_preset(self) -> None:
+        """with_default_headers() should mirror the BALANCED preset."""
+        balanced = Secure.from_preset(Preset.BALANCED)
+
+        self.assertEqual(Secure.with_default_headers().headers, balanced.headers)
+
+    def test_balanced_preset_omits_cache_control(self) -> None:
+        """Balanced preset purposely excludes Cache-Control."""
+        balanced_headers = Secure.from_preset(Preset.BALANCED).headers
+
+        self.assertNotIn("Cache-Control", balanced_headers)
+
     def test_from_preset_basic(self) -> None:
         """Test that the BASIC preset is applied correctly."""
         secure_headers = Secure.from_preset(Preset.BASIC)
@@ -188,15 +187,24 @@ class TestSecure(unittest.TestCase):
         # Apply the headers to the response object
         secure_headers.set_headers(response)
 
-        # Basic preset headers
-        self.assertIn("Cache-Control", response.headers)
-        self.assertEqual(response.headers["Cache-Control"], "no-store, max-age=0")
+        self.assertNotIn("Cache-Control", response.headers)
+        self.assertNotIn("Permissions-Policy", response.headers)
+        self.assertNotIn("Server", response.headers)
+
+        self.assertIn("Content-Security-Policy", response.headers)
+        self.assertEqual(
+            response.headers["Content-Security-Policy"],
+            _expected_basic_csp_value(),
+        )
+
+        self.assertIn("Cross-Origin-Opener-Policy", response.headers)
+        self.assertEqual(response.headers["Cross-Origin-Opener-Policy"], "same-origin")
+
+        self.assertIn("Cross-Origin-Resource-Policy", response.headers)
+        self.assertEqual(response.headers["Cross-Origin-Resource-Policy"], "same-origin")
 
         self.assertIn("Referrer-Policy", response.headers)
-        self.assertEqual(response.headers["Referrer-Policy"], "strict-origin-when-cross-origin")
-
-        self.assertIn("Server", response.headers)
-        self.assertEqual(response.headers["Server"], "")
+        self.assertEqual(response.headers["Referrer-Policy"], "no-referrer")
 
         self.assertIn("Strict-Transport-Security", response.headers)
         self.assertEqual(
@@ -209,22 +217,6 @@ class TestSecure(unittest.TestCase):
 
         self.assertIn("X-Frame-Options", response.headers)
         self.assertEqual(response.headers["X-Frame-Options"], "SAMEORIGIN")
-
-        # Optional headers in basic preset
-        self.assertEqual(
-            response.headers["Content-Security-Policy"],
-            _expected_basic_csp_value(),
-        )
-        self.assertEqual(
-            response.headers["Permissions-Policy"],
-            "geolocation=(), microphone=(), camera=()",
-        )
-        self.assertEqual(
-            response.headers["Cross-Origin-Opener-Policy"],
-            "same-origin",
-        )
-        self.assertIn("Cross-Origin-Resource-Policy", response.headers)
-        self.assertEqual(response.headers["Cross-Origin-Resource-Policy"], "same-origin")
 
         self.assertIn("X-Permitted-Cross-Domain-Policies", response.headers)
         self.assertEqual(response.headers["X-Permitted-Cross-Domain-Policies"], "none")
@@ -283,7 +275,7 @@ class TestSecure(unittest.TestCase):
         self.assertIn("Strict-Transport-Security", response.headers)
         self.assertEqual(
             response.headers["Strict-Transport-Security"],
-            "max-age=63072000; includeSubDomains; preload",
+            "max-age=63072000; includeSubDomains",
         )
 
         self.assertIn("X-Content-Type-Options", response.headers)
@@ -333,13 +325,13 @@ class TestSecure(unittest.TestCase):
         self.assertEqual(response.headers["X-Content-Type-Options"], "nosniff")
 
         # Additional assertions for other headers
-        self.assertIn("Cache-Control", response.headers)
         self.assertIn("Content-Security-Policy", response.headers)
         self.assertIn("Cross-Origin-Opener-Policy", response.headers)
         self.assertIn("Permissions-Policy", response.headers)
         self.assertIn("Referrer-Policy", response.headers)
         self.assertIn("Server", response.headers)
         self.assertIn("X-Frame-Options", response.headers)
+        self.assertNotIn("Cache-Control", response.headers)
 
     def test_set_headers_with_set_header_method(self) -> None:
         """Test setting headers on a response object with set_header method."""
@@ -439,13 +431,13 @@ class TestSecure(unittest.TestCase):
         """Test that existing headers are overwritten by Secure."""
         secure_headers = Secure.with_default_headers()
         response = MockResponse()
-        response.headers["Cache-Control"] = "public"
+        response.headers["Referrer-Policy"] = "unsafe-url"
 
         # Apply the headers to the response object
         secure_headers.set_headers(response)
 
         # Verify that the header has been overwritten
-        self.assertEqual(response.headers["Cache-Control"], "no-store, max-age=0")
+        self.assertEqual(response.headers["Referrer-Policy"], "strict-origin-when-cross-origin")
 
     def test_custom_header_inclusion(self) -> None:
         """Test that custom headers are included and applied."""
