@@ -94,6 +94,23 @@ class TestSecure(unittest.TestCase):
 
         self.assertIn("Cross-Origin-Opener-Policy", response.headers)
         self.assertEqual(response.headers["Cross-Origin-Opener-Policy"], "same-origin")
+        self.assertIn("Cross-Origin-Resource-Policy", response.headers)
+        self.assertEqual(response.headers["Cross-Origin-Resource-Policy"], "same-origin")
+
+        self.assertIn("X-Permitted-Cross-Domain-Policies", response.headers)
+        self.assertEqual(response.headers["X-Permitted-Cross-Domain-Policies"], "none")
+
+        self.assertIn("X-DNS-Prefetch-Control", response.headers)
+        self.assertEqual(response.headers["X-DNS-Prefetch-Control"], "off")
+
+        self.assertIn("Origin-Agent-Cluster", response.headers)
+        self.assertEqual(response.headers["Origin-Agent-Cluster"], "?1")
+
+        self.assertIn("X-Download-Options", response.headers)
+        self.assertEqual(response.headers["X-Download-Options"], "noopen")
+
+        self.assertIn("X-XSS-Protection", response.headers)
+        self.assertEqual(response.headers["X-XSS-Protection"], "0")
 
         self.assertNotIn("Cross-Origin-Embedder-Policy", response.headers)
 
@@ -164,6 +181,23 @@ class TestSecure(unittest.TestCase):
             response.headers["Cross-Origin-Opener-Policy"],
             "same-origin",
         )
+        self.assertIn("Cross-Origin-Resource-Policy", response.headers)
+        self.assertEqual(response.headers["Cross-Origin-Resource-Policy"], "same-origin")
+
+        self.assertIn("X-Permitted-Cross-Domain-Policies", response.headers)
+        self.assertEqual(response.headers["X-Permitted-Cross-Domain-Policies"], "none")
+
+        self.assertIn("X-DNS-Prefetch-Control", response.headers)
+        self.assertEqual(response.headers["X-DNS-Prefetch-Control"], "off")
+
+        self.assertIn("Origin-Agent-Cluster", response.headers)
+        self.assertEqual(response.headers["Origin-Agent-Cluster"], "?1")
+
+        self.assertIn("X-Download-Options", response.headers)
+        self.assertEqual(response.headers["X-Download-Options"], "noopen")
+
+        self.assertIn("X-XSS-Protection", response.headers)
+        self.assertEqual(response.headers["X-XSS-Protection"], "0")
 
     def test_from_preset_strict(self):
         """Test that the STRICT preset is applied correctly."""
