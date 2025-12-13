@@ -159,9 +159,10 @@ If your framework uses a different contract, see the framework specific guides o
 When you call `Secure.with_default_headers()` (or `Secure.from_preset(Preset.BASIC)`), `secure` configures a balanced, modern set of headers suitable for many applications:
 
 ```http
+Cache-Control: no-store, max-age=0
 Cross-Origin-Opener-Policy: same-origin
-Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'
-Strict-Transport-Security: max-age=31536000
+Content-Security-Policy: default-src 'self'; base-uri 'self'; font-src 'self' https: data:; form-action 'self'; frame-ancestors 'self'; img-src 'self' data:; object-src 'none'; script-src 'self'; script-src-attr 'none'; style-src 'self' https: 'unsafe-inline'; upgrade-insecure-requests
+Strict-Transport-Security: max-age=31536000; includeSubDomains
 Permissions-Policy: geolocation=(), microphone=(), camera=()
 Referrer-Policy: strict-origin-when-cross-origin
 Server:
@@ -193,9 +194,10 @@ strict_headers = secure.Secure.from_preset(Preset.STRICT)
 The `BASIC` preset is a balanced default that matches `Secure.with_default_headers()`. It configures a modern baseline that works for many applications:
 
 ```http
+Cache-Control: no-store, max-age=0
 Cross-Origin-Opener-Policy: same-origin
-Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'
-Strict-Transport-Security: max-age=31536000
+Content-Security-Policy: default-src 'self'; base-uri 'self'; font-src 'self' https: data:; form-action 'self'; frame-ancestors 'self'; img-src 'self' data:; object-src 'none'; script-src 'self'; script-src-attr 'none'; style-src 'self' https: 'unsafe-inline'; upgrade-insecure-requests
+Strict-Transport-Security: max-age=31536000; includeSubDomains
 Permissions-Policy: geolocation=(), microphone=(), camera=()
 Referrer-Policy: strict-origin-when-cross-origin
 Server:
@@ -210,7 +212,7 @@ Use this when you want a strong starting point that you can refine over time.
 The `STRICT` preset enables stronger protections and is a better fit for security focused deployments that can tolerate tighter restrictions. It is conceptually similar to:
 
 ```http
-Cache-Control: no-store
+Cache-Control: no-store, max-age=0
 Cross-Origin-Embedder-Policy: require-corp
 Cross-Origin-Opener-Policy: same-origin
 Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'
