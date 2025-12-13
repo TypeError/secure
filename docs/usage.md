@@ -60,7 +60,7 @@ if __name__ == "__main__":
 ### Example Headers:
 
 ```http
-Cache-Control: no-store
+Cache-Control: no-store, max-age=0
 Cross-Origin-Embedder-Policy: require-corp
 Cross-Origin-Opener-Policy: same-origin
 Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'
@@ -106,8 +106,11 @@ if __name__ == "__main__":
 ### Example Headers:
 
 ```http
-Cache-Control: no-store
-Strict-Transport-Security: max-age=31536000
+Cache-Control: no-store, max-age=0
+Cross-Origin-Opener-Policy: same-origin
+Content-Security-Policy: default-src 'self'; base-uri 'self'; font-src 'self' https: data:; form-action 'self'; frame-ancestors 'self'; img-src 'self' data:; object-src 'none'; script-src 'self'; script-src-attr 'none'; style-src 'self' https: 'unsafe-inline'; upgrade-insecure-requests
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+Permissions-Policy: geolocation=(), microphone=(), camera=()
 Referrer-Policy: strict-origin-when-cross-origin
 Server:
 X-Content-Type-Options: nosniff
