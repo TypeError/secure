@@ -758,6 +758,14 @@ class Secure:
 
         return tuple(items)
 
+    def _resolved_header_items(self) -> tuple[tuple[str, str], ...]:
+        """
+        Return the list of header items honoring any normalized override.
+        """
+        if self._headers_override is not None:
+            return tuple(self._headers_override.items())
+        return self.header_items()
+
     @cached_property
     def headers(self) -> Mapping[str, str]:
         """
@@ -827,7 +835,7 @@ class Secure:
         HeaderSetError
             If setting an individual header fails.
         """
-        items = self.header_items()
+        items = self._resolved_header_items()
 
         # Path 1: response.set_header(...)
         if hasattr(response, "set_header"):
@@ -898,7 +906,7 @@ class Secure:
         HeaderSetError
             If setting an individual header fails.
         """
-        items = self.header_items()
+        items = self._resolved_header_items()
 
         # Path 1: response.set_header(...)
         if hasattr(response, "set_header"):
