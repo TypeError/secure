@@ -72,10 +72,7 @@ class TestSecure(unittest.TestCase):
             ]
         )
         # Precompute headers dictionary
-        self.secure.headers = {
-            header.header_name: header.header_value
-            for header in self.secure.headers_list
-        }
+        self.secure.headers = {header.header_name: header.header_value for header in self.secure.headers_list}
 
     def test_with_default_headers(self):
         """Test that default headers are correctly applied."""
@@ -107,9 +104,7 @@ class TestSecure(unittest.TestCase):
         )
 
         self.assertIn("Referrer-Policy", response.headers)
-        self.assertEqual(
-            response.headers["Referrer-Policy"], "strict-origin-when-cross-origin"
-        )
+        self.assertEqual(response.headers["Referrer-Policy"], "strict-origin-when-cross-origin")
 
         self.assertIn("Server", response.headers)
         self.assertEqual(response.headers["Server"], "")
@@ -139,9 +134,7 @@ class TestSecure(unittest.TestCase):
         self.assertEqual(response.headers["Cache-Control"], "no-store, max-age=0")
 
         self.assertIn("Referrer-Policy", response.headers)
-        self.assertEqual(
-            response.headers["Referrer-Policy"], "strict-origin-when-cross-origin"
-        )
+        self.assertEqual(response.headers["Referrer-Policy"], "strict-origin-when-cross-origin")
 
         self.assertIn("Server", response.headers)
         self.assertEqual(response.headers["Server"], "")
@@ -194,9 +187,7 @@ class TestSecure(unittest.TestCase):
         )
 
         self.assertIn("Cross-Origin-Embedder-Policy", response.headers)
-        self.assertEqual(
-            response.headers["Cross-Origin-Embedder-Policy"], "require-corp"
-        )
+        self.assertEqual(response.headers["Cross-Origin-Embedder-Policy"], "require-corp")
 
         self.assertIn("Cross-Origin-Opener-Policy", response.headers)
         self.assertEqual(response.headers["Cross-Origin-Opener-Policy"], "same-origin")
@@ -361,10 +352,7 @@ class TestSecure(unittest.TestCase):
         """Test that the headers property returns the correct headers."""
         secure_headers = Secure.with_default_headers()
 
-        expected_headers = {
-            header.header_name: header.header_value
-            for header in secure_headers.headers_list
-        }
+        expected_headers = {header.header_name: header.header_value for header in secure_headers.headers_list}
 
         self.assertEqual(secure_headers.headers, expected_headers)
 
@@ -502,9 +490,7 @@ class TestSecure(unittest.TestCase):
         custom_csp = ContentSecurityPolicy().default_src("'self'")
         custom_headers = [CustomHeader("X-Test-Header", "TestValue")]
 
-        secure_headers = Secure(
-            server=custom_server, csp=custom_csp, custom=custom_headers
-        )
+        secure_headers = Secure(server=custom_server, csp=custom_csp, custom=custom_headers)
 
         # Adjust the expected order based on how Secure initializes headers
         expected_headers_list = [custom_csp, custom_server] + custom_headers
