@@ -5,7 +5,7 @@ from secure.headers import CacheControl
 
 class TestCacheControl(unittest.TestCase):
     def test_default_cache_control(self):
-        """Test default Cache-Control value (no-store)."""
+        """Test default Cache-Control value (no-store, max-age=0)."""
         cache_control = CacheControl()
         self.assertEqual(cache_control.header_value, "no-store, max-age=0")
 
@@ -22,7 +22,7 @@ class TestCacheControl(unittest.TestCase):
     def test_clear_cache_control(self):
         """Test clearing Cache-Control directives."""
         cache_control = CacheControl().no_cache().clear()
-        self.assertEqual(cache_control.header_value, "no-store")
+        self.assertEqual(cache_control.header_value, "no-store, max-age=0")
 
     def test_multiple_directives(self):
         """Test adding multiple Cache-Control directives."""

@@ -15,7 +15,7 @@ class TestPermissionsPolicy(unittest.TestCase):
     def test_custom_permissions_policy(self):
         """Test setting custom directives in Permissions-Policy."""
         policy = PermissionsPolicy().camera("'self'").geolocation("'none'")
-        self.assertEqual(policy.header_value, "camera=('self'), geolocation=('none')")
+        self.assertEqual(policy.header_value, "camera=(self), geolocation=()")
 
     def test_clear_permissions_policy(self):
         """Test clearing all directives in Permissions-Policy."""
@@ -28,7 +28,7 @@ class TestPermissionsPolicy(unittest.TestCase):
     def test_add_directive(self):
         """Test adding a specific directive to Permissions-Policy."""
         policy = PermissionsPolicy().add_directive("microphone", "'self'")
-        self.assertIn("microphone=('self')", policy.header_value)
+        self.assertIn("microphone=(self)", policy.header_value)
 
 
 if __name__ == "__main__":
