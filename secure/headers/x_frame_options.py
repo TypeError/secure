@@ -1,5 +1,5 @@
 # Security header recommendations and information from the MDN Web Docs and the OWASP Secure Headers Project
-# https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options
+# https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/X-Frame-Options
 # https://owasp.org/www-project-secure-headers/#x-frame-options
 #
 # X-Frame-Options by Mozilla Contributors is licensed under CC-BY-SA 2.5.
@@ -15,14 +15,33 @@ from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderNam
 
 @dataclass
 class XFrameOptions(BaseHeader):
-    """
-    Represents the `X-Frame-Options` HTTP header, which protects against clickjacking by controlling
-    whether the browser should allow rendering of a page in a <frame>, <iframe>, or <object>.
+    """Represents the `X-Frame-Options` HTTP response header.
+
+    `X-Frame-Options` tells supporting browsers whether a page may be embedded in a
+    `<frame>`, `<iframe>`, `<embed>`, or `<object>`. Sites use it to reduce the risk of
+    clickjacking by preventing (or restricting) framing.
+
+    Note:
+        For more comprehensive options than offered by this header, use the
+        `Content-Security-Policy` `frame-ancestors` directive instead.
+
+        Setting `X-Frame-Options` inside an HTML `<meta http-equiv=...>` element has no
+        effect. `X-Frame-Options` is only enforced via HTTP response headers.
 
     Default header value: `SAMEORIGIN`
 
+    Example:
+        >>> xfo = XFrameOptions().sameorigin()
+        >>> xfo.header_name
+        'X-Frame-Options'
+        >>> xfo.header_value
+        'SAMEORIGIN'
+
+        >>> XFrameOptions().deny().header_value
+        'DENY'
+
     Resources:
-        - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options
+        - https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/X-Frame-Options
         - https://owasp.org/www-project-secure-headers/#x-frame-options
     """
 
@@ -31,59 +50,80 @@ class XFrameOptions(BaseHeader):
 
     @property
     def header_value(self) -> str:
-        """Return the current `X-Frame-Options` header value.
-
-        Returns:
-            The current `X-Frame-Options` header value as a string.
-        """
+        """Return the current `X-Frame-Options` header value."""
         return self._value
 
-    def set(self, value: str) -> XFrameOptions:
-        """
-        Set a custom value for the `X-Frame-Options` header.
+    # ---------------------------------------------------------------------
+    # Escape hatches
+    # ---------------------------------------------------------------------
+
+    def value(self, value: str) -> XFrameOptions:
+        """Set a custom header value.
+
+        Use this when you already have a fully-formed header value and want to bypass
+        directive helpers.
+
+        Notes:
+            This method rejects CR/LF characters to avoid header injection. Any further
+            validation/normalization belongs in `Secure.validate_and_normalize_headers(...)`.
 
         Args:
-            value: The custom header value.
+            value: The complete header value.
 
         Returns:
             The `XFrameOptions` instance for method chaining.
         """
-        self._value = value
+        if "\r" in value or "\n" in value:
+            raise ValueError("X-Frame-Options value must not contain CR/LF characters")
+        self._value = value.strip()
         return self
 
-    def clear(self) -> XFrameOptions:
-        """
-        Reset the `X-Frame-Options` header to its default value.
+    def set(self, value: str) -> XFrameOptions:
+        """Alias for `value(...)` (backwards-compatible)."""
+        return self.value(value)
 
-        Returns:
-            The `XFrameOptions` instance for method chaining.
-        """
+    def custom(self, value: str) -> XFrameOptions:
+        """Alias for `value(...)`."""
+        return self.value(value)
+
+    def clear(self) -> XFrameOptions:
+        """Reset the `X-Frame-Options` header to its default value (`SAMEORIGIN`)."""
         self._value = HeaderDefaultValue.X_FRAME_OPTIONS.value
         return self
 
+    # ---------------------------------------------------------------------
+    # Directives
+    # ---------------------------------------------------------------------
+
     def deny(self) -> XFrameOptions:
-        """
-        Set the `X-Frame-Options` header to `DENY`, which prevents any site from framing the page.
+        """Set the directive to `DENY`.
 
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options
-
-        Returns:
-            The `XFrameOptions` instance for method chaining.
+        The page cannot be displayed in a frame, regardless of the site attempting to do so.
         """
         self._value = "DENY"
         return self
 
     def sameorigin(self) -> XFrameOptions:
-        """
-        Set the `X-Frame-Options` header to `SAMEORIGIN`, which allows the page to be framed
-        only by pages from the same origin.
+        """Set the directive to `SAMEORIGIN`.
 
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options
+        The page can only be displayed if all ancestor frames have the same origin as the page.
+        """
+        self._value = "SAMEORIGIN"
+        return self
+
+    def allow_from(self, origin: str) -> XFrameOptions:
+        """Set the (obsolete) `ALLOW-FROM <origin>` directive.
+
+        Warning:
+            This is an obsolete directive. Modern browsers that encounter response headers
+            with this directive will ignore the header completely. Use CSP `frame-ancestors`
+            instead.
+
+        Args:
+            origin: An origin value (for example, `https://example.com`).
 
         Returns:
             The `XFrameOptions` instance for method chaining.
         """
-        self._value = "SAMEORIGIN"
-        return self
+        # Keep construction minimal; validity of the origin is out-of-scope for this module.
+        return self.value(f"ALLOW-FROM {origin.strip()}")
