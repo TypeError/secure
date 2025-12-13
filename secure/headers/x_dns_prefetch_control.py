@@ -11,6 +11,7 @@ from __future__ import annotations  # type: ignore
 from dataclasses import dataclass, field
 from typing import Final
 
+from secure.headers._validation import normalize_header_value
 from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderName
 
 _VALID_VALUES: Final[frozenset[str]] = frozenset({"on", "off"})
@@ -19,23 +20,9 @@ _VALID_VALUES: Final[frozenset[str]] = frozenset({"on", "off"})
 @dataclass
 class XDnsPrefetchControl(BaseHeader):
     """
-    Represents the `X-DNS-Prefetch-Control` HTTP response header (non-standard).
-
-    This header controls DNS prefetching: browsers may proactively resolve domain
-    names for links and referenced subresources (images, CSS, JS, etc.) in the
-    background to reduce latency.
-
-    Note:
-        Per MDN, if this header is **not present**, browsers that support DNS
-        prefetching behave as if it were `on`. This library's default value is
-        `off` (privacy-first) when you choose to emit the header.
+    Builder for the non-standard `X-DNS-Prefetch-Control` HTTP header.
 
     Default header value: `off`
-
-    Example:
-        xdfc = XDnsPrefetchControl().off()
-        print(xdfc.header_name)   # 'X-DNS-Prefetch-Control'
-        print(xdfc.header_value)  # 'off'
 
     Resources:
         - https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/X-DNS-Prefetch-Control
@@ -62,7 +49,8 @@ class XDnsPrefetchControl(BaseHeader):
         Typical values are `on` or `off`. If `value` is `on`/`off` (case-insensitive),
         it will be normalized to lowercase for deterministic output.
         """
-        self._value = self._normalize(value)
+        cleaned = normalize_header_value(value, what="X-DNS-Prefetch-Control value")
+        self._value = self._normalize(cleaned)
         return self
 
     def value(self, value: str) -> XDnsPrefetchControl:

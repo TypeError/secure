@@ -11,6 +11,7 @@ from __future__ import annotations  # type: ignore
 from dataclasses import dataclass, field
 from typing import Literal
 
+from secure.headers._validation import normalize_header_value
 from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderName
 
 COEPDirective = Literal["unsafe-none", "require-corp", "credentialless"]
@@ -18,46 +19,32 @@ COEPDirective = Literal["unsafe-none", "require-corp", "credentialless"]
 
 @dataclass
 class CrossOriginEmbedderPolicy(BaseHeader):
-    """Build the ``Cross-Origin-Embedder-Policy`` (COEP) response header.
+    """
+    Builder for the ``Cross-Origin-Embedder-Policy`` (COEP) HTTP response header.
 
-    COEP configures the current document's policy for loading and embedding
-    cross-origin resources. It can require opt-in via CORP
-    (``Cross-Origin-Resource-Policy``) for ``no-cors`` fetches, or via CORS
-    for ``cors`` fetches.
-
-    Supported directives (MDN):
-        - ``unsafe-none``: allow loading cross-origin resources without explicit CORP/CORS opt-in.
-        - ``require-corp``: block cross-origin resource loading unless CORP or CORS permits it.
-        - ``credentialless``: allow certain cross-origin loads without CORP opt-in, but strip credentials
-          (cookies omitted on the request and ignored in the response).
+    COEP controls how the document embeds and loads cross-origin resources, with
+    directives that range from no isolation (``unsafe-none``) to strict isolation
+    (``require-corp``) or credentialless loading.
 
     Default header value: ``require-corp``
 
-    Note:
-        Per MDN, the default behavior *when this header is not sent* is ``unsafe-none``.
-
-    Example:
-        >>> from secure import Secure
-        >>> from secure.headers import CrossOriginEmbedderPolicy, CrossOriginOpenerPolicy
-        >>>
-        >>> secure = Secure(
-        ...     coep=CrossOriginEmbedderPolicy().require_corp(),
-        ...     coop=CrossOriginOpenerPolicy().same_origin(),
-        ... )
-        >>> secure.header_items()
-        (('Cross-Origin-Embedder-Policy', 'require-corp'), ('Cross-Origin-Opener-Policy', 'same-origin'))
+    Notes:
+        * Per MDN, omitting the header is equivalent to ``unsafe-none``.
+        * Each helper closes over canonical MDN directives while ``value(...)``
+          acts as an escape hatch for custom strings.
 
     Resources:
         - https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cross-Origin-Embedder-Policy
         - https://owasp.org/www-project-secure-headers/#cross-origin-embedder-policy
     """
 
-    header_name: str = HeaderName.CROSS_ORIGIN_EMBEDDER_POLICY.value
-    _directive: str = field(default=HeaderDefaultValue.CROSS_ORIGIN_EMBEDDER_POLICY.value)
+    header_name: str = field(init=False, default=HeaderName.CROSS_ORIGIN_EMBEDDER_POLICY.value, repr=False)
+    _directive: str = field(default=HeaderDefaultValue.CROSS_ORIGIN_EMBEDDER_POLICY.value, repr=False)
 
     def _normalize(self, value: str) -> str:
         """Normalize a directive value (trim + lowercase)."""
-        v = value.strip()
+        v = normalize_header_value(value, what="Cross-Origin-Embedder-Policy value")
+
         if not v:
             return HeaderDefaultValue.CROSS_ORIGIN_EMBEDDER_POLICY.value
         return v.lower()
@@ -81,6 +68,10 @@ class CrossOriginEmbedderPolicy(BaseHeader):
         """
         self._directive = self._normalize(str(value))
         return self
+
+    def value(self, value: COEPDirective | str) -> CrossOriginEmbedderPolicy:
+        """Alias for :meth:`set` to align with other headers."""
+        return self.set(value)
 
     def clear(self) -> CrossOriginEmbedderPolicy:
         """Reset to the library default directive."""

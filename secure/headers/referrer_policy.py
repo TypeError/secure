@@ -10,25 +10,18 @@ from __future__ import annotations  # type: ignore
 
 from dataclasses import dataclass, field
 
+from secure.headers._validation import normalize_header_value
 from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderName
 
 
 def _split_policies(value: str) -> list[str]:
-    """Split a header value into individual policy tokens.
-
-    The Referrer-Policy HTTP header supports a comma-separated list of values
-    to specify a fallback policy; the desired (most modern) policy should be
-    specified last.
-
-    This helper is intentionally lightweight: it trims whitespace and rejects
-    CR/LF to avoid header injection. Full RFC validation and sanitization is
-    handled by :meth:`Secure.validate_and_normalize_headers`.
-    """
-    if ("\r" in value) or ("\n" in value):
-        raise ValueError("Referrer-Policy value must not contain CR or LF")
+    """Split a header value into individual policy tokens."""
+    cleaned = normalize_header_value(value, what="Referrer-Policy value")
+    if not cleaned:
+        return []
 
     parts: list[str] = []
-    for raw in value.split(","):
+    for raw in cleaned.split(","):
         token = raw.strip()
         if not token:
             continue
@@ -44,42 +37,18 @@ def _split_policies(value: str) -> list[str]:
 
 @dataclass
 class ReferrerPolicy(BaseHeader):
-    """Represents the ``Referrer-Policy`` HTTP response header.
-
-    The Referrer-Policy header controls how much referrer information (sent
-    with the ``Referer`` header) should be included with outgoing requests.
+    """
+    Builder for the ``Referrer-Policy`` HTTP response header.
 
     Default header value: ``strict-origin-when-cross-origin``
 
-    Notes
-    -----
-    * ``Referer`` is intentionally misspelled in HTTP; ``Referrer-Policy`` does
-      **not** share that misspelling (MDN).
-    * The HTTP header supports a comma-separated list of policies to provide a
-      fallback for older user agents. When specifying multiple values, put the
-      desired policy **last**.
+    Notes:
+        * ``Referrer-Policy`` controls how much of the ``Referer`` header is sent.
+        * The comma-separated fallback list should place the primary policy last.
 
-    Examples
-    --------
-    Minimal (use a single policy):
-
-    >>> from secure.headers import ReferrerPolicy
-    >>> rp = ReferrerPolicy().value("no-referrer")
-    >>> rp.header_name
-    'Referrer-Policy'
-    >>> rp.header_value
-    'no-referrer'
-
-    Fallback list (desired policy last):
-
-    >>> rp = ReferrerPolicy().clear().add("no-referrer").add("strict-origin-when-cross-origin")
-    >>> rp.header_value
-    'no-referrer, strict-origin-when-cross-origin'
-
-    Resources
-    ---------
-    * https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Referrer-Policy
-    * https://owasp.org/www-project-secure-headers/#referrer-policy
+    Resources:
+        - https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Referrer-Policy
+        - https://owasp.org/www-project-secure-headers/#referrer-policy
     """
 
     header_name: str = HeaderName.REFERRER_POLICY.value

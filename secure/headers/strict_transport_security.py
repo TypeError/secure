@@ -10,6 +10,7 @@ from __future__ import annotations  # type: ignore
 
 from dataclasses import dataclass
 
+from secure.headers._validation import normalize_header_value
 from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderName
 
 _PRELOAD_MIN_MAX_AGE_SECONDS = 31_536_000  # 1 year
@@ -18,34 +19,19 @@ _PRELOAD_MIN_MAX_AGE_SECONDS = 31_536_000  # 1 year
 @dataclass
 class StrictTransportSecurity(BaseHeader):
     """
-    Represents the ``Strict-Transport-Security`` (HSTS) HTTP response header.
+    Builder for the ``Strict-Transport-Security`` (HSTS) HTTP response header.
 
-    HSTS tells browsers that a host should only be accessed using HTTPS, and that
-    future attempts to access it over HTTP should be automatically upgraded to HTTPS.
+    Default header value: ``max-age=31536000``
 
-    Notes
-    -----
-    * This header must only be sent over HTTPS. Browsers ignore it if delivered
-      over insecure HTTP.
-    * The ``max-age`` directive is required by the header syntax.
-    * If you use ``preload``, MDN notes that ``max-age`` must be at least 31536000
-      (1 year) and ``includeSubDomains`` must be present.
+    Notes:
+        * Only send this header over HTTPS; browsers ignore it otherwise.
+        * ``preload`` requires ``includeSubDomains`` and at least one year ``max-age``.
+        * ``max-age`` is required by the HSTS specification.
 
-    Default header value
-    --------------------
-    ``max-age=31536000`` (library default)
-
-    Example
-    -------
-    >>> hsts = StrictTransportSecurity().max_age(31536000).include_subdomains()
-    >>> (hsts.header_name, hsts.header_value)
-    ('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
-
-    Resources
-    ---------
-    * https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Strict-Transport-Security
-    * https://hstspreload.org/
-    * https://owasp.org/www-project-secure-headers/
+    Resources:
+        - https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Strict-Transport-Security
+        - https://hstspreload.org/
+        - https://owasp.org/www-project-secure-headers/
     """
 
     header_name: str = HeaderName.STRICT_TRANSPORT_SECURITY.value
@@ -107,9 +93,7 @@ class StrictTransportSecurity(BaseHeader):
     @staticmethod
     def _ensure_no_newlines(value: str) -> str:
         """Reject values that could enable header injection via CR/LF."""
-        if "\r" in value or "\n" in value:
-            raise ValueError("Header value must not contain CR or LF characters.")
-        return value
+        return normalize_header_value(value, what="Strict-Transport-Security value")
 
     def clear(self) -> StrictTransportSecurity:
         """Clear configured directives and reset back to the library default."""

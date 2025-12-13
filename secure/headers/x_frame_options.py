@@ -10,35 +10,20 @@ from __future__ import annotations  # type: ignore
 
 from dataclasses import dataclass, field
 
+from secure.headers._validation import normalize_header_value
 from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderName
 
 
 @dataclass
 class XFrameOptions(BaseHeader):
-    """Represents the `X-Frame-Options` HTTP response header.
-
-    `X-Frame-Options` tells supporting browsers whether a page may be embedded in a
-    `<frame>`, `<iframe>`, `<embed>`, or `<object>`. Sites use it to reduce the risk of
-    clickjacking by preventing (or restricting) framing.
-
-    Note:
-        For more comprehensive options than offered by this header, use the
-        `Content-Security-Policy` `frame-ancestors` directive instead.
-
-        Setting `X-Frame-Options` inside an HTML `<meta http-equiv=...>` element has no
-        effect. `X-Frame-Options` is only enforced via HTTP response headers.
+    """
+    Builder for the `X-Frame-Options` HTTP response header.
 
     Default header value: `SAMEORIGIN`
 
-    Example:
-        >>> xfo = XFrameOptions().sameorigin()
-        >>> xfo.header_name
-        'X-Frame-Options'
-        >>> xfo.header_value
-        'SAMEORIGIN'
-
-        >>> XFrameOptions().deny().header_value
-        'DENY'
+    Notes:
+        * Consider CSP `frame-ancestors` for richer framing controls.
+        * This header is only processed when sent as an HTTP response header.
 
     Resources:
         - https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/X-Frame-Options
@@ -73,9 +58,7 @@ class XFrameOptions(BaseHeader):
         Returns:
             The `XFrameOptions` instance for method chaining.
         """
-        if "\r" in value or "\n" in value:
-            raise ValueError("X-Frame-Options value must not contain CR/LF characters")
-        self._value = value.strip()
+        self._value = normalize_header_value(value, what="X-Frame-Options value")
         return self
 
     def set(self, value: str) -> XFrameOptions:

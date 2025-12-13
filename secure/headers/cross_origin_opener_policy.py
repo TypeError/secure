@@ -11,6 +11,7 @@ from __future__ import annotations  # type: ignore
 from dataclasses import dataclass, field
 from typing import Final, Literal
 
+from secure.headers._validation import normalize_header_value
 from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderName
 
 COOPDirective = Literal[
@@ -28,30 +29,25 @@ DEFAULT_VALUE: Final[str] = HeaderDefaultValue.CROSS_ORIGIN_OPENER_POLICY.value
 @dataclass
 class CrossOriginOpenerPolicy(BaseHeader):
     """
-    Represents the `Cross-Origin-Opener-Policy` (COOP) HTTP response header.
+    Builder for the ``Cross-Origin-Opener-Policy`` (COOP) HTTP response header.
 
-    COOP allows a site to control whether documents opened via `Window.open()` or navigations
-    share the same browsing context group (BCG) with their opener. This can help reduce
-    cross-origin attack classes often referred to as XS-Leaks.
+    COOP lets a page opt into a dedicated browsing context group or share like with
+    its opener, helping protect against XS-Leaks.
 
-    Default header value: `same-origin` (library default).
+    Default header value: ``same-origin``
 
-    Note:
-        Per MDN/spec semantics, if the COOP header is not set at all, the effective behavior
-        is equivalent to `unsafe-none` (i.e., opting out of COOP isolation).
-
-    Minimal example:
-        coop = CrossOriginOpenerPolicy().same_origin()
-        assert coop.header_name == "Cross-Origin-Opener-Policy"
-        assert coop.header_value == "same-origin"
+    Notes:
+        * If this header is absent, browsers behave as if ``unsafe-none`` were set.
+        * Use the fluent helpers to pick MDN-defined directives; ``value(...)`` is
+          provided as an escape hatch.
 
     Resources:
         - https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cross-Origin-Opener-Policy
         - https://owasp.org/www-project-secure-headers/#cross-origin-opener-policy
     """
 
-    header_name: str = HeaderName.CROSS_ORIGIN_OPENER_POLICY.value
-    _directive: str = field(default=DEFAULT_VALUE)
+    header_name: str = field(init=False, default=HeaderName.CROSS_ORIGIN_OPENER_POLICY.value, repr=False)
+    _directive: str = field(default=DEFAULT_VALUE, repr=False)
 
     @property
     def header_value(self) -> str:
@@ -78,9 +74,7 @@ class CrossOriginOpenerPolicy(BaseHeader):
         Returns:
             The `CrossOriginOpenerPolicy` instance for method chaining.
         """
-        v = directive.strip()
-        if "\r" in v or "\n" in v:
-            raise ValueError("Cross-Origin-Opener-Policy value must not contain CR/LF")
+        v = normalize_header_value(directive, what="Cross-Origin-Opener-Policy value")
         self._directive = v
         return self
 

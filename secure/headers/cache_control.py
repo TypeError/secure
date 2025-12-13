@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 import re
 from typing import ClassVar
 
+from secure.headers._validation import normalize_header_value
 from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderName
 
 _TOKEN_RE = re.compile(r"^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$")
@@ -20,49 +21,23 @@ _TOKEN_RE = re.compile(r"^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$")
 @dataclass
 class CacheControl(BaseHeader):
     """
-    Represents the `Cache-Control` HTTP header.
+    Fluent builder for the `Cache-Control` HTTP header.
 
-    `Cache-Control` is a comma-separated list of *directives* that control caching
-    behavior in both requests and responses.
+    Default header value: `no-store, max-age=0`
 
-    If no directives are configured, this class returns the library default value
-    from `HeaderDefaultValue.CACHE_CONTROL`.
+    Notes:
+        * Directive names are case-insensitive; lowercase is the recommended form.
+        * Directives are comma-separated and resilient to repeated calls for the
+          same helper.
+        * Common directives follow a deterministic, canonical order to keep
+          serialized output stable regardless of call order.
 
-    Notes
-    -----
-    - Directive names are case-insensitive. Lowercase is recommended.
-    - Directives are comma-separated (`, `).
-    - Some directives take an integer argument separated by `=`, e.g. `max-age=60`.
-
-    Default header value
-    --------------------
-    `no-store, max-age=0`
-
-    Examples
-    --------
-    Default (secure baseline):
-
-        cc = CacheControl()
-        print(cc.header_name)   # Cache-Control
-        print(cc.header_value)  # no-store, max-age=0
-
-    Typical "do not cache" response:
-
-        cc = CacheControl().no_store().max_age(0)
-        print(cc.header_value)  # no-store, max-age=0
-
-    Cache public assets for one week:
-
-        cc = CacheControl().public().max_age(604800)
-        print(cc.header_value)  # public, max-age=604800
-
-    Resources
-    ---------
-    - https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cache-Control
-    - https://owasp.org/www-project-secure-headers/#cache-control
+    Resources:
+        - https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cache-Control
+        - https://owasp.org/www-project-secure-headers/#cache-control
     """
 
-    header_name: str = HeaderName.CACHE_CONTROL.value
+    header_name: str = field(init=False, default=HeaderName.CACHE_CONTROL.value, repr=False)
 
     # Directive storage:
     # - Keys are lowercase directive names (e.g., "max-age", "no-store")
@@ -155,10 +130,7 @@ class CacheControl(BaseHeader):
         - Rejects CR/LF to prevent header-splitting.
         - Strips leading/trailing whitespace and rejects empty results.
         """
-        if ("\r" in value) or ("\n" in value):
-            raise ValueError("Cache-Control value must not contain CR/LF characters")
-
-        v = value.strip()
+        v = normalize_header_value(value, what="Cache-Control value")
         if not v:
             raise ValueError("Cache-Control value must not be empty")
 

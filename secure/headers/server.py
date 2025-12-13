@@ -2,18 +2,18 @@ from __future__ import annotations  # type: ignore
 
 from dataclasses import dataclass, field
 
+from secure.headers._validation import normalize_header_value
 from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderName
 
 
 @dataclass
 class Server(BaseHeader):
     """
-    Represents the `Server` HTTP header, which provides information about the software used by the server.
+    Builder for the `Server` HTTP header.
 
-    Header default value: `""`
+    Default header value: `""`
 
-    By default, the `Server` header is set to an empty value to obscure specific server details
-    and enhance security by avoiding unnecessary exposure of server information.
+    By default the header is blank to keep server details private.
     """
 
     header_name: str = HeaderName.SERVER.value
@@ -42,8 +42,12 @@ class Server(BaseHeader):
         Returns:
             Server: The current instance, allowing for method chaining.
         """
-        self._value = value
+        self._value = normalize_header_value(value, what="Server value")
         return self
+
+    def value(self, value: str) -> Server:
+        """Alias for :meth:`set` (kept for feature parity with other headers)."""
+        return self.set(value)
 
     def clear(self) -> Server:
         """

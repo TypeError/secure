@@ -10,13 +10,14 @@ from __future__ import annotations  # type: ignore
 
 from dataclasses import dataclass, field
 
+from secure.headers._validation import normalize_header_value
 from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderName
 
 
 @dataclass
 class XContentTypeOptions(BaseHeader):
     """
-    Represents the `X-Content-Type-Options` HTTP header, which prevents MIME-sniffing by browsers.
+    Builder for the `X-Content-Type-Options` HTTP header.
 
     Default header value: `nosniff`
 
@@ -47,8 +48,12 @@ class XContentTypeOptions(BaseHeader):
         Returns:
             The `XContentTypeOptions` instance for method chaining.
         """
-        self._value = value
+        self._value = normalize_header_value(value, what="X-Content-Type-Options value")
         return self
+
+    def value(self, value: str) -> XContentTypeOptions:
+        """Alias for :meth:`set` to match other headers."""
+        return self.set(value)
 
     def clear(self) -> XContentTypeOptions:
         """

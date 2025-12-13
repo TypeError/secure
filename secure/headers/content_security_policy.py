@@ -11,6 +11,7 @@ from __future__ import annotations  # type: ignore
 from dataclasses import dataclass, field
 import re
 
+from secure.headers._validation import normalize_header_value
 from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderName
 
 _DIRECTIVE_NAME_RE = re.compile(r"^[A-Za-z0-9-]+$")
@@ -22,34 +23,17 @@ _ASCII_DEL = 0x7F
 @dataclass
 class ContentSecurityPolicy(BaseHeader):
     """
-    Represents the `Content-Security-Policy` HTTP response header.
+    Fluent builder for the ``Content-Security-Policy`` HTTP response header.
 
-    This header allows you to define a policy controlling which resources the user
-    agent is allowed to load for a given page, helping mitigate cross-site scripting
-    and related injection attacks.
-
-    If no directives are configured, this class returns the library default:
-
-        Default header value:
-            ``default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'``
-
-    Minimal example:
-        csp = (
-            ContentSecurityPolicy()
-            .default_src(ContentSecurityPolicy.keyword("self"))
-            .object_src(ContentSecurityPolicy.keyword("none"))
-            .base_uri(ContentSecurityPolicy.keyword("self"))
-        )
-        print(csp.header_name)   # "Content-Security-Policy"
-        print(csp.header_value)  # "default-src 'self'; object-src 'none'; base-uri 'self'"
+    Default header value: `default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'`
 
     Notes:
-        - This helper intentionally does not try to fully validate CSP semantics.
-          Use ``.value(...)`` if you need to set an exact policy string.
-        - CSP can be delivered more than once. If you need multiple policies, add
-          multiple ``ContentSecurityPolicy`` instances to ``Secure.headers_list``.
-        - MDN describes fallback behavior between directives (for example, `default-src`
-          is a fallback for other fetch directives).
+        * The structured helpers intentionally avoid full CSP validation; use
+          ``.value(...)`` when you need to emit an exact policy string.
+        * Multiple policies can be sent by instantiating another
+          ``ContentSecurityPolicy`` and adding it to ``Secure.headers_list``.
+        * MDN describes fallback behavior between directives (e.g., ``default-src``
+          acts as a fallback for fetch directives).
 
     Resources:
         - https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy
@@ -91,11 +75,8 @@ class ContentSecurityPolicy(BaseHeader):
     # -------------------------------------------------------------------------
 
     def value(self, value: str) -> ContentSecurityPolicy:
-        """Set an exact header value (escape hatch).
-
-        This replaces any structured directives previously configured.
-        """
-        self._raw_value = value
+        """Set an exact header value (escape hatch)."""
+        self._raw_value = normalize_header_value(value, what="Content-Security-Policy value")
         self._directives.clear()
         return self
 

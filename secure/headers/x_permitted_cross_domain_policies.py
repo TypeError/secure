@@ -11,6 +11,7 @@ from __future__ import annotations  # type: ignore
 from dataclasses import dataclass, field
 from typing import Final, Literal
 
+from secure.headers._validation import normalize_header_value
 from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderName
 
 PermittedCrossDomainPolicy = Literal[
@@ -32,36 +33,17 @@ _ALLOWED_POLICIES: Final[set[str]] = {
 }
 
 
-def _normalize_header_value(value: str) -> str:
-    """
-    Normalize a header value for safe serialization.
-
-    This strips leading/trailing whitespace and replaces any CR/LF with spaces.
-    Further validation (RFC conformance, obs-text handling) is performed by
-    Secure.validate_and_normalize_headers().
-    """
-    return value.replace("\r", " ").replace("\n", " ").strip()
-
-
 @dataclass
 class XPermittedCrossDomainPolicies(BaseHeader):
     """
-    Represents the `X-Permitted-Cross-Domain-Policies` HTTP response header.
-
-    This header defines a meta-policy controlling whether site resources can be accessed
-    cross-origin by documents running in legacy web clients (for example, Adobe Acrobat
-    or Microsoft Silverlight).
-
-    Usage is less common since Adobe Flash Player and Microsoft Silverlight have been
-    deprecated, but many security tools still check for `X-Permitted-Cross-Domain-Policies: none`
-    to mitigate the risk of an overly-permissive cross-domain policy file being present.
+    Builder for the `X-Permitted-Cross-Domain-Policies` HTTP response header.
 
     Default header value: `none`
 
-    Example:
-        xpcdp = XPermittedCrossDomainPolicies().none()
-        print(xpcdp.header_name)   # 'X-Permitted-Cross-Domain-Policies'
-        print(xpcdp.header_value)  # 'none'
+    Notes:
+        * This header governs which cross-domain policy files legacy clients (Flash,
+          Silverlight, etc.) may load.
+        * Use helper methods for MDN-defined directives; ``value`` is an escape hatch.
 
     Resources:
         - https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/X-Permitted-Cross-Domain-Policies
@@ -90,7 +72,7 @@ class XPermittedCrossDomainPolicies(BaseHeader):
         Prefer the directive helper methods (e.g., :meth:`none`, :meth:`master_only`)
         when you want a well-known policy.
         """
-        self._value = _normalize_header_value(value)
+        self._value = normalize_header_value(value, what="X-Permitted-Cross-Domain-Policies value")
         return self
 
     def custom(self, value: str) -> XPermittedCrossDomainPolicies:

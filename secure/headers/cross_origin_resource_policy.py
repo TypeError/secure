@@ -11,6 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Final, Literal
 
+from secure.headers._validation import normalize_header_value
 from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderName
 
 CorpDirective = Literal["same-site", "same-origin", "cross-origin"]
@@ -21,36 +22,22 @@ _ALLOWED: Final[frozenset[str]] = frozenset({"same-site", "same-origin", "cross-
 @dataclass
 class CrossOriginResourcePolicy(BaseHeader):
     """
-    Represents the `Cross-Origin-Resource-Policy` (CORP) HTTP response header.
+    Builder for the ``Cross-Origin-Resource-Policy`` (CORP) HTTP response header.
 
-    CORP expresses the *resource owner's policy* for what sites/origins may load
-    this resource. MDN documents three directives:
+    CORP expresses the resource owner's intent for which origins may load this
+    resource, with MDN documenting ``same-site``, ``same-origin``, and
+    ``cross-origin`` directives.
 
-    - `same-site`: resources may be loaded only from the same site
-    - `same-origin`: resources may be loaded only from the same origin
-    - `cross-origin`: resources may be loaded by any origin/website
-
-    Library default header value: `same-origin`
-
-    Minimal example:
-        corp = CrossOriginResourcePolicy().same_origin()
-        print(corp.header_name)   # 'Cross-Origin-Resource-Policy'
-        print(corp.header_value)  # 'same-origin'
-
-    With `Secure`:
-        # secure = Secure(corp=CrossOriginResourcePolicy().same_site())
+    Default header value: `same-origin`
 
     Resources:
         - https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cross-Origin-Resource-Policy
-        - https://resourcepolicy.fyi/  (more examples)
+        - https://resourcepolicy.fyi/
         - https://owasp.org/www-project-secure-headers/#cross-origin-resource-policy
     """
 
-    # Always emit the canonical header name for this module.
-    header_name: str = field(init=False, default=HeaderName.CROSS_ORIGIN_RESOURCE_POLICY.value)
-
-    # Library default (recommended) value.
-    _value: str = field(default_factory=lambda: HeaderDefaultValue.CROSS_ORIGIN_RESOURCE_POLICY.value)
+    header_name: str = field(init=False, default=HeaderName.CROSS_ORIGIN_RESOURCE_POLICY.value, repr=False)
+    _value: str = field(default_factory=lambda: HeaderDefaultValue.CROSS_ORIGIN_RESOURCE_POLICY.value, repr=False)
 
     @property
     def header_value(self) -> str:
@@ -115,11 +102,7 @@ class CrossOriginResourcePolicy(BaseHeader):
 
     @staticmethod
     def _normalize_value(value: str) -> str:
-        v = value.strip()
-
-        # Guard against header injection when callers skip Secure.validate_and_normalize_headers().
-        if "\r" in v or "\n" in v:
-            raise ValueError("Cross-Origin-Resource-Policy value must not contain CR/LF characters")
+        v = normalize_header_value(value, what="Cross-Origin-Resource-Policy value")
 
         # Canonicalize known directives (case-insensitive) to the MDN tokens.
         lc = v.lower()

@@ -10,18 +10,13 @@ from __future__ import annotations  # type: ignore
 
 from dataclasses import dataclass, field
 
+from secure.headers._validation import normalize_header_value
 from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderName
-
-
-def _reject_newlines(value: str, *, what: str) -> str:
-    if ("\r" in value) or ("\n" in value):
-        raise ValueError(f"{what} must not contain CR/LF")
-    return value
 
 
 def _normalize_token(raw: str, tokens_len: int) -> str | None:
     """Normalize a single allowlist token. Returns None for wildcard, empty string to skip."""
-    token = _reject_newlines(str(raw), what="allowlist token").strip()
+    token = normalize_header_value(str(raw), what="allowlist token")
     if not token:
         return ""
 
@@ -109,24 +104,18 @@ def _normalize_allowlist(tokens: tuple[str, ...]) -> str:
 @dataclass
 class PermissionsPolicy(BaseHeader):
     """
-    Represents the `Permissions-Policy` HTTP response header.
-
-    Permissions-Policy lets you enable or disable access to selected browser features
-    and powerful APIs in the current document and in nested browsing contexts (iframes).
+    Builder for the `Permissions-Policy` HTTP header.
 
     Default header value: `geolocation=(), microphone=(), camera=()`
 
-    Minimal example:
-        policy = PermissionsPolicy().geolocation().microphone().camera()
-        assert policy.header_name == "Permissions-Policy"
-        assert policy.header_value == "geolocation=(), microphone=(), camera=()"
-
-    Allowlist tokens (MDN syntax):
-        - No tokens -> `()` (disabled)
-        - `*` -> allowed in all contexts
-        - `self` -> same-origin
-        - `src` -> iframe's src origin (only meaningful in nested contexts)
-        - Origins -> pass as URLs; they will be emitted as double-quoted strings
+    Notes:
+        * Directive helpers cover MDN features; use ``value(...)`` when you already
+          have a ready-made header string.
+        * Allowlists follow MDN syntax: ``()``, ``*``, ``self``, ``src``, or
+          double-quoted origins; ``()``/``none`` cannot be mixed with other tokens,
+          and wildcard must stand alone.
+        * Call helpers repeatedly without worrying about duplicates: each directive
+          is unique and re-assigning it keeps the order of the most recent write.
 
     Resources:
         - https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Permissions-Policy
@@ -163,14 +152,14 @@ class PermissionsPolicy(BaseHeader):
         """
         Set a raw header value (escape hatch).
 
-        This bypasses directive-building and uses `value` verbatim (after `.strip()`).
+        This bypasses directive-building and uses `value` verbatim after trimming.
 
         Notes
         -----
         `Secure.validate_and_normalize_headers()` is responsible for final safety checks
         (e.g., CR/LF handling). This method rejects CR/LF up front.
         """
-        value = _reject_newlines(str(value), what="Permissions-Policy value").strip()
+        value = normalize_header_value(str(value), what="Permissions-Policy value")
         if not value:
             raise ValueError("Permissions-Policy value must not be empty")
 
@@ -210,7 +199,7 @@ class PermissionsPolicy(BaseHeader):
         PermissionsPolicy
             The instance (for chaining).
         """
-        directive = _reject_newlines(str(directive), what="directive").strip()
+        directive = normalize_header_value(str(directive), what="directive")
         if not directive:
             raise ValueError("Directive name must not be empty")
         if any(ch.isspace() for ch in directive) or any(ch in directive for ch in ",;="):
