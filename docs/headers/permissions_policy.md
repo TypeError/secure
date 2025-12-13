@@ -1,22 +1,23 @@
-# Permissions-Policy Header
+# Permissions-Policy
 
 ## Purpose
 
-The `Permissions-Policy` header allows you to enable or disable browser features and APIs for your web applications. This header replaces the deprecated `Feature-Policy` header and provides fine-grained control over which features are allowed in your site, such as geolocation, camera access, or microphone use.
+The `Permissions-Policy` HTTP response header lets you enable or disable access to selected browser features and powerful APIs in the current document and in nested browsing contexts (iframes). It replaces the deprecated `Feature-Policy` header.
 
-## Best Practices
+In this library, `PermissionsPolicy` is a fluent builder for producing a single `Permissions-Policy` header value, suitable for applying via `Secure`.
 
-- Disable unnecessary features to reduce your site's attack surface and protect user privacy.
-- Allow features only for trusted sources or specific origins to avoid potential misuse.
-- Use a restrictive default policy, then selectively enable features as required.
+## Best practices
+
+- Start restrictive: disable features you don’t need to reduce attack surface and protect privacy.
+- Enable selectively: allow features only where required, and only for trusted origins.
+- Validate in real browsers: support varies by feature and browser; test the behaviors you rely on.
 
 ## Configuration in `secure.py`
 
-The `PermissionsPolicy` class in `secure.py` allows you to configure the `Permissions-Policy` header with specific directives for controlling access to browser APIs and features.
-
-### Example Configuration
-
 ```python
+from secure import Secure
+from secure.headers import PermissionsPolicy
+
 secure_headers = Secure(
     permissions=PermissionsPolicy()
         .geolocation()
@@ -25,42 +26,63 @@ secure_headers = Secure(
 )
 ```
 
-### Methods Available
+## Allowlist syntax
 
-- **`add_directive(directive, *allowlist)`**: Add a custom directive with an optional allowlist of origins.
-- **`geolocation(*allowlist)`**: Control access to geolocation data.
-- **`camera(*allowlist)`**: Control access to the camera.
-- **`microphone(*allowlist)`**: Control access to the microphone.
-- **`usb(*allowlist)`**: Control access to USB devices.
-- More methods are available for other browser features, such as accelerometer, gyroscope, and more.
+`PermissionsPolicy` uses MDN-style allowlist syntax for each directive:
 
-## Example Usage
+- **No tokens** → `()` (feature disabled)
+- **`"*"`** → `*` (feature allowed everywhere; must be used alone)
+- **`"self"` / `"src"`** → tokens for same-origin / iframe source origin
+- **Origins** → pass a URL (e.g. `"https://a.example.com"`); it is emitted as a double-quoted origin in the header value
 
-To set up a `Permissions-Policy` header that controls access to specific features:
+Examples:
 
 ```python
-permissions_policy = PermissionsPolicy()
-    .geolocation()
-    .camera()
-    .microphone()
-print(permissions_policy.header_name)   # Output: 'Permissions-Policy'
-print(permissions_policy.header_value)  # Output: 'geolocation=(), camera=(), microphone=()'
+policy = (
+    PermissionsPolicy()
+    .geolocation("*")  # geolocation=*
+    .camera("self", "https://a.example.com")  # camera=(self "https://a.example.com")
+    .microphone()  # microphone=()
+)
+print(policy.header_value)
 ```
 
-This can then be applied as part of your Secure headers configuration.
+## Methods
+
+Common methods you’ll use:
+
+- **`geolocation(*allowlist)`**, **`camera(*allowlist)`**, **`microphone(*allowlist)`**, etc.: configure specific directives.
+- **`add_directive(directive, *allowlist)`** (alias: **`directive(...)`**): set any directive by name (future-proof when browsers add new ones).
+- **`value(raw)`** (alias: **`set(raw)`**): set a complete prebuilt header value (escape hatch; bypasses directive building).
+- **`clear()`**: remove all configured directives and any raw override.
+
+## Example usage
 
 ```python
+from secure import Secure
+from secure.headers import PermissionsPolicy
+
+permissions_policy = (
+    PermissionsPolicy()
+    .geolocation()  # disabled
+    .camera("self", "https://a.example.com")
+    .microphone("self")
+)
+
+print(permissions_policy.header_name)   # 'Permissions-Policy'
+print(permissions_policy.header_value)  # 'geolocation=(), camera=(self "https://a.example.com"), microphone=(self)'
+
 secure_headers = Secure(permissions=permissions_policy)
 ```
 
-## **Resources**
+## Resources
 
-- [MDN Web Docs: Permissions-Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Permissions-Policy)
-- [OWASP Secure Headers Project: Permissions-Policy](https://owasp.org/www-project-secure-headers/#permissions-policy)
+- MDN Web Docs: Permissions-Policy (Reference) — https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Permissions-Policy
+- OWASP Secure Headers Project: Permissions-Policy — https://owasp.org/www-project-secure-headers/#permissions-policy
 
-## **Attribution**
+## Attribution
 
 This library implements security recommendations from trusted sources:
 
-- [MDN Web Docs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Permissions-Policy) (licensed under [CC-BY-SA 2.5](https://creativecommons.org/licenses/by-sa/2.5/))
-- [OWASP Secure Headers Project](https://owasp.org/www-project-secure-headers/#permissions-policy) (licensed under [CC-BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/))
+- MDN Web Docs (licensed under CC-BY-SA 2.5)
+- OWASP Secure Headers Project (licensed under CC-BY-SA 4.0)
