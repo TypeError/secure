@@ -109,8 +109,26 @@ class Preset(Enum):
     """Predefined security header presets for :class:`Secure`."""
 
     BASIC = "basic"
-    MODERN = "modern"
+    BALANCED = "balanced"
     STRICT = "strict"
+
+
+def _baseline_content_security_policy() -> ContentSecurityPolicy:
+    """Shared CSP builder used by the BASIC and BALANCED presets."""
+    return (
+        ContentSecurityPolicy()
+        .default_src("'self'")
+        .base_uri("'self'")
+        .font_src("'self'", "https:", "data:")
+        .form_action("'self'")
+        .frame_ancestors("'self'")
+        .img_src("'self'", "data:")
+        .object_src("'none'")
+        .script_src("'self'")
+        .script_src_attr("'none'")
+        .style_src("'self'", "https:", "'unsafe-inline'")
+        .upgrade_insecure_requests()
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -237,9 +255,10 @@ class Secure:
         Returns
         -------
         Secure
-            Instance preconfigured with a default set of headers.
+            Instance preconfigured with :data:`Preset.BALANCED`, the recommended
+            default profile.
         """
-        return cls.from_preset(Preset.BASIC)
+        return cls.from_preset(Preset.BALANCED)
 
     @classmethod
     def from_preset(cls, preset: Preset) -> Secure:
@@ -249,9 +268,10 @@ class Secure:
         Parameters
         ----------
         preset :
-            The security preset to use, for example :data:`Preset.BASIC` for a
-            balanced default profile or :data:`Preset.STRICT` for a hardened
-            configuration with stronger guarantees.
+            The security preset to use, for example :data:`Preset.BALANCED` for the
+            recommended default profile, :data:`Preset.BASIC` for Helmet-parity
+            behavior, or :data:`Preset.STRICT` for a hardened configuration with
+            stronger guarantees.
 
         Returns
         -------
@@ -265,31 +285,12 @@ class Secure:
         """
         match preset:
             case Preset.BASIC:
-                csp = (
-                    ContentSecurityPolicy()
-                    .default_src("'self'")
-                    .base_uri("'self'")
-                    .font_src("'self'", "https:", "data:")
-                    .form_action("'self'")
-                    .frame_ancestors("'self'")
-                    .img_src("'self'", "data:")
-                    .object_src("'none'")
-                    .script_src("'self'")
-                    .script_src_attr("'none'")
-                    .style_src("'self'", "https:", "'unsafe-inline'")
-                    .upgrade_insecure_requests()
-                )
-
                 return cls(
-                    cache=CacheControl().no_store().max_age(0),
                     coop=CrossOriginOpenerPolicy().same_origin(),
-                    coep=None,
-                    csp=csp,
+                    csp=_baseline_content_security_policy(),
                     corp=CrossOriginResourcePolicy().same_origin(),
                     hsts=StrictTransportSecurity().max_age(31536000).include_subdomains(),
-                    permissions=PermissionsPolicy().geolocation().microphone().camera(),
-                    referrer=ReferrerPolicy().strict_origin_when_cross_origin(),
-                    server=Server().set(""),
+                    referrer=ReferrerPolicy().no_referrer(),
                     xcto=XContentTypeOptions().nosniff(),
                     xfo=XFrameOptions().sameorigin(),
                     xdfc=XDnsPrefetchControl().disable(),
@@ -309,19 +310,12 @@ class Secure:
                         ),
                     ],
                 )
-
-            case Preset.MODERN:
+            case Preset.BALANCED:
                 return cls(
-                    cache=CacheControl().no_store().max_age(0),
                     coop=CrossOriginOpenerPolicy().same_origin(),
-                    csp=(
-                        ContentSecurityPolicy()
-                        .default_src("'self'")
-                        .script_src("'self'")
-                        .style_src("'self'")
-                        .object_src("'none'")
-                    ),
-                    hsts=StrictTransportSecurity().max_age(31536000),
+                    corp=CrossOriginResourcePolicy().same_origin(),
+                    csp=_baseline_content_security_policy(),
+                    hsts=StrictTransportSecurity().max_age(31536000).include_subdomains(),
                     permissions=PermissionsPolicy().geolocation().microphone().camera(),
                     referrer=ReferrerPolicy().strict_origin_when_cross_origin(),
                     server=Server().set(""),
@@ -343,7 +337,7 @@ class Secure:
                         .base_uri("'none'")
                         .frame_ancestors("'none'")
                     ),
-                    hsts=(StrictTransportSecurity().max_age(63072000).include_subdomains().preload()),
+                    hsts=StrictTransportSecurity().max_age(63072000).include_subdomains(),
                     permissions=PermissionsPolicy().geolocation().microphone().camera(),
                     referrer=ReferrerPolicy().no_referrer(),
                     server=Server().set(""),
