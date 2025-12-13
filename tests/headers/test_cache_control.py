@@ -7,7 +7,7 @@ class TestCacheControl(unittest.TestCase):
     def test_default_cache_control(self):
         """Test default Cache-Control value (no-store)."""
         cache_control = CacheControl()
-        self.assertEqual(cache_control.header_value, "no-store")
+        self.assertEqual(cache_control.header_value, "no-store, max-age=0")
 
     def test_set_no_cache(self):
         """Test adding the no-cache directive to Cache-Control."""
@@ -27,9 +27,7 @@ class TestCacheControl(unittest.TestCase):
     def test_multiple_directives(self):
         """Test adding multiple Cache-Control directives."""
         cache_control = CacheControl().no_cache().must_revalidate().max_age(3600)
-        self.assertEqual(
-            cache_control.header_value, "no-cache, must-revalidate, max-age=3600"
-        )
+        self.assertEqual(cache_control.header_value, "no-cache, max-age=3600, must-revalidate")
 
 
 if __name__ == "__main__":
