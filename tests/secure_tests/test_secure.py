@@ -305,6 +305,41 @@ class TestSecure(unittest.TestCase):
         # Verify that headers are set
         self.assertEqual(response.headers, self.secure.headers)
 
+    def test_validate_and_normalize_headers_drops_invalid_entries(self):
+        """Test that invalid headers are removed before emission."""
+        secure_headers = Secure(
+            custom=[
+                CustomHeader("X-Invalid-Header", "\n"),
+                CustomHeader("X-Valid-Header", "value"),
+            ]
+        )
+        secure_headers.validate_and_normalize_headers()
+
+        response = MockResponse()
+        secure_headers.set_headers(response)
+
+        self.assertNotIn("X-Invalid-Header", response.headers)
+        self.assertEqual(response.headers["X-Valid-Header"], "value")
+
+    def test_validate_and_normalize_headers_applies_normalized_values(self):
+        """Test that normalized headers drive both sync and async setters."""
+        secure_headers = Secure(
+            custom=[
+                CustomHeader("X-Test-Header", "value\nwith\r\nbad"),
+            ]
+        )
+        secure_headers.validate_and_normalize_headers()
+
+        response_sync = MockResponse()
+        secure_headers.set_headers(response_sync)
+        self.assertEqual(response_sync.headers["X-Test-Header"], "value with bad")
+
+        response_async = MockResponse()
+        asyncio.run(secure_headers.set_headers_async(response_async))
+        self.assertEqual(response_async.headers["X-Test-Header"], "value with bad")
+
+        self.assertEqual(secure_headers.headers["X-Test-Header"], "value with bad")
+
     def test_set_headers_missing_interface(self):
         """Test that an error is raised when response object lacks required methods."""
         secure_headers = Secure.with_default_headers()
