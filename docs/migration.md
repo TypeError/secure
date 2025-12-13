@@ -3,7 +3,7 @@
 ## Package and import changes
 
 - The package is now published as `secure` (not `secure.py`). Import the public API via `import secure` or `from secure import Secure, Preset, ContentSecurityPolicy`, and the builder classes are re-exported at the package level for convenience.
-- `Secure.with_default_headers()` now equals `Secure.from_preset(Preset.BASIC)`, so you can keep calling the same helpers while taking advantage of the new preset enum.
+- `Secure.with_default_headers()` now equals `Secure.from_preset(Preset.BALANCED)`, so you can keep calling the same helpers while taking advantage of the new preset enum. Balanced is the recommended default and intentionally omits `Cache-Control`; add it explicitly when your deployment depends on caching directives.
 
 ```python
 from secure import Secure, StrictTransportSecurity
@@ -15,8 +15,9 @@ secure_headers = Secure(
 
 ## Presets and defaults
 
-- There are three built-in presets now: `Preset.BASIC` (the default set that `with_default_headers()` uses), `Preset.MODERN` (a slimmer set of widely-supported headers), and `Preset.STRICT` (the hardened profile).
-- The `BASIC` preset now emits `Cross-Origin-Resource-Policy`, `X-Permitted-Cross-Domain-Policies`, `X-DNS-Prefetch-Control`, `Origin-Agent-Cluster`, `X-Download-Options`, and `X-XSS-Protection` in addition to the headers you already know. If you relied on the older shorthand, take a moment to verify whether these additionals need adjustment for your deployment.
+- There are three built-in presets now: `Preset.BALANCED` (the recommended default that `with_default_headers()` uses), `Preset.BASIC` (Helmet compatibility parity), and `Preset.STRICT` (the hardened profile). `Preset.MODERN` has been removed in favor of this clearer contract between the default, compatibility, and strict profiles.
+- The `BASIC` preset emits additional legacy/compatibility headers such as `X-Permitted-Cross-Domain-Policies`, `X-DNS-Prefetch-Control`, `Origin-Agent-Cluster`, `X-Download-Options`, and `X-XSS-Protection`. Use `Preset.BALANCED` when you want the same security posture without the extra response headers, and add those legacy headers manually only when you still depend on them.
+- `Preset.STRICT` continues to enable COEP, CSP base/frame restrictions, and a strict permissions policy, but it no longer preloads HSTS by default; add `.preload()` yourself when you are ready to opt into the preload list.
 
 ## Header pipeline helpers
 
@@ -30,6 +31,6 @@ secure_headers = Secure(
 ## Security gotchas
 
 - The `Server` header defaults to an empty string, so disable framework defaults (e.g., `uvicorn --no-server-header`) if you apply a custom value to avoid duplicate headers.
-- `Preset.BASIC` also includes legacy/compatibility defaults such as `X-Permitted-Cross-Domain-Policies: none` and `X-XSS-Protection: 0`. If you need to omit those, start from `Preset.MODERN` or build a `Secure` instance manually.
+- `Preset.BASIC` includes legacy/compatibility defaults such as `X-Permitted-Cross-Domain-Policies: none` and `X-XSS-Protection: 0`. Use `Preset.BALANCED` (or roll your own `Secure` instance) when you want a leaner header set.
 
 Refer back to the [README](../README.md) and the individual header docs for exact builder methods when adapting your existing configuration to v2.0.0.

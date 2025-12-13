@@ -143,7 +143,7 @@ secure_headers.set_headers(response)
 await secure_headers.set_headers_async(response)
 ```
 
-`Secure.with_default_headers()` is equivalent to `Secure.from_preset(Preset.BASIC)`.
+`Secure.with_default_headers()` is equivalent to `Secure.from_preset(Preset.BALANCED)`, the recommended default profile.
 
 `set_headers` and `set_headers_async` both operate on a response object that either:
 
@@ -156,27 +156,21 @@ If your framework uses a different contract, see the framework specific guides o
 
 ## Default secure headers
 
-When you call `Secure.with_default_headers()` (or `Secure.from_preset(Preset.BASIC)`), `secure` configures a balanced, modern set of headers suitable for many applications:
+When you call `Secure.with_default_headers()` (or `Secure.from_preset(Preset.BALANCED)`), `secure` configures the recommended defaults that balance security and usability:
 
 ```http
-Cache-Control: no-store, max-age=0
 Cross-Origin-Opener-Policy: same-origin
 Cross-Origin-Resource-Policy: same-origin
 Content-Security-Policy: default-src 'self'; base-uri 'self'; font-src 'self' https: data:; form-action 'self'; frame-ancestors 'self'; img-src 'self' data:; object-src 'none'; script-src 'self'; script-src-attr 'none'; style-src 'self' https: 'unsafe-inline'; upgrade-insecure-requests
 Strict-Transport-Security: max-age=31536000; includeSubDomains
 Permissions-Policy: geolocation=(), microphone=(), camera=()
 Referrer-Policy: strict-origin-when-cross-origin
-X-Permitted-Cross-Domain-Policies: none
-X-DNS-Prefetch-Control: off
 Server:
 X-Content-Type-Options: nosniff
 X-Frame-Options: SAMEORIGIN
-Origin-Agent-Cluster: ?1
-X-Download-Options: noopen
-X-XSS-Protection: 0
 ```
 
-These defaults help limit cross origin data leaks, mitigate clickjacking and MIME sniffing, and establish a conservative Content Security Policy you can extend later. The preset also sets resource and legacy headers such as `Cross-Origin-Resource-Policy`, `X-Permitted-Cross-Domain-Policies`, `X-DNS-Prefetch-Control`, `Origin-Agent-Cluster`, `X-Download-Options`, and `X-XSS-Protection` to safe values out of the box.
+These defaults limit cross origin data leaks, mitigate clickjacking and MIME sniffing, and enforce a conservative Content Security Policy you can extend later. Balanced omits `Cache-Control` as well as the legacy/compatibility headers (`X-Permitted-Cross-Domain-Policies`, `X-DNS-Prefetch-Control`, `Origin-Agent-Cluster`, `X-Download-Options`, `X-XSS-Protection`), so add them manually if your deployment still depends on them.
 
 ---
 
@@ -185,26 +179,25 @@ These defaults help limit cross origin data leaks, mitigate clickjacking and MIM
 If you prefer to think in terms of profiles instead of individual headers, `secure` provides presets via the `Preset` enum and `Secure.from_preset`.
 
 ```python
-import secure
-from secure import Preset
+from secure import Preset, Secure
 
-# A balanced starting point for most applications
-secure_headers = secure.Secure.from_preset(Preset.BASIC)
+# Recommended defaults for most applications
+balanced_headers = Secure.from_preset(Preset.BALANCED)
 
-# A slim, "modern" configuration that keeps responses small
-modern_headers = secure.Secure.from_preset(Preset.MODERN)
+# Helmet-parity defaults for compatibility-focused setups
+basic_headers = Secure.from_preset(Preset.BASIC)
 
-# A stricter profile for security focused deployments
-strict_headers = secure.Secure.from_preset(Preset.STRICT)
+# Hardened defaults for security-focused deployments
+strict_headers = Secure.from_preset(Preset.STRICT)
 ```
 
-### BASIC preset
+### BALANCED preset
 
-The `BASIC` preset is a balanced default that matches `Secure.with_default_headers()`. It configures a modern baseline that works for many applications:
+The `BALANCED` preset is the new recommended default and matches `Secure.with_default_headers()`. It balances security with compatibility while keeping response headers relatively tight:
 
 ```http
-Cache-Control: no-store, max-age=0
 Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Resource-Policy: same-origin
 Content-Security-Policy: default-src 'self'; base-uri 'self'; font-src 'self' https: data:; form-action 'self'; frame-ancestors 'self'; img-src 'self' data:; object-src 'none'; script-src 'self'; script-src-attr 'none'; style-src 'self' https: 'unsafe-inline'; upgrade-insecure-requests
 Strict-Transport-Security: max-age=31536000; includeSubDomains
 Permissions-Policy: geolocation=(), microphone=(), camera=()
@@ -214,27 +207,28 @@ X-Content-Type-Options: nosniff
 X-Frame-Options: SAMEORIGIN
 ```
 
-It also sets `Cross-Origin-Resource-Policy`, `X-Permitted-Cross-Domain-Policies`, `X-DNS-Prefetch-Control`, `Origin-Agent-Cluster`, `X-Download-Options`, and `X-XSS-Protection` to secure values by default.
+Balanced omits `Cache-Control` and the legacy/resource headers included by `Preset.BASIC`, but you can still add them manually if your deployment relies on them.
 
-Use this when you want a strong starting point that you can refine over time.
+### BASIC preset
 
-### MODERN preset
-
-The `MODERN` preset emits the most widely supported headers without including the additional resource/legacy headers that `BASIC` ships. It is a good fit when you want modern protections with fewer response headers.
+The `BASIC` preset matches Helmet.js defaults and ships with a broader compatibility-focused header set. It is useful when you require the same collection of headers Helmet enables out of the box:
 
 ```http
-Cache-Control: no-store, max-age=0
 Cross-Origin-Opener-Policy: same-origin
-Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'
-Strict-Transport-Security: max-age=31536000
-Permissions-Policy: geolocation=(), microphone=(), camera=()
-Referrer-Policy: strict-origin-when-cross-origin
-Server:
+Cross-Origin-Resource-Policy: same-origin
+Content-Security-Policy: default-src 'self'; base-uri 'self'; font-src 'self' https: data:; form-action 'self'; frame-ancestors 'self'; img-src 'self' data:; object-src 'none'; script-src 'self'; script-src-attr 'none'; style-src 'self' https: 'unsafe-inline'; upgrade-insecure-requests
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+Referrer-Policy: no-referrer
 X-Content-Type-Options: nosniff
 X-Frame-Options: SAMEORIGIN
+X-Permitted-Cross-Domain-Policies: none
+X-DNS-Prefetch-Control: off
+Origin-Agent-Cluster: ?1
+X-Download-Options: noopen
+X-XSS-Protection: 0
 ```
 
-Choose this preset when you want the core browser protections without the extra compatibility headers that `BASIC` ships.
+This preset still avoids `Cache-Control` and `Server` but includes the extra headers that Helmet adds for historical/compatibility reasons.
 
 ### STRICT preset
 
@@ -245,7 +239,7 @@ Cache-Control: no-store, max-age=0
 Cross-Origin-Embedder-Policy: require-corp
 Cross-Origin-Opener-Policy: same-origin
 Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'
-Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+Strict-Transport-Security: max-age=63072000; includeSubDomains
 Permissions-Policy: geolocation=(), microphone=(), camera=()
 Referrer-Policy: no-referrer
 Server:
@@ -253,7 +247,7 @@ X-Content-Type-Options: nosniff
 X-Frame-Options: DENY
 ```
 
-Start with `BASIC` and move to `STRICT` once you have validated that your application works correctly with the stricter Content Security Policy, caching, and frame restrictions.
+Start with `BALANCED` and move to `STRICT` once you have validated that your application works correctly with the stricter Content Security Policy, caching, and frame restrictions. `STRICT` no longer sets HSTS preload by default, so you can opt-in separately when you are ready.
 
 ---
 

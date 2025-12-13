@@ -81,7 +81,7 @@ xfo = XFrameOptions().allow_from("https://example.com")
 
 The built-in presets include `X-Frame-Options` by default:
 
-- `Preset.BASIC` / `Preset.MODERN`: `SAMEORIGIN`
+- `Preset.BASIC` / `Preset.BALANCED`: `SAMEORIGIN`
 - `Preset.STRICT`: `DENY`
 
 If you want full modern control, keep CSP `frame-ancestors` and treat `X-Frame-Options` as a compatibility layer.
