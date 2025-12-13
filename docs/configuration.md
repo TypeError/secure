@@ -2,13 +2,13 @@
 
 ## Overview
 
-This guide provides detailed information on how to configure `secure.py` beyond the default settings. You can customize security headers, override default behavior, and extend the functionality to meet your application’s unique security requirements.
+This guide provides detailed information on how to configure `secure` beyond the default settings. You can customize security headers, override default behavior, and extend the functionality to meet your application’s unique security requirements.
 
 ---
 
 ## Default Headers
 
-By default, `secure.py` applies a set of widely-used security headers that provide a strong baseline of protection. These include:
+By default, `secure` applies a set of widely-used security headers that provide a strong baseline of protection. These include:
 
 - **Strict-Transport-Security (HSTS)**: Ensures that browsers only connect to your site over HTTPS.
 - **X-Frame-Options**: Protects against clickjacking attacks by controlling whether your site can be embedded in an iframe.
@@ -36,8 +36,10 @@ Each security header can be customized to meet your application’s unique needs
 If you want to allow your site to be embedded in an iframe, but only by pages from the same origin, use the following configuration:
 
 ```python
+from secure import Secure, XFrameOptions
+
 secure_headers = Secure(
-    xfo=Secure.XFrameOptions().sameorigin()
+    xfo=XFrameOptions().sameorigin()
 )
 ```
 
@@ -48,8 +50,10 @@ This protects against clickjacking while maintaining functionality for same-orig
 To ensure that all subdomains of your site are accessed over HTTPS, and to add your domain to the HSTS preload list, you can configure `Strict-Transport-Security` like this:
 
 ```python
+from secure import Secure, StrictTransportSecurity
+
 secure_headers = Secure(
-    hsts=Secure.StrictTransportSecurity().max_age(63072000).include_subdomains().preload()
+    hsts=StrictTransportSecurity().max_age(63072000).include_subdomains().preload()
 )
 ```
 
@@ -94,6 +98,6 @@ This approach allows you to quickly set up basic security headers while customiz
 
 ## Summary
 
-`secure.py` offers flexibility in how you configure your security headers. Whether you’re using the default settings, customizing individual headers, or adding custom headers, the library allows you to secure your application effectively. For more advanced use cases, consider combining presets with custom configurations.
+`secure` offers flexibility in how you configure your security headers. Whether you’re using the default settings, customizing individual headers, or adding custom headers, the library allows you to secure your application effectively. For more advanced use cases, consider combining presets with custom configurations.
 
 For more details on each supported header, refer to the [Security Headers Documentation](./headers).

@@ -19,8 +19,7 @@ This is the least permissive option and is the most common secure setting when y
 ## Using with `Secure`
 
 ```python
-from secure.secure import Secure
-from secure.headers.x_permitted_cross_domain_policies import XPermittedCrossDomainPolicies
+from secure import Secure, XPermittedCrossDomainPolicies
 
 secure = Secure(
     xpcdp=XPermittedCrossDomainPolicies().none()
@@ -34,7 +33,7 @@ If you don’t configure anything, the default value is emitted.
 ### 1) Disallow cross-domain policy files (recommended default)
 
 ```python
-from secure.headers.x_permitted_cross_domain_policies import XPermittedCrossDomainPolicies
+from secure import XPermittedCrossDomainPolicies
 
 xpcdp = XPermittedCrossDomainPolicies()  # default: none
 print(xpcdp.header_name)   # X-Permitted-Cross-Domain-Policies

@@ -22,7 +22,7 @@ If you do not configure any directives, this library emits the default header va
     - `max-age` must be **at least 31536000**
     - `includeSubDomains` must be present
 
-## Configuration in `secure.py`
+## Configuration with `secure`
 
 The `StrictTransportSecurity` header module supports fluent, chainable configuration:
 

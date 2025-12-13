@@ -10,6 +10,7 @@ Welcome to the documentation for **Secure Headers**, a flexible Python library f
 - [Supported Frameworks](#supported-frameworks)
 - [Security Headers](#security-headers)
 - [Additional Resources](#additional-resources)
+- [Migration Notes](./migration.md)
 - [Contributing](#contributing)
 
 ---

@@ -2,11 +2,11 @@
 
 ## Overview
 
-The `secure.py` library is designed to simplify the configuration of HTTP security headers in Python web applications. This guide provides detailed examples of how to use the library, from setting basic security headers to leveraging advanced presets and custom configurations.
+The `secure` library is designed to simplify the configuration of HTTP security headers in Python web applications. This guide provides detailed examples of how to use the library, from setting basic security headers to leveraging advanced presets and custom configurations.
 
 ## Setting Basic Security Headers
 
-To start using `secure.py`, you can quickly set up a default configuration that applies common security headers. Here's a basic example:
+To start using `secure`, you can quickly set up a default configuration that applies common security headers. Here's a basic example:
 
 ```python
 from secure import Secure
@@ -26,7 +26,7 @@ This will apply a standard set of HTTP security headers, such as `Content-Securi
 
 ### Presets Overview
 
-`secure.py` offers two preset configurations: `STRICT` and `BASIC`. These are pre-configured sets of security headers that can be quickly applied to your web application for different security needs.
+`secure` offers three preset configurations: `STRICT`, `MODERN`, and `BASIC`. These are pre-configured sets of security headers that can be quickly applied to your web application for different security needs.
 
 ---
 
@@ -121,7 +121,33 @@ The `BASIC` preset is suitable for most general-purpose applications, balancing 
 
 ---
 
-You can easily adjust between these presets based on your application's needs by importing `Preset.BASIC` or `Preset.STRICT` and applying it to your response handlers.
+You can easily adjust between these presets based on your application's needs by importing `Preset.BASIC`, `Preset.MODERN`, or `Preset.STRICT` and applying it to your response handlers.
+
+---
+
+## **MODERN Preset**
+
+The `MODERN` preset emits the most widely supported headers (`Cache-Control`, `Cross-Origin-Opener-Policy`, `Content-Security-Policy`, `Strict-Transport-Security`, `Permissions-Policy`, `Referrer-Policy`, `Server`, `X-Content-Type-Options`, and `X-Frame-Options`) while leaving out the additional compatibility headers that `BASIC` ships. Use this preset when you want core browser protections with minimal response headers.
+
+```http
+Cache-Control: no-store, max-age=0
+Cross-Origin-Opener-Policy: same-origin
+Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'
+Strict-Transport-Security: max-age=31536000
+Permissions-Policy: geolocation=(), microphone=(), camera=()
+Referrer-Policy: strict-origin-when-cross-origin
+Server:
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+```
+
+```
+from secure import Preset, Secure
+
+secure_headers = Secure.from_preset(Preset.MODERN)
+```
+
+This preset is a good compromise when you want modern isolation policies without the extra legacy/compatibility headers.
 
 ---
 
@@ -132,10 +158,10 @@ In addition to using presets, you can tailor individual headers to fit your appl
 ### Example: Customizing `Content-Security-Policy`
 
 ```python
-from secure import Secure
+from secure import ContentSecurityPolicy, Secure
 
 secure_headers = Secure(
-    csp=Secure.ContentSecurityPolicy()
+    csp=ContentSecurityPolicy()
          .default_src("'self'")
          .img_src("https://trusted-images.com")
 )
@@ -168,13 +194,13 @@ This approach ensures that your security headers are applied efficiently in non-
 The following is a complete example demonstrating how to combine default headers with custom configurations:
 
 ```python
-from secure import Secure
+from secure import Secure, StrictTransportSecurity, XFrameOptions
 
 secure_headers = Secure(
-    hsts=Secure.StrictTransportSecurity()
+    hsts=StrictTransportSecurity()
          .max_age(63072000)
          .include_subdomains(),
-    xfo=Secure.XFrameOptions().deny()
+    xfo=XFrameOptions().deny()
 )
 
 def add_security_headers(response):
@@ -189,7 +215,7 @@ In this example, a custom `Strict-Transport-Security` (HSTS) header is configure
 
 ## Summary
 
-The `secure.py` library offers flexibility and ease of use when configuring HTTP security headers for Python web applications. You can use pre-configured presets for quick setups or customize headers individually to meet your specific security needs. By leveraging both synchronous and asynchronous methods, `secure.py` fits seamlessly into any Python-based web framework.
+The `secure` library offers flexibility and ease of use when configuring HTTP security headers for Python web applications. You can use pre-configured presets for quick setups or customize headers individually to meet your specific security needs. By leveraging both synchronous and asynchronous methods, `secure` fits seamlessly into any Python-based web framework.
 
 For more details on the individual headers and advanced usage, refer to the [Security Headers](./headers) documentation.
 

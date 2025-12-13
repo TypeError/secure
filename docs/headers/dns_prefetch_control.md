@@ -15,11 +15,10 @@ If you create `XDnsPrefetchControl()` and do not set a directive, it returns the
 ## Using with `Secure`
 
 ```python
-from secure.secure import Secure
-from secure.headers.x_dns_prefetch_control import XDnsPrefetchControl
+from secure import Secure, XDnsPrefetchControl
 
 secure = Secure(
-    x_dns_prefetch_control=XDnsPrefetchControl().off()
+    xdfc=XDnsPrefetchControl().off()
 )
 ```
 
@@ -30,7 +29,7 @@ If you don’t configure anything, the default value is emitted.
 ### 1) Disable DNS prefetching (recommended when you don’t control outbound links)
 
 ```python
-from secure.headers.x_dns_prefetch_control import XDnsPrefetchControl
+from secure import XDnsPrefetchControl
 
 xdfc = XDnsPrefetchControl()  # default: off
 print(xdfc.header_name)   # X-DNS-Prefetch-Control

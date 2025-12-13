@@ -161,16 +161,22 @@ When you call `Secure.with_default_headers()` (or `Secure.from_preset(Preset.BAS
 ```http
 Cache-Control: no-store, max-age=0
 Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Resource-Policy: same-origin
 Content-Security-Policy: default-src 'self'; base-uri 'self'; font-src 'self' https: data:; form-action 'self'; frame-ancestors 'self'; img-src 'self' data:; object-src 'none'; script-src 'self'; script-src-attr 'none'; style-src 'self' https: 'unsafe-inline'; upgrade-insecure-requests
 Strict-Transport-Security: max-age=31536000; includeSubDomains
 Permissions-Policy: geolocation=(), microphone=(), camera=()
 Referrer-Policy: strict-origin-when-cross-origin
+X-Permitted-Cross-Domain-Policies: none
+X-DNS-Prefetch-Control: off
 Server:
 X-Content-Type-Options: nosniff
 X-Frame-Options: SAMEORIGIN
+Origin-Agent-Cluster: ?1
+X-Download-Options: noopen
+X-XSS-Protection: 0
 ```
 
-These defaults help limit cross origin data leaks, mitigate clickjacking and MIME sniffing, and establish a conservative Content Security Policy you can extend later.
+These defaults help limit cross origin data leaks, mitigate clickjacking and MIME sniffing, and establish a conservative Content Security Policy you can extend later. The preset also sets resource and legacy headers such as `Cross-Origin-Resource-Policy`, `X-Permitted-Cross-Domain-Policies`, `X-DNS-Prefetch-Control`, `Origin-Agent-Cluster`, `X-Download-Options`, and `X-XSS-Protection` to safe values out of the box.
 
 ---
 
@@ -184,6 +190,9 @@ from secure import Preset
 
 # A balanced starting point for most applications
 secure_headers = secure.Secure.from_preset(Preset.BASIC)
+
+# A slim, "modern" configuration that keeps responses small
+modern_headers = secure.Secure.from_preset(Preset.MODERN)
 
 # A stricter profile for security focused deployments
 strict_headers = secure.Secure.from_preset(Preset.STRICT)
@@ -205,7 +214,27 @@ X-Content-Type-Options: nosniff
 X-Frame-Options: SAMEORIGIN
 ```
 
+It also sets `Cross-Origin-Resource-Policy`, `X-Permitted-Cross-Domain-Policies`, `X-DNS-Prefetch-Control`, `Origin-Agent-Cluster`, `X-Download-Options`, and `X-XSS-Protection` to secure values by default.
+
 Use this when you want a strong starting point that you can refine over time.
+
+### MODERN preset
+
+The `MODERN` preset emits the most widely supported headers without including the additional resource/legacy headers that `BASIC` ships. It is a good fit when you want modern protections with fewer response headers.
+
+```http
+Cache-Control: no-store, max-age=0
+Cross-Origin-Opener-Policy: same-origin
+Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'
+Strict-Transport-Security: max-age=31536000
+Permissions-Policy: geolocation=(), microphone=(), camera=()
+Referrer-Policy: strict-origin-when-cross-origin
+Server:
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+```
+
+Choose this preset when you want the core browser protections without the extra compatibility headers that `BASIC` ships.
 
 ### STRICT preset
 

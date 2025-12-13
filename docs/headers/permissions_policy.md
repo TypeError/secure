@@ -12,11 +12,10 @@ In this library, `PermissionsPolicy` is a fluent builder for producing a single 
 - Enable selectively: allow features only where required, and only for trusted origins.
 - Validate in real browsers: support varies by feature and browser; test the behaviors you rely on.
 
-## Configuration in `secure.py`
+## Configuration with `secure`
 
 ```python
-from secure import Secure
-from secure.headers import PermissionsPolicy
+from secure import PermissionsPolicy, Secure
 
 secure_headers = Secure(
     permissions=PermissionsPolicy()

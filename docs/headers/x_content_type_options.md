@@ -25,8 +25,7 @@ The `XContentTypeOptions` class configures `X-Content-Type-Options`.
 ### Minimal configuration
 
 ```python
-from secure import Secure
-from secure.headers import XContentTypeOptions
+from secure import Secure, XContentTypeOptions
 
 secure_headers = Secure(
     xcto=XContentTypeOptions().nosniff(),
@@ -48,7 +47,7 @@ secure_headers = Secure(
 ## Example usage
 
 ```python
-from secure.headers import XContentTypeOptions
+from secure import XContentTypeOptions
 
 xcto = XContentTypeOptions().nosniff()
 print(xcto.header_name)   # 'X-Content-Type-Options'
@@ -58,8 +57,7 @@ print(xcto.header_value)  # 'nosniff'
 Apply via `Secure`:
 
 ```python
-from secure import Secure
-from secure.headers import XContentTypeOptions
+from secure import Secure, XContentTypeOptions
 
 secure_headers = Secure(xcto=XContentTypeOptions().nosniff())
 ```

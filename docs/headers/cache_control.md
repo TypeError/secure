@@ -15,8 +15,7 @@ This is a secure baseline intended to prevent storage of sensitive responses.
 ## Using with `Secure`
 
 ```python
-from secure.secure import Secure
-from secure.headers.cache_control import CacheControl
+from secure import CacheControl, Secure
 
 secure = Secure(
     cache=CacheControl().no_store().max_age(0)
@@ -30,7 +29,7 @@ If you don’t configure any directives, the default value is emitted.
 ### 1) Prevent storing (recommended for sensitive responses)
 
 ```python
-from secure.headers.cache_control import CacheControl
+from secure import CacheControl
 
 cc = CacheControl()  # default: no-store, max-age=0
 print(cc.header_name)   # Cache-Control

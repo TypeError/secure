@@ -1,6 +1,6 @@
 # Framework Integration
 
-`secure.py` supports several popular Python web frameworks. Below are examples showing how to set the default security headers in each framework, along with a brief introduction and links to each project. Additionally, we provide guidance for integrating Secure Headers with custom or unsupported frameworks.
+`secure` supports several popular Python web frameworks. Below are examples showing how to set the default security headers in each framework, along with a brief introduction and links to each project. Additionally, we provide guidance for integrating Secure Headers with custom or unsupported frameworks.
 
 ## Table of Contents
 
@@ -675,7 +675,7 @@ def index():
 
 ## Custom Frameworks
 
-If you are using a framework that is not listed here, `secure.py` can still be integrated. Most frameworks offer a way to manipulate response headers, which is all you need to apply security headers.
+If you are using a framework that is not listed here, `secure` can still be integrated. Most frameworks offer a way to manipulate response headers, which is all you need to apply security headers.
 
 ### General Steps:
 

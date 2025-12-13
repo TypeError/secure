@@ -25,8 +25,7 @@ This matches modern browser defaults: if no policy is specified (or the provided
 ## Configuration with `Secure`
 
 ```python
-from secure.secure import Secure
-from secure.headers import ReferrerPolicy
+from secure import ReferrerPolicy, Secure
 
 secure = Secure(
     referrer=ReferrerPolicy()  # uses the default: strict-origin-when-cross-origin
@@ -38,8 +37,7 @@ secure = Secure(
 Use `value(...)` (or `custom(...)`) when you want to **replace** any configured policies and set exactly one value:
 
 ```python
-from secure.secure import Secure
-from secure.headers import ReferrerPolicy
+from secure import ReferrerPolicy, Secure
 
 secure = Secure(
     referrer=ReferrerPolicy().value("no-referrer")
@@ -59,7 +57,7 @@ secure = Secure(
 Browsers support a **comma-separated list** in the `Referrer-Policy` HTTP header. The desired (most modern) policy should be listed **last**.
 
 ```python
-from secure.headers import ReferrerPolicy
+from secure import ReferrerPolicy
 
 rp = ReferrerPolicy().fallback("no-referrer", "strict-origin-when-cross-origin")
 print(rp.header_name)   # Referrer-Policy
@@ -116,7 +114,7 @@ Each of these appends the corresponding token (same behavior as `add("token")`):
 ## Example usage
 
 ```python
-from secure.headers import ReferrerPolicy
+from secure import ReferrerPolicy
 
 referrer_policy = ReferrerPolicy().strict_origin_when_cross_origin()
 print(referrer_policy.header_name)   # 'Referrer-Policy'

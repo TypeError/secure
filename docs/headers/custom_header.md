@@ -9,9 +9,9 @@ The `CustomHeader` class allows the creation and management of custom HTTP heade
 - Custom headers should follow the convention of using a prefix like `X-` (e.g., `X-Custom-Header`), although this is no longer a requirement as per the latest RFC.
 - Be cautious when adding custom headers to avoid potential conflicts or leaking sensitive information.
 
-## Configuration in `secure.py`
+## Configuration with `secure`
 
-The `CustomHeader` class in `secure.py` provides flexibility for developers to define and set custom HTTP headers as needed. You can specify both the header name and value and update the value later if necessary.
+The `CustomHeader` class in `secure` provides flexibility for developers to define and set custom HTTP headers as needed. You can specify both the header name and value and update the value later if necessary.
 
 ### Example Configuration
 
@@ -22,7 +22,7 @@ custom_header = CustomHeader("X-Custom-Header", "CustomValue")
 ### Methods Available
 
 - **`set(value)`**: Updates the value of the custom header.
-- **`header_value()`**: Retrieves the current value of the custom header.
+- **`header_value`**: Property that retrieves the current value of the custom header.
 
 ## Example Usage
 
@@ -41,6 +41,8 @@ print(custom_header.header_value)  # Output: 'NewValue'
 This can then be applied as part of your Secure headers configuration:
 
 ```python
+from secure import Secure
+
 secure_headers = Secure(custom=[custom_header])
 ```
 

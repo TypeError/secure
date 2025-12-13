@@ -2,16 +2,16 @@
 
 ## Overview
 
-`secure.py` is a lightweight and powerful Python library designed to simplify the management of HTTP security headers. It helps you easily add secure headers to web applications, supporting a variety of popular frameworks. This guide will walk you through the installation process, system requirements, and framework compatibility.
+`secure` is a lightweight and powerful Python library designed to simplify the management of HTTP security headers. It helps you easily add secure headers to web applications, supporting a variety of popular frameworks. This guide will walk you through the installation process, system requirements, and framework compatibility.
 
 ---
 
 ## Requirements
 
-- **Python Version**: `secure.py` supports Python 3.10 and above.
+- **Python Version**: `secure` supports Python 3.10 and above.
 - **Supported Platforms**: The library is cross-platform, supporting Linux, macOS, and Windows.
 
-To ensure compatibility with `secure.py`, your system should have Python version 3.10 or higher. You can check your Python version by running the following command:
+To ensure compatibility with `secure`, your system should have Python version 3.10 or higher. You can check your Python version by running the following command:
 
 ```bash
 python --version
@@ -23,17 +23,17 @@ Most modern systems should meet this requirement.
 
 ## Installation via pip
 
-To install `secure.py` from the Python Package Index (PyPI), use the following command:
+To install `secure` from the Python Package Index (PyPI), use the following command:
 
 ```bash
-pip install secure.py
+pip install secure
 ```
 
-This will download and install the latest version of `secure.py`, along with any dependencies required for basic usage.
+This will download and install the latest version of `secure`, along with any dependencies required for basic usage.
 
 ### Optional Dependencies
 
-If you're using `secure.py` with specific web frameworks, you’ll need to install the respective framework alongside the library. Here are some common optional dependencies:
+If you're using `secure` with specific web frameworks, you’ll need to install the respective framework alongside the library. Here are some common optional dependencies:
 
 ```bash
 pip install aiohttp  # For aiohttp support
@@ -41,7 +41,7 @@ pip install flask    # For Flask support
 pip install fastapi  # For FastAPI support
 ```
 
-Make sure to install the framework you're working with to ensure seamless integration with `secure.py`.
+Make sure to install the framework you're working with to ensure seamless integration with `secure`.
 
 For integration with other frameworks, refer to the [framework integration guide](./frameworks.md) for details on the supported frameworks and their setup.
 
@@ -49,7 +49,7 @@ For integration with other frameworks, refer to the [framework integration guide
 
 ## Testing the Installation
 
-After installation, you can verify that `secure.py` is working properly by importing it in a Python shell or script:
+After installation, you can verify that `secure` is working properly by importing it in a Python shell or script:
 
 ```python
 >>> from secure import Secure
