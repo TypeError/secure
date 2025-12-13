@@ -281,13 +281,14 @@ class Secure:
                 )
 
                 return cls(
+                    cache=CacheControl().no_store().max_age(0),
                     coop=CrossOriginOpenerPolicy().same_origin(),
                     coep=None,
                     csp=csp,
                     corp=CrossOriginResourcePolicy().same_origin(),
                     hsts=StrictTransportSecurity().max_age(31536000).include_subdomains(),
-                    permissions=None,
-                    referrer=ReferrerPolicy().no_referrer(),
+                    permissions=PermissionsPolicy().geolocation().microphone().camera(),
+                    referrer=ReferrerPolicy().strict_origin_when_cross_origin(),
                     server=Server().set(""),
                     xcto=XContentTypeOptions().nosniff(),
                     xfo=XFrameOptions().sameorigin(),
@@ -311,6 +312,7 @@ class Secure:
 
             case Preset.MODERN:
                 return cls(
+                    cache=CacheControl().no_store().max_age(0),
                     coop=CrossOriginOpenerPolicy().same_origin(),
                     csp=(
                         ContentSecurityPolicy()
@@ -329,7 +331,7 @@ class Secure:
 
             case Preset.STRICT:
                 return cls(
-                    cache=CacheControl().no_store(),
+                    cache=CacheControl().no_store().max_age(0),
                     coep=CrossOriginEmbedderPolicy().require_corp(),
                     coop=CrossOriginOpenerPolicy().same_origin(),
                     csp=(
