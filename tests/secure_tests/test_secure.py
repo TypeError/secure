@@ -44,6 +44,24 @@ class MockResponseNoHeaders:
     pass
 
 
+def _expected_basic_csp_value() -> str:
+    """Builder matching the CSP used by the BASIC preset."""
+    return (
+        ContentSecurityPolicy()
+        .default_src("'self'")
+        .base_uri("'self'")
+        .font_src("'self'", "https:", "data:")
+        .form_action("'self'")
+        .frame_ancestors("'self'")
+        .img_src("'self'", "data:")
+        .object_src("'none'")
+        .script_src("'self'")
+        .script_src_attr("'none'")
+        .style_src("'self'", "https:", "'unsafe-inline'")
+        .upgrade_insecure_requests()
+    ).header_value
+
+
 class TestSecure(unittest.TestCase):
     def setUp(self):
         # Initialize Secure with some test headers
@@ -69,12 +87,12 @@ class TestSecure(unittest.TestCase):
 
         # Check if the expected default headers are applied
         self.assertIn("Cache-Control", response.headers)
-        self.assertEqual(response.headers["Cache-Control"], "no-store")
+        self.assertEqual(response.headers["Cache-Control"], "no-store, max-age=0")
 
         self.assertIn("Content-Security-Policy", response.headers)
         self.assertEqual(
             response.headers["Content-Security-Policy"],
-            "default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'",
+            _expected_basic_csp_value(),
         )
 
         self.assertIn("Cross-Origin-Opener-Policy", response.headers)
@@ -99,7 +117,7 @@ class TestSecure(unittest.TestCase):
         self.assertIn("Strict-Transport-Security", response.headers)
         self.assertEqual(
             response.headers["Strict-Transport-Security"],
-            "max-age=31536000",
+            "max-age=31536000; includeSubDomains",
         )
 
         self.assertIn("X-Content-Type-Options", response.headers)
@@ -118,7 +136,7 @@ class TestSecure(unittest.TestCase):
 
         # Basic preset headers
         self.assertIn("Cache-Control", response.headers)
-        self.assertEqual(response.headers["Cache-Control"], "no-store")
+        self.assertEqual(response.headers["Cache-Control"], "no-store, max-age=0")
 
         self.assertIn("Referrer-Policy", response.headers)
         self.assertEqual(
@@ -130,7 +148,8 @@ class TestSecure(unittest.TestCase):
 
         self.assertIn("Strict-Transport-Security", response.headers)
         self.assertEqual(
-            response.headers["Strict-Transport-Security"], "max-age=31536000"
+            response.headers["Strict-Transport-Security"],
+            "max-age=31536000; includeSubDomains",
         )
 
         self.assertIn("X-Content-Type-Options", response.headers)
@@ -140,9 +159,18 @@ class TestSecure(unittest.TestCase):
         self.assertEqual(response.headers["X-Frame-Options"], "SAMEORIGIN")
 
         # Optional headers in basic preset
-        self.assertNotIn("Content-Security-Policy", response.headers)
-        self.assertNotIn("Permissions-Policy", response.headers)
-        self.assertNotIn("Cross-Origin-Opener-Policy", response.headers)
+        self.assertEqual(
+            response.headers["Content-Security-Policy"],
+            _expected_basic_csp_value(),
+        )
+        self.assertEqual(
+            response.headers["Permissions-Policy"],
+            "geolocation=(), microphone=(), camera=()",
+        )
+        self.assertEqual(
+            response.headers["Cross-Origin-Opener-Policy"],
+            "same-origin",
+        )
 
     def test_from_preset_strict(self):
         """Test that the STRICT preset is applied correctly."""
@@ -154,7 +182,7 @@ class TestSecure(unittest.TestCase):
 
         # Strict preset headers
         self.assertIn("Cache-Control", response.headers)
-        self.assertEqual(response.headers["Cache-Control"], "no-store")
+        self.assertEqual(response.headers["Cache-Control"], "no-store, max-age=0")
 
         self.assertIn("Content-Security-Policy", response.headers)
         self.assertEqual(
@@ -231,7 +259,7 @@ class TestSecure(unittest.TestCase):
         self.assertIn("Strict-Transport-Security", response.headers)
         self.assertEqual(
             response.headers["Strict-Transport-Security"],
-            "max-age=31536000",
+            "max-age=31536000; includeSubDomains",
         )
 
         self.assertIn("X-Content-Type-Options", response.headers)
@@ -315,7 +343,7 @@ class TestSecure(unittest.TestCase):
         secure_headers.set_headers(response)
 
         # Verify that the header has been overwritten
-        self.assertEqual(response.headers["Cache-Control"], "no-store")
+        self.assertEqual(response.headers["Cache-Control"], "no-store, max-age=0")
 
     def test_custom_header_inclusion(self):
         """Test that custom headers are included and applied."""
@@ -423,7 +451,8 @@ class TestSecure(unittest.TestCase):
         # Verify that headers are set using set_header
         self.assertIn("Strict-Transport-Security", response.header_storage)
         self.assertEqual(
-            response.header_storage["Strict-Transport-Security"], "max-age=31536000"
+            response.header_storage["Strict-Transport-Security"],
+            "max-age=31536000; includeSubDomains",
         )
 
         # Verify that headers dict was not used
