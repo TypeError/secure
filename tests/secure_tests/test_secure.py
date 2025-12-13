@@ -1,5 +1,5 @@
 import asyncio
-from collections.abc import Callable, Generator
+from collections.abc import Awaitable, Callable, Generator
 import unittest
 
 from secure import (
@@ -72,16 +72,16 @@ class MockResponseAwaitableSetHeader:
     def __init__(self) -> None:
         self.calls: list[tuple[str, str]] = []
 
-    def set_header(self, key: str, value: str) -> None:
+    def set_header(self, key: str, value: str) -> Awaitable[None]:
         class _Awaitable:
             def __init__(self, callback: Callable[[], None]) -> None:
                 self._callback = callback
 
             def __await__(self) -> Generator[None, None, None]:
-                # Generator return type ensures asyncio consumes the awaitable.
-                self._callback()
-                if False:
-                    yield None
+                async def _run() -> None:
+                    self._callback()
+
+                return _run().__await__()
 
         return _Awaitable(lambda: self.calls.append((key, value)))
 
@@ -604,7 +604,7 @@ class TestSecure(unittest.TestCase):
         secure_headers = Secure(server=custom_server, csp=custom_csp, custom=custom_headers)
 
         # Adjust the expected order based on how Secure initializes headers
-        expected_headers_list = [custom_csp, custom_server] + custom_headers
+        expected_headers_list = [custom_csp, custom_server, *custom_headers]
 
         self.assertEqual(secure_headers.headers_list, expected_headers_list)
 
