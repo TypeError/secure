@@ -51,9 +51,9 @@ class ReferrerPolicy(BaseHeader):
         - https://owasp.org/www-project-secure-headers/#referrer-policy
     """
 
-    header_name: str = HeaderName.REFERRER_POLICY.value
-    _policies: list[str] = field(default_factory=list)
-    _default_value: str = HeaderDefaultValue.REFERRER_POLICY.value
+    header_name: str = field(init=False, default=HeaderName.REFERRER_POLICY.value, repr=False)
+    _policies: list[str] = field(default_factory=list, repr=False)
+    _default_value: str = field(init=False, default=HeaderDefaultValue.REFERRER_POLICY.value, repr=False)
 
     @property
     def header_value(self) -> str:

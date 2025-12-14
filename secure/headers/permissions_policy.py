@@ -123,14 +123,14 @@ class PermissionsPolicy(BaseHeader):
         - https://www.w3.org/TR/permissions-policy-1/
     """
 
-    header_name: str = HeaderName.PERMISSION_POLICY.value
-    _default_value: str = HeaderDefaultValue.PERMISSION_POLICY.value
+    header_name: str = field(init=False, default=HeaderName.PERMISSION_POLICY.value, repr=False)
+    _default_value: str = field(init=False, default=HeaderDefaultValue.PERMISSION_POLICY.value, repr=False)
 
     # Directive -> normalized allowlist string (e.g. "()", "*", '(self "https://a.example.com")')
-    _directives: dict[str, str] = field(default_factory=dict)
+    _directives: dict[str, str] = field(default_factory=dict, repr=False)
 
     # If set, overrides directive-building entirely.
-    _raw_value: str | None = None
+    _raw_value: str | None = field(default=None, repr=False)
 
     @property
     def header_value(self) -> str:

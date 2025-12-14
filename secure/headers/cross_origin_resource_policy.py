@@ -37,6 +37,7 @@ class CrossOriginResourcePolicy(BaseHeader):
     """
 
     header_name: str = field(init=False, default=HeaderName.CROSS_ORIGIN_RESOURCE_POLICY.value, repr=False)
+    _default_value: str = field(init=False, default=HeaderDefaultValue.CROSS_ORIGIN_RESOURCE_POLICY.value, repr=False)
     _value: str = field(default_factory=lambda: HeaderDefaultValue.CROSS_ORIGIN_RESOURCE_POLICY.value, repr=False)
 
     @property
@@ -51,7 +52,7 @@ class CrossOriginResourcePolicy(BaseHeader):
         Returns:
             The `CrossOriginResourcePolicy` instance for method chaining.
         """
-        self._value = HeaderDefaultValue.CROSS_ORIGIN_RESOURCE_POLICY.value
+        self._value = self._default_value
         return self
 
     def value(self, value: str | CorpDirective) -> CrossOriginResourcePolicy:

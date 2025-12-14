@@ -9,15 +9,22 @@ from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderNam
 @dataclass
 class Server(BaseHeader):
     """
-    Builder for the `Server` HTTP header.
+    Builder for the ``Server`` HTTP response header.
 
-    Default header value: `""`
+    Default header value: ``""``
 
-    By default the header is blank to keep server details private.
+    Notes:
+        * The default is intentionally empty to avoid leaking server details.
+        * Callers can override this value for compatibility with legacy tooling.
+
+    Resources:
+        - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Server
+        - https://owasp.org/www-project-secure-headers/
     """
 
-    header_name: str = HeaderName.SERVER.value
-    _value: str = field(default=HeaderDefaultValue.SERVER.value)
+    header_name: str = field(init=False, default=HeaderName.SERVER.value, repr=False)
+    _default_value: str = field(init=False, default=HeaderDefaultValue.SERVER.value, repr=False)
+    _value: str = field(default=HeaderDefaultValue.SERVER.value, repr=False)
 
     @property
     def header_value(self) -> str:
@@ -59,5 +66,5 @@ class Server(BaseHeader):
         Returns:
             Server: The current instance, allowing for method chaining.
         """
-        self._value = HeaderDefaultValue.SERVER.value
+        self._value = self._default_value
         return self

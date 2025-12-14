@@ -24,13 +24,19 @@ class XDnsPrefetchControl(BaseHeader):
 
     Default header value: `off`
 
+    Notes:
+        * Browsers may ignore this header as it is non-standard, but it documents
+          the desired behavior for DNS prefetching.
+        * Normalization keeps ``on``/``off`` lowercase while permitting other values unchanged.
+
     Resources:
         - https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/X-DNS-Prefetch-Control
         - https://owasp.org/www-project-secure-headers/#x-dns-prefetch-control
     """
 
-    header_name: str = HeaderName.X_DNS_PREFETCH_CONTROL.value
-    _value: str = field(default_factory=lambda: HeaderDefaultValue.X_DNS_PREFETCH_CONTROL.value)
+    header_name: str = field(init=False, default=HeaderName.X_DNS_PREFETCH_CONTROL.value, repr=False)
+    _default_value: str = field(init=False, default=HeaderDefaultValue.X_DNS_PREFETCH_CONTROL.value, repr=False)
+    _value: str = field(default_factory=lambda: HeaderDefaultValue.X_DNS_PREFETCH_CONTROL.value, repr=False)
 
     @property
     def header_value(self) -> str:
@@ -39,7 +45,7 @@ class XDnsPrefetchControl(BaseHeader):
 
     def clear(self) -> XDnsPrefetchControl:
         """Reset to the library default value (`off`)."""
-        self._value = HeaderDefaultValue.X_DNS_PREFETCH_CONTROL.value
+        self._value = self._default_value
         return self
 
     def set(self, value: str) -> XDnsPrefetchControl:

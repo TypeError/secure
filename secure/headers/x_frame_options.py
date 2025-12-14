@@ -30,8 +30,9 @@ class XFrameOptions(BaseHeader):
         - https://owasp.org/www-project-secure-headers/#x-frame-options
     """
 
-    header_name: str = HeaderName.X_FRAME_OPTIONS.value
-    _value: str = field(default=HeaderDefaultValue.X_FRAME_OPTIONS.value)
+    header_name: str = field(init=False, default=HeaderName.X_FRAME_OPTIONS.value, repr=False)
+    _default_value: str = field(init=False, default=HeaderDefaultValue.X_FRAME_OPTIONS.value, repr=False)
+    _value: str = field(default=HeaderDefaultValue.X_FRAME_OPTIONS.value, repr=False)
 
     @property
     def header_value(self) -> str:
@@ -71,7 +72,7 @@ class XFrameOptions(BaseHeader):
 
     def clear(self) -> XFrameOptions:
         """Reset the `X-Frame-Options` header to its default value (`SAMEORIGIN`)."""
-        self._value = HeaderDefaultValue.X_FRAME_OPTIONS.value
+        self._value = self._default_value
         return self
 
     # ---------------------------------------------------------------------

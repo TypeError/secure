@@ -8,7 +8,7 @@
 
 from __future__ import annotations  # type: ignore
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from secure.headers._validation import normalize_header_value
 from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderName
@@ -34,8 +34,8 @@ class StrictTransportSecurity(BaseHeader):
         - https://owasp.org/www-project-secure-headers/
     """
 
-    header_name: str = HeaderName.STRICT_TRANSPORT_SECURITY.value
-    _default_value: str = HeaderDefaultValue.STRICT_TRANSPORT_SECURITY.value
+    header_name: str = field(init=False, default=HeaderName.STRICT_TRANSPORT_SECURITY.value, repr=False)
+    _default_value: str = field(init=False, default=HeaderDefaultValue.STRICT_TRANSPORT_SECURITY.value, repr=False)
 
     # Structured directives
     _max_age: int | None = None

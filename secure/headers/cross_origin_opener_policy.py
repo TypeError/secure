@@ -47,6 +47,7 @@ class CrossOriginOpenerPolicy(BaseHeader):
     """
 
     header_name: str = field(init=False, default=HeaderName.CROSS_ORIGIN_OPENER_POLICY.value, repr=False)
+    _default_value: str = field(init=False, default=DEFAULT_VALUE, repr=False)
     _directive: str = field(default=DEFAULT_VALUE, repr=False)
 
     @property
@@ -97,7 +98,7 @@ class CrossOriginOpenerPolicy(BaseHeader):
         Returns:
             The `CrossOriginOpenerPolicy` instance for method chaining.
         """
-        self._directive = DEFAULT_VALUE
+        self._directive = self._default_value
         return self
 
     # ---------------------------------------------------------------------

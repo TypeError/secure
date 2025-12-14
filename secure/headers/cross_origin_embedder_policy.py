@@ -39,6 +39,7 @@ class CrossOriginEmbedderPolicy(BaseHeader):
     """
 
     header_name: str = field(init=False, default=HeaderName.CROSS_ORIGIN_EMBEDDER_POLICY.value, repr=False)
+    _default_value: str = field(init=False, default=HeaderDefaultValue.CROSS_ORIGIN_EMBEDDER_POLICY.value, repr=False)
     _directive: str = field(default=HeaderDefaultValue.CROSS_ORIGIN_EMBEDDER_POLICY.value, repr=False)
 
     def _normalize(self, value: str) -> str:
@@ -75,7 +76,7 @@ class CrossOriginEmbedderPolicy(BaseHeader):
 
     def clear(self) -> CrossOriginEmbedderPolicy:
         """Reset to the library default directive."""
-        self._directive = HeaderDefaultValue.CROSS_ORIGIN_EMBEDDER_POLICY.value
+        self._directive = self._default_value
         return self
 
     def unsafe_none(self) -> CrossOriginEmbedderPolicy:
