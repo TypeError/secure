@@ -10,6 +10,7 @@ from .headers.cache_control import CacheControl
 from .headers.content_security_policy import ContentSecurityPolicy
 from .headers.cross_origin_embedder_policy import CrossOriginEmbedderPolicy
 from .headers.cross_origin_opener_policy import CrossOriginOpenerPolicy
+from .headers.cross_origin_resource_policy import CrossOriginResourcePolicy
 from .headers.custom_header import CustomHeader
 from .headers.permissions_policy import PermissionsPolicy
 from .headers.referrer_policy import ReferrerPolicy
@@ -28,6 +29,7 @@ __all__ = [
     "ContentSecurityPolicy",
     "CrossOriginEmbedderPolicy",
     "CrossOriginOpenerPolicy",
+    "CrossOriginResourcePolicy",
     "CustomHeader",
     "PermissionsPolicy",
     "Preset",
