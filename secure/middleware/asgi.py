@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from typing import Any
 
 from secure import Secure
+from secure.secure import MULTI_OK
 
 Scope = dict[str, Any]
 Receive = Callable[[], Any]
@@ -41,12 +42,19 @@ class SecureASGIMiddleware:
         app: ASGIApp,
         *,
         secure: Secure | None = None,
-        multi_ok: frozenset[str] = frozenset(),
+        multi_ok: Iterable[str] | None = None,
     ) -> None:
+        """
+        Parameters
+        ----------
+        multi_ok :
+            Header names that should append instead of overwriting. Defaults to :data:`secure.secure.MULTI_OK`.
+        """
         self.app = app
         self.secure = secure or Secure.with_default_headers()
-        # store as normalized BYTES keys for fast comparisons in ASGI land
-        self.multi_ok_b = frozenset(_b_norm(_encode_name(h.strip().lower())) for h in multi_ok)
+        provided = multi_ok if multi_ok is not None else MULTI_OK
+        # store normalized BYTES keys for fast comparisons in ASGI land
+        self.multi_ok_b = frozenset(_b_norm(_encode_name(h)) for h in provided)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope.get("type") != "http":

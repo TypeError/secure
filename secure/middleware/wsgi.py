@@ -4,6 +4,7 @@ from collections.abc import Callable, Iterable
 from typing import Any
 
 from secure import Secure
+from secure.secure import MULTI_OK
 
 WSGIEnviron = dict[str, Any]
 ExcInfo = tuple[type[BaseException], BaseException, Any] | None
@@ -30,11 +31,18 @@ class SecureWSGIMiddleware:
         app: WSGIApp,
         *,
         secure: Secure | None = None,
-        multi_ok: frozenset[str] = frozenset(),
+        multi_ok: Iterable[str] | None = None,
     ) -> None:
+        """
+        Parameters
+        ----------
+        multi_ok :
+            Header names that should append instead of overwriting. Defaults to :data:`secure.secure.MULTI_OK`.
+        """
         self.app = app
         self.secure = secure or Secure.with_default_headers()
-        self.multi_ok = frozenset(_norm_str(h) for h in multi_ok)
+        provided = multi_ok if multi_ok is not None else MULTI_OK
+        self.multi_ok = frozenset(_norm_str(h) for h in provided)
 
     def __call__(self, environ: WSGIEnviron, start_response: StartResponse) -> Iterable[bytes]:
         def custom_start_response(
