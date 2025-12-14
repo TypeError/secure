@@ -1,4 +1,10 @@
-from secure.secure import Preset, Secure
+from secure.secure import (
+    COMMA_JOIN_OK,
+    DEFAULT_ALLOWED_HEADERS,
+    MULTI_OK,
+    Preset,
+    Secure,
+)
 
 from .headers.cache_control import CacheControl
 from .headers.content_security_policy import ContentSecurityPolicy
@@ -26,4 +32,7 @@ __all__ = [
     "StrictTransportSecurity",
     "XContentTypeOptions",
     "XFrameOptions",
+    "COMMA_JOIN_OK",
+    "DEFAULT_ALLOWED_HEADERS",
+    "MULTI_OK",
 ]
