@@ -1,6 +1,6 @@
 from __future__ import annotations  # type: ignore
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from secure.headers._validation import normalize_header_value
 from secure.headers.base_header import BaseHeader
@@ -11,12 +11,20 @@ class CustomHeader(BaseHeader):
     """
     Wrapper for an arbitrary HTTP header.
 
-    Useful when you need to emit non-standard headers alongside the library's
-    secure defaults.
+    Default header value: provided by the caller at initialization.
+
+    Notes:
+        * Header names and values are normalized via ``normalize_header_value`` to
+          prevent header injection.
+        * This class keeps parity with other builders via ``value``, ``set``, and
+          escape-hatch helpers so it plugs into the fluent API.
+
+    Resources:
+        - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers
     """
 
     header_name: str
-    _value: str
+    _value: str = field(repr=False)
 
     def __init__(self, header: str, value: str) -> None:
         """
