@@ -15,6 +15,7 @@ class TestExportSurface(unittest.TestCase):
             "ContentSecurityPolicy",
             "CrossOriginEmbedderPolicy",
             "CrossOriginOpenerPolicy",
+            "CrossOriginResourcePolicy",
             "CustomHeader",
             "PermissionsPolicy",
             "Preset",
