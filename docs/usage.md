@@ -211,6 +211,77 @@ This approach ensures that your security headers are applied efficiently in non-
 
 ---
 
+## Middleware
+
+Secure exposes `SecureWSGIMiddleware` and `SecureASGIMiddleware` through `secure.middleware`. Each middleware accepts a `Secure` instance (defaulting to `Secure.with_default_headers()`), overwrites headers by default, and only appends duplicates when the normalized header name is listed in `multi_ok` (which defaults to `secure.secure.MULTI_OK`, including `Content-Security-Policy`).
+
+### WSGI (Flask)
+
+Wrap a Flask app by replacing its `wsgi_app`, ensuring every response passes through the middleware:
+
+```python
+from flask import Flask
+from secure import Secure
+from secure.middleware import SecureWSGIMiddleware
+
+secure_headers = Secure.with_default_headers()
+app = Flask(__name__)
+app.wsgi_app = SecureWSGIMiddleware(app.wsgi_app, secure=secure_headers)
+```
+
+### WSGI (Django)
+
+Django middleware wraps requests and responses rather than the raw WSGI callable, so apply secure headers with a lightweight middleware class:
+
+```python
+from secure import Secure
+
+class SecureHeadersMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+        self.secure = Secure.with_default_headers()
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        self.secure.set_headers(response)
+        return response
+```
+
+Add `SecureHeadersMiddleware` to the `MIDDLEWARE` setting to run secure headers on every Django response.
+
+### ASGI (FastAPI)
+
+`SecureASGIMiddleware` touches only HTTP scopes and leaves WebSocket traffic unchanged. Mount it manually or via FastAPI’s middleware helper:
+
+```python
+from fastapi import FastAPI
+from secure import Secure
+from secure.middleware import SecureASGIMiddleware
+
+secure_headers = Secure.with_default_headers()
+app = FastAPI()
+app.add_middleware(SecureASGIMiddleware, secure=secure_headers)
+```
+
+### ASGI (Shiny for Python)
+
+Wrap a Shiny `App` directly with the middleware to secure HTTP responses:
+
+```python
+from shiny import App
+from secure import Secure
+from secure.middleware import SecureASGIMiddleware
+
+secure_headers = Secure.with_default_headers()
+app = SecureASGIMiddleware(App(), secure=secure_headers)
+```
+
+### Customizing `multi_ok`
+
+Pass an explicit `multi_ok` iterable to either middleware to append headers whose names must appear multiple times (for example, when downstream code already emits `Content-Security-Policy`).
+
+---
+
 ## Full Example with Customization
 
 The following is a complete example demonstrating how to combine default headers with custom configurations:
