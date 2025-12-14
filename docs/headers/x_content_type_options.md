@@ -32,17 +32,13 @@ secure_headers = Secure(
 )
 ```
 
-````
-
 ### Methods available
 
 - **`nosniff()`**: Sets the header to `nosniff`, which blocks certain `script`/`style` requests when MIME types are incorrect.
-- **`set(value)`**: Sets a raw/custom header value (escape hatch).
-- **`value(value)`**: Alias for `set(value)`.
-- **`custom(value)`**: Alias for `set(value)`.
+- **`set(value)` / `value(value)`**: Sets a raw/custom header value (escape hatch). `value` is an alias for `set`.
 - **`clear()`**: Resets the header to the library default (`nosniff`).
 
-> Note: `set/value/custom` are escape hatches. If you use `Secure.validate_and_normalize_headers(...)`, that layer is responsible for sanitization and safety checks.
+> Note: `set/value` are escape hatches. If you use `Secure.validate_and_normalize_headers(...)`, that layer is responsible for sanitization and safety checks.
 
 ## Example usage
 
@@ -78,4 +74,3 @@ This library implements security recommendations from trusted sources:
   [https://creativecommons.org/licenses/by-sa/2.5/](https://creativecommons.org/licenses/by-sa/2.5/)
 - OWASP Secure Headers Project (CC-BY-SA 4.0)
   [https://creativecommons.org/licenses/by-sa/4.0/](https://creativecommons.org/licenses/by-sa/4.0/)
-````

@@ -19,7 +19,7 @@ Welcome to the documentation for **Secure Headers**, a flexible Python library f
 
 To quickly get started using Secure Headers, check out the basic configuration guide in the main README:
 
-- [Quick Start Guide](../README.md#basic-usage)
+- [Quick Start Guide](../README.md#quick-start)
 
 For installation instructions, see the [Installation section](./installation.md).
 

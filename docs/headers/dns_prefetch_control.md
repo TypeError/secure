@@ -115,5 +115,5 @@ print(xdfc.header_value)  # off
 
 This library implements security recommendations and behavior described by:
 
-- [MDN Web Docs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cache-Control) (licensed under [CC-BY-SA 2.5](https://creativecommons.org/licenses/by-sa/2.5/))
-- [OWASP Secure Headers Project](https://owasp.org/www-project-secure-headers/#cache-control) (licensed under [CC-BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/))
+- [MDN Web Docs: X-DNS-Prefetch-Control](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/X-DNS-Prefetch-Control) (licensed under [CC-BY-SA 2.5](https://creativecommons.org/licenses/by-sa/2.5/))
+- [OWASP Secure Headers Project: X-DNS-Prefetch-Control](https://owasp.org/www-project-secure-headers/#x-dns-prefetch-control) (licensed under [CC-BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/))
