@@ -72,7 +72,7 @@ ignore = ["TRY003", "EM101"]
 
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101","S311","T20","PLR2004"]
+"tests/**" = ["S101","S311","T20","PLR2004", "ANN001", "ANN202", "ANN401", "ANN201"]
 "examples/**" = ["T20"]
 
 [tool.ruff.lint.flake8-annotations]
