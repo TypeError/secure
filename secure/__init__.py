@@ -16,9 +16,14 @@ from .headers.referrer_policy import ReferrerPolicy
 from .headers.server import Server
 from .headers.strict_transport_security import StrictTransportSecurity
 from .headers.x_content_type_options import XContentTypeOptions
+from .headers.x_dns_prefetch_control import XDnsPrefetchControl
 from .headers.x_frame_options import XFrameOptions
+from .headers.x_permitted_cross_domain_policies import XPermittedCrossDomainPolicies
 
 __all__ = [
+    "COMMA_JOIN_OK",
+    "DEFAULT_ALLOWED_HEADERS",
+    "MULTI_OK",
     "CacheControl",
     "ContentSecurityPolicy",
     "CrossOriginEmbedderPolicy",
@@ -31,8 +36,7 @@ __all__ = [
     "Server",
     "StrictTransportSecurity",
     "XContentTypeOptions",
+    "XDnsPrefetchControl",
     "XFrameOptions",
-    "COMMA_JOIN_OK",
-    "DEFAULT_ALLOWED_HEADERS",
-    "MULTI_OK",
+    "XPermittedCrossDomainPolicies",
 ]
