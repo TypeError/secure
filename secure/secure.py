@@ -349,8 +349,8 @@ class Secure:
                 raise ValueError(f"Unknown preset: {preset}")
 
     def __str__(self) -> str:
-        """Return a human-readable listing of headers and their values."""
-        return "\n".join(f"{header.header_name}: {header.header_value}" for header in self.headers_list)
+        """Return a human-readable listing of headers and their effective values."""
+        return "\n".join(f"{name}: {value}" for name, value in self._resolved_header_items())
 
     def __repr__(self) -> str:
         """Return a detailed representation of the :class:`Secure` instance."""
