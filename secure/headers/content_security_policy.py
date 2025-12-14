@@ -25,7 +25,10 @@ class ContentSecurityPolicy(BaseHeader):
     """
     Fluent builder for the ``Content-Security-Policy`` HTTP response header.
 
-    Default header value: `default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'`
+    Default header value:
+        `default-src 'self'; script-src 'self'; style-src 'self';
+         object-src 'none'; base-uri 'self'; frame-ancestors 'self';
+         form-action 'self'`
 
     Notes:
         * The structured helpers intentionally avoid full CSP validation; use
