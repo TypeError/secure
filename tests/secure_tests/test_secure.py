@@ -2,6 +2,7 @@ import asyncio
 from collections.abc import Awaitable, Callable, Generator
 import unittest
 
+import secure as secure_pkg
 from secure import (
     ContentSecurityPolicy,
     CustomHeader,
@@ -10,7 +11,12 @@ from secure import (
     Server,
     StrictTransportSecurity,
 )
-from secure.secure import HeaderSetError
+from secure.secure import (
+    COMMA_JOIN_OK,
+    DEFAULT_ALLOWED_HEADERS,
+    MULTI_OK,
+    HeaderSetError,
+)
 
 
 class MockResponse:
@@ -475,6 +481,22 @@ class TestSecure(unittest.TestCase):
 
         self.assertIn("Secure(headers_list=", repr_str)
         self.assertIn("headers_list=", repr_str)
+
+    def test_str_representation_uses_normalized_values(self) -> None:
+        """str() should reflect the normalized output used when setting headers."""
+        secure_headers = Secure(
+            custom=[
+                CustomHeader("X-Test-Normalized", "value\nwith\r\nspaces"),
+            ]
+        )
+        secure_headers.validate_and_normalize_headers()
+        self.assertIn("X-Test-Normalized: value with spaces", str(secure_headers))
+
+    def test_package_exports_header_constants(self) -> None:
+        """The public package API should re-export the pipeline helpers the docs mention."""
+        self.assertIs(secure_pkg.DEFAULT_ALLOWED_HEADERS, DEFAULT_ALLOWED_HEADERS)
+        self.assertIs(secure_pkg.COMMA_JOIN_OK, COMMA_JOIN_OK)
+        self.assertIs(secure_pkg.MULTI_OK, MULTI_OK)
 
     def test_invalid_preset(self) -> None:
         """Test that an invalid preset raises a ValueError."""
