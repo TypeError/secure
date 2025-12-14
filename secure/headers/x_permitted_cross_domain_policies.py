@@ -50,9 +50,20 @@ class XPermittedCrossDomainPolicies(BaseHeader):
         - https://owasp.org/www-project-secure-headers/#x-permitted-cross-domain-policies
     """
 
-    header_name: str = field(init=False, default=HeaderName.X_PERMITTED_CROSS_DOMAIN_POLICIES.value, repr=False)
-    _default_value: str = field(init=False, default=HeaderDefaultValue.X_PERMITTED_CROSS_DOMAIN_POLICIES.value, repr=False)
-    _value: str = field(default_factory=lambda: HeaderDefaultValue.X_PERMITTED_CROSS_DOMAIN_POLICIES.value, repr=False)
+    header_name: str = field(
+        init=False,
+        default=HeaderName.X_PERMITTED_CROSS_DOMAIN_POLICIES.value,
+        repr=False,
+    )
+    _default_value: str = field(
+        init=False,
+        default=HeaderDefaultValue.X_PERMITTED_CROSS_DOMAIN_POLICIES.value,
+        repr=False,
+    )
+    _value: str = field(
+        default_factory=lambda: HeaderDefaultValue.X_PERMITTED_CROSS_DOMAIN_POLICIES.value,
+        repr=False,
+    )
 
     @property
     def header_value(self) -> str:
