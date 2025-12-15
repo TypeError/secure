@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable, Coroutine, Iterable, MutableMapping
-from typing import Any, Protocol, TypeAlias, cast
+from collections.abc import Awaitable, Callable, Iterable, MutableMapping
+from typing import Protocol, TypeAlias, cast
 
 from ..secure import MULTI_OK, Secure
 
@@ -9,20 +9,15 @@ from ..secure import MULTI_OK, Secure
 # ASGI typing aliases
 # ---------------------------------------------------------------------------
 
-Scope: TypeAlias = MutableMapping[str, Any]
-Message: TypeAlias = MutableMapping[str, Any]
+Scope: TypeAlias = object
+Message: TypeAlias = object
 
 Receive: TypeAlias = Callable[[], Awaitable[Message]]
 Send: TypeAlias = Callable[[Message], Awaitable[None]]
 
 
 class ASGIApp(Protocol):
-    def __call__(
-        self,
-        scope: Scope,
-        receive: Receive,
-        send: Send,
-    ) -> Coroutine[Any, Any, None]: ...
+    def __call__(self, scope: Scope, receive: Receive, send: Send) -> Awaitable[None]: ...
 
 
 # ``http.response.start`` stores headers as a list of (name: bytes, value: bytes).
@@ -99,18 +94,18 @@ class SecureASGIMiddleware:
     Notes
     -----
     This middleware is intentionally "response-object free": it does not require
-    a framework's response type, so it can be used with Starlette/FastAPI,
-    Quart, or any other ASGI-compliant stack.
+    a framework's response type, so it can be used with any ASGI-compliant stack.
     """
 
     def __init__(
         self,
-        app: ASGIApp,
+        app: object,
         *,
         secure: Secure | None = None,
         multi_ok: Iterable[str] | None = None,
     ) -> None:
-        self.app = app
+        # Cast once: callers may pass function apps or callable objects.
+        self.app: ASGIApp = cast("ASGIApp", app)
         self.secure = secure or Secure.with_default_headers()
 
         provided = MULTI_OK if multi_ok is None else multi_ok
@@ -120,13 +115,16 @@ class SecureASGIMiddleware:
         )
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if scope.get("type") != "http":
+        scope_map = cast("MutableMapping[str, object]", scope)
+        if scope_map.get("type") != "http":
             await self.app(scope, receive, send)
             return
 
         async def send_wrapper(message: Message) -> None:
-            if message.get("type") == "http.response.start":
-                raw_headers = message.get("headers", [])
+            msg = cast("MutableMapping[str, object]", message)
+
+            if msg.get("type") == "http.response.start":
+                raw_headers = msg.get("headers", [])
                 headers: HeaderList = list(cast("Iterable[tuple[bytes, bytes]]", raw_headers))
 
                 # Track existing occurrences by normalized key.
@@ -153,7 +151,7 @@ class SecureASGIMiddleware:
                     headers.append((name_b, value_b))
                     positions[norm_name_b] = [len(headers) - 1]
 
-                message["headers"] = headers
+                msg["headers"] = headers
 
             await send(message)
 
