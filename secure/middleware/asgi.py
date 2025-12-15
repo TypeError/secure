@@ -7,7 +7,7 @@ from secure import Secure
 from secure.secure import MULTI_OK
 
 # ---------------------------------------------------------------------------
-# ASGI typing (checker-friendly + Starlette add_middleware-friendly)
+# ASGI typing aliases
 # ---------------------------------------------------------------------------
 
 Scope: TypeAlias = Any
@@ -18,29 +18,41 @@ Send: TypeAlias = Callable[[Any], Awaitable[None]]
 
 ASGIApp: TypeAlias = Callable[[Scope, Receive, Send], Awaitable[None]]
 
+# ASGI response start header list type (ASGI uses bytes for header names/values)
+HeaderList: TypeAlias = list[tuple[bytes, bytes]]
+
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
 
-def _norm_str(s: str) -> str:
+def _norm_str(value: str) -> str:
     """Normalize a header name for case-insensitive comparison."""
-    return s.strip().lower()
+    return value.strip().lower()
 
 
-def _b_norm(b: bytes) -> bytes:
+def _b_norm(value: bytes) -> bytes:
     """Normalize header-name bytes for case-insensitive comparison."""
-    return b.strip().lower()
+    return value.strip().lower()
 
 
 def _encode_name(name: str) -> bytes:
-    """Encode an HTTP header field-name as ASCII bytes (ASGI requires bytes)."""
+    """
+    Encode an HTTP header field-name as ASCII bytes.
+
+    ASGI requires header names to be `bytes`. HTTP header field-names are ASCII.
+    """
     return name.encode("ascii")
 
 
 def _encode_value(value: str) -> bytes:
-    """Encode an HTTP header value as latin-1 bytes (common ASGI convention)."""
+    """
+    Encode an HTTP header value as latin-1 bytes.
+
+    In ASGI servers, header values are conventionally latin-1 encoded bytes.
+    (This matches typical ASGI implementations and avoids Unicode issues.)
+    """
     return value.encode("latin-1")
 
 
@@ -51,20 +63,27 @@ def _encode_value(value: str) -> bytes:
 
 class SecureASGIMiddleware:
     """
-    Add Secure's configured HTTP security headers to an ASGI application.
+    Apply Secure's configured HTTP security headers to an ASGI application.
 
     This middleware wraps an ASGI app and injects headers by intercepting the
-    ``http.response.start`` message. This is the most reliable way to apply
-    headers for ASGI apps that do not expose a mutable response object (for
-    example: Shiny for Python). It also works well with Starlette and FastAPI.
+    ``http.response.start`` message.
 
-    Behavior
-    --------
-    - Applies only to HTTP scopes (``scope["type"] == "http"``).
-    - Overwrites existing headers by default (case-insensitive) to avoid duplicate
-      single-value headers (e.g., ``X-Content-Type-Options``).
-    - For header names in ``multi_ok`` (default: :data:`secure.secure.MULTI_OK`),
-      existing values are preserved and Secure's values are appended.
+    When it applies
+    --------------
+    - Only for HTTP scopes (``scope["type"] == "http"``).
+    - It does not modify websocket/lifespan/etc scopes.
+
+    Overwrite vs append
+    -------------------
+    - For most headers, existing values are removed (case-insensitive) and the
+      Secure value is added to avoid duplicates.
+    - For headers listed in ``multi_ok`` (default: :data:`secure.secure.MULTI_OK`),
+      existing values are preserved and Secure's value is appended.
+
+    Notes
+    -----
+    - This approach works well for frameworks that don't expose a mutable
+      response object (e.g., some ASGI toolkits) and also works with Starlette/FastAPI.
     """
 
     def __init__(
@@ -76,63 +95,51 @@ class SecureASGIMiddleware:
     ) -> None:
         self.app = app
         self.secure = secure or Secure.with_default_headers()
-        provided = multi_ok if multi_ok is not None else MULTI_OK
-        self.multi_ok_b = frozenset(_b_norm(_encode_name(_norm_str(h))) for h in provided)
+
+        provided = MULTI_OK if multi_ok is None else multi_ok
+        # Normalize once during init; comparisons during request handling are bytes-based.
+        self._multi_ok_b = frozenset(_b_norm(_encode_name(_norm_str(name))) for name in provided)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        # Starlette/FastAPI commonly treat scope as a MutableMapping, but type it loosely.
         scope_map = cast("MutableMapping[str, Any]", scope)
-
         if scope_map.get("type") != "http":
-            return await self.app(scope, receive, send)
+            await self.app(scope, receive, send)
+            return
 
-        async def send_wrapper(message_any: Any) -> None:
-            message = cast("Message", message_any)
+        async def send_wrapper(message_any: Message) -> None:
+            message = message_any
 
             if message.get("type") == "http.response.start":
-                headers: list[tuple[bytes, bytes]] = list(message.get("headers", []))
+                raw_headers = message.get("headers", [])
+                headers: HeaderList = list(raw_headers)
 
+                # Build an index of existing header positions (case-insensitive).
+                # Key is normalized header name bytes.
                 positions: dict[bytes, list[int]] = {}
                 for i, (k, _v) in enumerate(headers):
                     positions.setdefault(_b_norm(k), []).append(i)
 
-                for k, v in self.secure.headers.items():
-                    kb = _encode_name(k)
-                    nb = _b_norm(kb)
-                    vb = _encode_value(v)
+                # Apply Secure headers.
+                for name_str, value_str in self.secure.headers.items():
+                    name_b = _encode_name(name_str)
+                    norm_name_b = _b_norm(name_b)
+                    value_b = _encode_value(value_str)
 
-                    if nb in self.multi_ok_b:
-                        headers.append((kb, vb))
+                    if norm_name_b in self._multi_ok_b:
+                        headers.append((name_b, value_b))
                         continue
 
-                    if nb in positions:
-                        for i in reversed(positions[nb]):
-                            headers.pop(i)
-                        positions.pop(nb, None)
+                    # Remove all existing values for this header (if present).
+                    if norm_name_b in positions:
+                        for idx in reversed(positions[norm_name_b]):
+                            headers.pop(idx)
+                        positions.pop(norm_name_b, None)
 
-                    headers.append((kb, vb))
-                    positions[nb] = [len(headers) - 1]
+                    headers.append((name_b, value_b))
+                    positions[norm_name_b] = [len(headers) - 1]
 
                 message["headers"] = headers
 
             await send(message_any)
 
-        return await self.app(scope, receive, send_wrapper)
-
-    @staticmethod
-    def factory(
-        app: ASGIApp,
-        *,
-        secure: Secure | None = None,
-        multi_ok: Iterable[str] | None = None,
-        **_kwargs: object,
-    ) -> ASGIApp:
-        """
-        Starlette/FastAPI add_middleware()-compatible factory.
-
-        Some strict type checkers don't accept passing a callable middleware
-        class directly to add_middleware() (because the constructor returns an
-        instance, not an ASGIApp). This factory returns an ASGIApp explicitly.
-        """
-        del _kwargs
-        return SecureASGIMiddleware(app, secure=secure, multi_ok=multi_ok)
+        await self.app(scope, receive, send_wrapper)
