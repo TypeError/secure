@@ -7,13 +7,13 @@ name = "secure"
 version = "2.0.0"
 description = "A lightweight package that adds security headers for Python web frameworks."
 readme = { file = "README.md", content-type = "text/markdown" }
-license = { file = "LICENSE" }
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [{ name = "Caleb Kinney", email = "caleb@typeerror.com" }]
 requires-python = ">=3.10"
 keywords = ["security", "headers", "web", "framework", "HTTP"]
 classifiers = [
   "Development Status :: 5 - Production/Stable",
-  "License :: OSI Approved :: MIT License",
   "Intended Audience :: Developers",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
