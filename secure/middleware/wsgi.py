@@ -14,16 +14,47 @@ WSGIApp = Callable[[WSGIEnviron, StartResponse], Iterable[bytes]]
 
 
 def _norm_str(s: str) -> str:
+    """Normalize a header name for case-insensitive comparison."""
     return s.strip().lower()
 
 
 class SecureWSGIMiddleware:
     """
-    WSGI middleware that adds/overwrites security headers on every response.
+    Add Secure's configured HTTP security headers to a WSGI application.
 
-    Overwrite behavior:
-      - Overwrites existing headers by default (case-insensitive)
-      - For header names in `multi_ok`, it appends instead of overwriting
+    This middleware wraps a WSGI app and injects headers by wrapping the
+    WSGI ``start_response`` callable. This is a protocol-level integration:
+    it does not require a framework-specific response object.
+
+    Behavior
+    --------
+    - Overwrites existing headers by default (case-insensitive) to avoid duplicate
+      single-value headers (e.g., ``X-Frame-Options``).
+    - For header names in ``multi_ok`` (default: :data:`secure.secure.MULTI_OK`),
+      existing values are preserved and Secure's values are appended.
+
+    Notes
+    -----
+    - Many frameworks (e.g., Flask) also expose higher-level hooks (after_request).
+      This middleware is useful when you want a server-/deployment-level wrapper
+      or a framework-agnostic approach.
+    - Django is typically integrated via Django's middleware interface (response
+      objects). This WSGI middleware is still valid when running Django under WSGI.
+
+    Examples
+    --------
+    Flask (recommended hook is ``app.wsgi_app``):
+
+    >>> from flask import Flask
+    >>> from secure.middleware import SecureWSGIMiddleware
+    >>> app = Flask(__name__)
+    >>> app.wsgi_app = SecureWSGIMiddleware(app.wsgi_app)
+
+    Pass a custom Secure instance (e.g., custom CSP):
+
+    >>> from secure import Secure
+    >>> secure = Secure.with_default_headers()
+    >>> app.wsgi_app = SecureWSGIMiddleware(app.wsgi_app, secure=secure)
     """
 
     def __init__(
@@ -36,8 +67,15 @@ class SecureWSGIMiddleware:
         """
         Parameters
         ----------
-        multi_ok :
-            Header names that should append instead of overwriting. Defaults to :data:`secure.secure.MULTI_OK`.
+        app:
+            The WSGI application to wrap.
+        secure:
+            A configured :class:`~secure.Secure` instance. If omitted, uses
+            :meth:`~secure.Secure.with_default_headers`.
+        multi_ok:
+            Header names allowed to appear multiple times in a response. For these,
+            Secure's value is appended instead of overwriting. If omitted, defaults
+            to :data:`secure.secure.MULTI_OK`.
         """
         self.app = app
         self.secure = secure or Secure.with_default_headers()
@@ -45,6 +83,13 @@ class SecureWSGIMiddleware:
         self.multi_ok = frozenset(_norm_str(h) for h in provided)
 
     def __call__(self, environ: WSGIEnviron, start_response: StartResponse) -> Iterable[bytes]:
+        """
+        Invoke the wrapped WSGI app, injecting configured security headers.
+
+        This method wraps ``start_response`` so it can modify the outgoing header
+        list immediately before the server sends them to the client.
+        """
+
         def custom_start_response(
             status: str, headers: list[tuple[str, str]], exc_info: ExcInfo = None
         ) -> WriteCallable:

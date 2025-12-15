@@ -12,29 +12,63 @@ Send = Callable[[dict[str, Any]], Any]
 ASGIApp = Callable[[Scope, Receive, Send], Any]
 
 
+def _norm_str(s: str) -> str:
+    """Normalize a header name for case-insensitive comparison."""
+    return s.strip().lower()
+
+
 def _b_norm(b: bytes) -> bytes:
+    """Normalize header-name bytes for case-insensitive comparison."""
     return b.strip().lower()
 
 
 def _encode_name(name: str) -> bytes:
-    # HTTP header field-names are ASCII
+    """Encode an HTTP header field-name as ASCII bytes (ASGI requires bytes)."""
     return name.encode("ascii")
 
 
 def _encode_value(value: str) -> bytes:
-    # header values are bytes on the wire; latin-1 is a common safe mapping
+    """Encode an HTTP header value as latin-1 bytes (common ASGI convention)."""
     return value.encode("latin-1")
 
 
 class SecureASGIMiddleware:
     """
-    ASGI middleware that adds/overwrites security headers for HTTP responses.
+    Add Secure's configured HTTP security headers to an ASGI application.
 
-    Applies only to scope["type"] == "http".
+    This middleware wraps an ASGI app and injects headers by intercepting the
+    ``http.response.start`` message. This is the most reliable way to apply
+    headers for ASGI apps that do not expose a mutable response object (for
+    example: Shiny for Python). It also works well with Starlette and FastAPI.
 
-    Overwrite behavior:
-      - Overwrites existing headers by default (case-insensitive)
-      - For header names in `multi_ok`, it appends instead of overwriting
+    Behavior
+    --------
+    - Applies only to HTTP scopes (``scope["type"] == "http"``).
+    - Overwrites existing headers by default (case-insensitive) to avoid duplicate
+      single-value headers (e.g., ``X-Content-Type-Options``).
+    - For header names in ``multi_ok`` (default: :data:`secure.secure.MULTI_OK`),
+      existing values are preserved and Secure's values are appended.
+
+    Notes
+    -----
+    - WebSocket scopes are not modified.
+    - Headers are injected only at response start; headers cannot be changed
+      after the ``http.response.start`` event has been sent.
+    - Header names are encoded as ASCII bytes; values are encoded as latin-1 bytes.
+
+    Examples
+    --------
+    Shiny for Python:
+
+    >>> from shiny import App, ui
+    >>> from secure.middleware import SecureASGIMiddleware
+    >>> app = App(ui.page_fluid("ok"), server=None)
+    >>> app = SecureASGIMiddleware(app)
+
+    FastAPI / Starlette:
+
+    >>> from secure.middleware import SecureASGIMiddleware
+    >>> app = SecureASGIMiddleware(app)
     """
 
     def __init__(
@@ -47,16 +81,31 @@ class SecureASGIMiddleware:
         """
         Parameters
         ----------
-        multi_ok :
-            Header names that should append instead of overwriting. Defaults to :data:`secure.secure.MULTI_OK`.
+        app:
+            The ASGI application to wrap.
+        secure:
+            A configured :class:`~secure.Secure` instance. If omitted, uses
+            :meth:`~secure.Secure.with_default_headers`.
+        multi_ok:
+            Header names allowed to appear multiple times in a response. For these,
+            Secure's value is appended instead of overwriting. If omitted, defaults
+            to :data:`secure.secure.MULTI_OK`.
         """
         self.app = app
         self.secure = secure or Secure.with_default_headers()
         provided = multi_ok if multi_ok is not None else MULTI_OK
-        # store normalized BYTES keys for fast comparisons in ASGI land
-        self.multi_ok_b = frozenset(_b_norm(_encode_name(h)) for h in provided)
+
+        # Store normalized BYTES keys for fast comparisons in ASGI land.
+        # Normalize as str first (strip/lower), then encode.
+        self.multi_ok_b = frozenset(_b_norm(_encode_name(_norm_str(h))) for h in provided)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        """
+        Invoke the wrapped ASGI app, injecting configured security headers.
+
+        This wraps the downstream ``send`` callable so we can modify the outgoing
+        ``http.response.start`` message (where headers are emitted).
+        """
         if scope.get("type") != "http":
             return await self.app(scope, receive, send)
 
