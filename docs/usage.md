@@ -213,7 +213,7 @@ This approach ensures that your security headers are applied efficiently in non-
 
 ## Middleware
 
-Secure exposes `SecureWSGIMiddleware` and `SecureASGIMiddleware` through `secure.middleware`. Each middleware accepts a `Secure` instance (defaulting to `Secure.with_default_headers()`), overwrites headers by default, and only appends duplicates when the normalized header name is listed in `multi_ok` (which defaults to `secure.secure.MULTI_OK`, including `Content-Security-Policy`).
+Secure exposes `SecureWSGIMiddleware` and `SecureASGIMiddleware` through `secure.middleware`. Each middleware accepts a `Secure` instance (defaulting to `Secure.with_default_headers()`), overwrites headers by default, and only appends duplicates when the normalized header name is listed in `multi_ok` (which defaults to `secure.MULTI_OK`, including `Content-Security-Policy`).
 
 ### WSGI (Flask)
 
