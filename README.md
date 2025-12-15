@@ -437,6 +437,31 @@ This pipeline gives you a repeatable, testable flow for going from high level po
 
 Below are simple examples for a synchronous and an asynchronous framework. See the framework specific guides for more detailed patterns.
 
+### Shiny for Python
+
+#### Recommended: ASGI middleware wrapper
+
+Wraps the Shiny ASGI application and injects headers by intercepting the ASGI `http.response.start` message.
+
+```python
+from secure import Secure
+from secure.middleware import SecureASGIMiddleware
+from shiny import App, ui
+
+secure_headers = Secure.with_default_headers()
+
+app_ui = ui.page_fluid("Hello Shiny!")
+
+
+def server(input, output, session):
+    pass
+
+
+app = App(app_ui, server)
+
+app = SecureASGIMiddleware(app, secure=secure_headers)
+```
+
 ### FastAPI
 
 #### Recommended: `add_middleware` (ASGI)
