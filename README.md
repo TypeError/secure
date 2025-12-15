@@ -439,9 +439,33 @@ Below are simple examples for a synchronous and an asynchronous framework. See t
 
 ### FastAPI
 
+#### Recommended: `add_middleware` (ASGI)
+
+Injects headers by intercepting the ASGI `http.response.start` message.
+
 ```python
 from fastapi import FastAPI
+from secure import Secure
+from secure.middleware import SecureASGIMiddleware
 
+app = FastAPI()
+secure_headers = Secure.with_default_headers()
+
+
+@app.get("/")
+def read_root():
+    return {"Hello": "World"}
+
+
+app.add_middleware(SecureASGIMiddleware, secure=secure_headers)
+```
+
+#### Alternative: route-level hook (@app.middleware("http"))
+
+Applies headers directly to the response object returned by `call_next`.
+
+```python
+from fastapi import FastAPI
 from secure import Secure
 
 app = FastAPI()
@@ -457,14 +481,17 @@ async def add_security_headers(request, call_next):
 
 @app.get("/")
 def read_root():
-    return {"hello": "world"}
+    return {"Hello": "World"}
 ```
 
 ### Flask
 
+#### Recommended: `after_request` hook
+
+Applies headers directly to the Flask `Response` object.
+
 ```python
 from flask import Flask, Response
-
 from secure import Secure
 
 app = Flask(__name__)
@@ -481,6 +508,31 @@ def add_security_headers(response: Response):
 def home():
     return "Hello, world"
 
+
+if __name__ == "__main__":
+    app.run()
+```
+
+#### Alternative: WSGI middleware (`app.wsgi_app`)
+
+Wraps the WSGI application and injects headers by wrapping `start_response`.
+Useful for deployment-level / framework-agnostic WSGI setups.
+
+```python
+from flask import Flask
+from secure import Secure
+from secure.middleware.wsgi import SecureWSGIMiddleware
+
+app = Flask(__name__)
+secure_headers = Secure.with_default_headers()
+
+
+@app.get("/")
+def home():
+    return {"Hello": "World"}
+
+
+app.wsgi_app = SecureWSGIMiddleware(app.wsgi_app, secure=secure_headers)
 
 if __name__ == "__main__":
     app.run()
