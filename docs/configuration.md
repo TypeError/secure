@@ -88,18 +88,28 @@ In this example, a custom HTTP header `X-Custom-Header` is added to the response
 
 ## Combining Presets with Customization
 
-You can use one of the built-in presets as a starting point and then further customize specific headers to meet your security needs.
+You can use one of the built-in presets as a starting point and then further customize specific headers to meet your security needs. Every `Secure` instance exposes its configuration as a list of header builders via `headers_list`, so you can replace, reorder, or extend that list to adjust individual headers even after instantiation.
 
 ### Example: Customizing a Preset
 
 ```python
-from secure import Secure, Preset
+from secure import Preset, Secure, StrictTransportSecurity
 
 secure_headers = Secure.from_preset(Preset.BASIC)
-secure_headers.hsts.max_age(63072000)  # Override the default max-age value
+
+secure_headers.headers_list = [
+    header
+    for header in secure_headers.headers_list
+    if header.header_name != "Strict-Transport-Security"
+]
+secure_headers.headers_list.append(
+    StrictTransportSecurity()
+    .max_age(63072000)
+    .include_subdomains()
+)
 ```
 
-This approach allows you to quickly set up basic security headers while customizing certain parameters to fit your application’s security posture.
+This replaces the preset’s `Strict-Transport-Security` builder with a custom one while keeping the remaining headers unchanged.
 
 ---
 

@@ -2,19 +2,19 @@
 
 ## Purpose
 
-`X-Permitted-Cross-Domain-Policies` is a **response header** that sets a _meta-policy_ controlling whether site resources can be accessed cross-origin by documents running in legacy web clients (for example, Adobe Acrobat or Microsoft Silverlight). :contentReference[oaicite:0]{index=0}
+`X-Permitted-Cross-Domain-Policies` is a **response header** that sets a _meta-policy_ controlling whether site resources can be accessed cross-origin by documents running in legacy web clients (for example, Adobe Acrobat or Microsoft Silverlight).
 
-Usage is less common today because Flash/Silverlight have been deprecated, but many security testing tools still check for `X-Permitted-Cross-Domain-Policies: none` to reduce the risk of an overly-permissive cross-domain policy being present accidentally or maliciously. :contentReference[oaicite:1]{index=1}
+Usage is less common today because Flash/Silverlight have been deprecated, but many security testing tools still check for `X-Permitted-Cross-Domain-Policies: none` to reduce the risk of an overly-permissive cross-domain policy being present accidentally or maliciously.
 
-> This documentation format mirrors the style used in the existing header docs (e.g., Cache-Control). :contentReference[oaicite:2]{index=2}
+> This documentation format mirrors the style used in the existing header docs (e.g., Cache-Control).
 
 ## Default behavior
 
 If you create `XPermittedCrossDomainPolicies()` and do not set a policy, it returns the library default value:
 
-- **Default header value:** `none` :contentReference[oaicite:3]{index=3}
+- **Default header value:** `none`
 
-This is the least permissive option and is the most common secure setting when you do not need legacy cross-domain policy behavior. :contentReference[oaicite:4]{index=4}
+This is the least permissive option and is the most common secure setting when you do not need legacy cross-domain policy behavior.
 
 ## Using with `Secure`
 

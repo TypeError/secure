@@ -2,13 +2,13 @@
 
 ## Purpose
 
-`Cache-Control` is a comma-separated list of **directives** that control caching behavior for both **requests** and **responses**. Used correctly, it helps prevent sensitive data from being cached and improves performance for cacheable assets. :contentReference[oaicite:1]{index=1}
+`Cache-Control` is a comma-separated list of **directives** that control caching behavior for both **requests** and **responses**. Used correctly, it helps prevent sensitive data from being cached and improves performance for cacheable assets.
 
 ## Default behavior
 
 If you create `CacheControl()` and do not add directives, it returns the library default value:
 
-- **Default header value:** `no-store, max-age=0` :contentReference[oaicite:2]{index=2}
+- **Default header value:** `no-store, max-age=0`
 
 This is a secure baseline intended to prevent storage of sensitive responses.
 

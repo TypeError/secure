@@ -4,13 +4,13 @@
 
 The `Cross-Origin-Resource-Policy` (CORP) response header lets a **resource owner** declare what sites/origins are allowed to load that resource.
 
-This header is commonly used to reduce cross-origin data leaks by controlling who can load your resources (images, scripts, etc.) and by blocking certain cross-origin/cross-site `no-cors` requests when the policy is more restrictive. :contentReference[oaicite:1]{index=1}
+This header is commonly used to reduce cross-origin data leaks by controlling who can load your resources (images, scripts, etc.) and by blocking certain cross-origin/cross-site `no-cors` requests when the policy is more restrictive.
 
 ## Best Practices
 
-- **`same-origin`**: Strong default for sensitive resources; only allow loads from the same origin. :contentReference[oaicite:2]{index=2}
-- **`same-site`**: Useful when you need to share resources across subdomains on the same “site” but not with unrelated sites. :contentReference[oaicite:3]{index=3}
-- **`cross-origin`**: Most permissive; allow any origin to load the resource (use intentionally, not by accident). :contentReference[oaicite:4]{index=4}
+- **`same-origin`**: Strong default for sensitive resources; only allow loads from the same origin.
+- **`same-site`**: Useful when you need to share resources across subdomains on the same “site” but not with unrelated sites.
+- **`cross-origin`**: Most permissive; allow any origin to load the resource (use intentionally, not by accident).
 
 ## Configuration with `secure`
 
