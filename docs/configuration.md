@@ -8,16 +8,23 @@ This guide provides detailed information on how to configure `secure` beyond the
 
 ## Default Headers
 
-By default, `secure` applies a set of widely-used security headers that provide a strong baseline of protection. These include:
+`Secure.with_default_headers()` uses `Preset.BALANCED`, which configures a consistent, modern baseline. The defaults cover browser isolation, MIME safety, and legacy compatibility guards while keeping the header set lean:
 
-- **Strict-Transport-Security (HSTS)**: Ensures that browsers only connect to your site over HTTPS.
-- **X-Frame-Options**: Protects against clickjacking attacks by controlling whether your site can be embedded in an iframe.
-- **X-Content-Type-Options**: Prevents browsers from MIME-sniffing a response away from the declared `Content-Type`.
-- **Content-Security-Policy (CSP)**: Mitigates Cross-Site Scripting (XSS) and data injection attacks by defining allowed content sources.
+- **Cross-Origin-Opener-Policy:** `same-origin` – isolates the browsing context to prevent exploitation of shared global objects.
+- **Cross-Origin-Resource-Policy:** `same-origin` – prevents cross-origin resources from being retrieved unless explicitly permitted.
+- **Content-Security-Policy:** `default-src 'self'; base-uri 'self'; font-src 'self' https: data:; form-action 'self'; frame-ancestors 'self'; img-src 'self' data:; object-src 'none'; script-src 'self'; script-src-attr 'none'; style-src 'self' https: 'unsafe-inline'; upgrade-insecure-requests` – a conservative, CSP-first profile with no inline scripts and forced HTTPS upgrades.
+- **Strict-Transport-Security (HSTS):** `max-age=31536000; includeSubDomains` – enforces HTTPS for browsers for one year.
+- **Permissions-Policy:** `geolocation=(), microphone=(), camera=()` – disables a few sensitive browser features by default.
+- **Referrer-Policy:** `strict-origin-when-cross-origin` – balances privacy and analytics by trimming cross-origin referrer data.
+- **Server:** empty string – hides the underlying server software.
+- **X-Content-Type-Options:** `nosniff` – blocks MIME sniffing attacks.
+- **X-Frame-Options:** `SAMEORIGIN` – prevents framing by other origins.
+
+Balanced intentionally skips `Cache-Control` and the older compatibility headers (`X-Permitted-Cross-Domain-Policies`, `X-DNS-Prefetch-Control`, `Origin-Agent-Cluster`, `X-Download-Options`, `X-XSS-Protection`), but you can add them manually when your deployment still depends on them.
 
 ### Applying Default Headers
 
-To quickly apply these default headers, use the following command:
+To quickly apply this configuration, use:
 
 ```python
 secure_headers = Secure.with_default_headers()
