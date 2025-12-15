@@ -27,7 +27,7 @@
 
 ### Note: Overriding the `Server` Header in Uvicorn-based Frameworks
 
-If you're using Uvicorn as the ASGI server (commonly used with frameworks like FastAPI, Starlette, and others), Uvicorn automatically injects a `Server: uvicorn` header into all HTTP responses by default. This can lead to multiple `Server` headers when using `Secure.py` to set a custom `Server` header.
+If you're using Uvicorn as the ASGI server (commonly used with frameworks like FastAPI, Starlette, and others), Uvicorn automatically injects a `Server: uvicorn` header into all HTTP responses by default. This can lead to multiple `Server` headers when using `secure` to set a custom `Server` header.
 
 To prevent Uvicorn from adding its default `Server` header, you can disable it by passing the `--no-server-header` option when running Uvicorn, or by setting `server_header=False` in the `uvicorn.run()` method:
 
@@ -149,14 +149,7 @@ class HelloWorld:
         cherrypy.response.headers.update(secure_headers.headers)
         return b"Hello, world"
 
-config = {
-    "/": {
-        "tools.response_headers.on": True,
-        "tools.response_headers.headers": secure_headers.headers
-    }
-}
-
-cherrypy.quickstart(HelloWorld(), "/", config)
+cherrypy.quickstart(HelloWorld())
 ```
 
 ### Single Route Example
@@ -174,6 +167,51 @@ class HelloWorld:
         return b"Hello, world"
 
 cherrypy.quickstart(HelloWorld())
+```
+
+---
+
+## Dash
+
+**[Dash](https://dash.plotly.com/)** is a Python framework for building interactive data apps and dashboards, built on top of Plotly.js, React, and Flask.
+
+### Middleware Example
+
+```python
+import dash
+from dash import html
+from secure import Secure
+
+secure_headers = Secure.with_default_headers()
+
+app = dash.Dash(__name__)
+server = app.server
+
+app.layout = html.Div("Hello Dash!")
+
+
+@server.after_request
+def add_security_headers(response):
+    secure_headers.set_headers(response)
+    return response
+```
+
+#### Alternative: WSGI middleware
+
+```python
+import dash
+from dash import html
+from secure import Secure
+from secure.middleware.wsgi import SecureWSGIMiddleware
+
+secure_headers = Secure.with_default_headers()
+
+app = dash.Dash(__name__)
+server = app.server  # Flask app underneath Dash
+
+app.layout = html.Div("Hello Dash!")
+
+server.wsgi_app = SecureWSGIMiddleware(server.wsgi_app, secure=secure_headers)
 ```
 
 ---
@@ -262,7 +300,19 @@ app.add_route("/", HelloWorldResource())
 
 **[FastAPI](https://fastapi.tiangolo.com)** is a modern, fast web framework for building APIs with Python 3.6+.
 
-### Middleware Example
+#### Recommended: `SecureASGIMiddleware`
+
+```python
+from fastapi import FastAPI
+from secure import Secure
+from secure.middleware import SecureASGIMiddleware
+
+app = FastAPI()
+secure_headers = Secure.with_default_headers()
+app.add_middleware(SecureASGIMiddleware, secure=secure_headers)
+```
+
+#### Alternative: route-level hook with `@app.middleware("http")`
 
 ```python
 from fastapi import FastAPI
@@ -312,6 +362,19 @@ secure_headers = Secure.with_default_headers()
 def add_security_headers(response: Response):
     secure_headers.set_headers(response)
     return response
+```
+
+#### Alternative: WSGI middleware
+
+```python
+from flask import Flask
+from secure import Secure
+from secure.middleware import SecureWSGIMiddleware
+
+app = Flask(__name__)
+secure_headers = Secure.with_default_headers()
+
+app.wsgi_app = SecureWSGIMiddleware(app.wsgi_app, secure=secure_headers)
 ```
 
 ### Single Route Example
@@ -529,6 +592,7 @@ secure_headers = Secure.with_default_headers()
 @app.middleware("response")
 async def add_security_headers(request, resp):
     secure_headers.set_headers(resp)
+    return resp
 ```
 
 ### Single Route Example
@@ -549,6 +613,33 @@ async def index(request):
 
 ---
 
+## Shiny
+
+**[Shiny](https://shiny.posit.co/py/)** is a fully reactive framework for building rich, interactive web apps in pure Python—without needing to learn JavaScript or front-end frameworks.
+
+### Middleware Example
+
+```python
+from secure import Secure
+from secure.middleware import SecureASGIMiddleware
+from shiny import App, ui
+
+secure_headers = Secure.with_default_headers()
+
+app_ui = ui.page_fluid("Hello Shiny!")
+
+
+def server(input, output, session):
+    pass
+
+
+app = App(app_ui, server)
+
+app = SecureASGIMiddleware(app, secure=secure_headers)
+```
+
+---
+
 ## Starlette
 
 **[Starlette](https://www.starlette.io)** is a lightweight ASGI framework.
@@ -556,33 +647,40 @@ async def index(request):
 ### Middleware Example
 
 ```python
-from starlette.applications import Starlette
-from starlette.responses import Response
-from starlette.middleware.base import BaseHTTPMiddleware
 from secure import Secure
+from secure.middleware import SecureASGIMiddleware
+from starlette.applications import Starlette
+from starlette.responses import JSONResponse
 
 secure_headers = Secure.with_default_headers()
 
-class SecurityHeadersMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request, call_next):
-        response = await call_next(request)
-        await secure_headers.set_headers_async(response)
-        return response
+app = Starlette()
+app.add_middleware(SecureASGIMiddleware, secure=secure_headers)
+
+
+@app.route("/")
+async def read_root(request):
+    return JSONResponse({"hello": "world"})
 ```
 
 ### Single Route Example
 
 ```python
+from secure import Secure
 from starlette.applications import Starlette
 from starlette.responses import Response
-from secure import Secure
+from starlette.routing import Route
 
 secure_headers = Secure.with_default_headers()
+
 
 async def homepage(request):
     response = Response("Hello, world")
     await secure_headers.set_headers_async(response)
     return response
+
+
+app = Starlette(routes=[Route("/", homepage)])
 ```
 
 ---
