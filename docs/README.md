@@ -72,6 +72,9 @@ Secure Headers supports many critical HTTP security headers. Below is a list of 
 - [Cross-Origin-Opener-Policy](./headers/cross_origin_opener_policy.md)  
   Prevent attackers from accessing your global objects via cross-origin documents.
 
+- [Cross-Origin-Resource-Policy](./headers/cross-origin-resource-policy.md)  
+  Declare which origins can load your resources to prevent unintended data leaks.
+
 - [Custom Headers](./headers/custom_header.md)  
   Define and manage custom HTTP headers for advanced configurations.
 
@@ -92,6 +95,12 @@ Secure Headers supports many critical HTTP security headers. Below is a list of 
 
 - [X-Frame-Options](./headers/x_frame_options.md)  
   Protect against clickjacking by controlling whether your content can be framed.
+
+- [X-DNS-Prefetch-Control](./headers/dns_prefetch_control.md)  
+  Control DNS prefetching to avoid leaking outbound link information.
+
+- [X-Permitted-Cross-Domain-Policies](./headers/x-permitted-cross-domain-policies.md)  
+  Limit legacy cross-domain policy files for Flash/Silverlight compatibility.
 
 ---
 
