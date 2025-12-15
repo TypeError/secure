@@ -7,7 +7,7 @@ import inspect
 import logging
 import re
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Literal, Protocol
+from typing import TYPE_CHECKING, Literal, Protocol, TypeAlias
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping
@@ -93,7 +93,7 @@ class SetHeaderProtocol(Protocol):
 
 
 # Union type for supported response objects.
-ResponseProtocol: ResponseProtocol = HeadersProtocol | SetHeaderProtocol
+ResponseProtocol: TypeAlias = HeadersProtocol | SetHeaderProtocol
 
 
 # ---------------------------------------------------------------------------
