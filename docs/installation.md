@@ -21,9 +21,17 @@ Most modern systems should meet this requirement.
 
 ---
 
-## Installation via pip
+## Installation via uv or pip
 
 To install `secure` from the Python Package Index (PyPI), use the following command:
+
+### Using `uv`
+
+```bash
+uv add secure
+```
+
+### Using `pip`
 
 ```bash
 pip install secure
