@@ -7,10 +7,10 @@ import inspect
 import logging
 import re
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Literal, Protocol, TypeAlias
+from typing import TYPE_CHECKING, Literal, Protocol, TypeAlias, cast
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Mapping
+    from collections.abc import Callable, Iterable, Mapping, MutableMapping
 
 from .headers import (
     BaseHeader,
@@ -84,8 +84,8 @@ class HeaderSetError(RuntimeError):
 
 
 class HeadersProtocol(Protocol):
-    # Intentionally broad: frameworks type headers differently.
-    headers: object
+    @property
+    def headers(self) -> object: ...
 
 
 class SetHeaderProtocol(Protocol):
@@ -853,19 +853,20 @@ class Secure:
 
         # Path 2: response.headers...
         if hasattr(response, "headers"):
-            hdrs = response.headers
+            hdrs = cast("object", response.headers)
 
-            # Prefer Werkzeug-style: response.headers.set(name, value)
             set_fn = getattr(hdrs, "set", None)
             if callable(set_fn):
-                if inspect.iscoroutinefunction(set_fn):
+                set_fn_typed = cast("Callable[[str, str], object]", set_fn)
+
+                if inspect.iscoroutinefunction(set_fn_typed):
                     raise RuntimeError(
                         "Async headers setter detected in sync context. Use 'await set_headers_async(response)'."
                     )
 
                 try:
                     for name, value in items:
-                        result = set_fn(name, value)
+                        result = set_fn_typed(name, value)
                         if inspect.isawaitable(result):
                             raise RuntimeError(
                                 "Async headers setter returned awaitable in sync context. "
@@ -876,17 +877,20 @@ class Secure:
 
                 return
 
-            # Fallback: response.headers[name] = value  # noqa: ERA001
             setitem = getattr(hdrs, "__setitem__", None)
             if callable(setitem):
-                if inspect.iscoroutinefunction(setitem):
+                setitem_typed = cast("Callable[[str, str], object]", setitem)
+
+                if inspect.iscoroutinefunction(setitem_typed):
                     raise RuntimeError(
                         "Async headers mapping detected in sync context. Use 'await set_headers_async(response)'."
                     )
 
                 try:
+                    # Use mapping assignment for the common case.
+                    hdrs_map = cast("MutableMapping[str, str]", hdrs)
                     for name, value in items:
-                        hdrs[name] = value
+                        hdrs_map[name] = value
                 except (TypeError, ValueError, AttributeError) as e:
                     raise HeaderSetError(f"Failed to set headers: {e}") from e
 
@@ -944,14 +948,15 @@ class Secure:
 
         # Path 2: response.headers...
         if hasattr(response, "headers"):
-            hdrs = response.headers
+            hdrs = cast("object", response.headers)
 
-            # Prefer Werkzeug-style: response.headers.set(name, value)
             set_fn = getattr(hdrs, "set", None)
             if callable(set_fn):
+                set_fn_typed = cast("Callable[[str, str], object]", set_fn)
+
                 try:
                     for name, value in items:
-                        result = set_fn(name, value)
+                        result = set_fn_typed(name, value)
                         if inspect.isawaitable(result):
                             await result
                 except (TypeError, ValueError, AttributeError) as e:
@@ -959,12 +964,13 @@ class Secure:
 
                 return
 
-            # Fallback: response.headers.__setitem__(name, value)  # noqa: ERA001
             setitem = getattr(hdrs, "__setitem__", None)
             if callable(setitem):
+                setitem_typed = cast("Callable[[str, str], object]", setitem)
+
                 try:
                     for name, value in items:
-                        result = setitem(name, value)
+                        result = setitem_typed(name, value)
                         if inspect.isawaitable(result):
                             await result
                 except (TypeError, ValueError, AttributeError) as e:
