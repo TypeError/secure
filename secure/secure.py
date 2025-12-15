@@ -10,7 +10,7 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING, Literal, Protocol
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Mapping, MutableMapping
+    from collections.abc import Iterable, Mapping
 
 from .headers import (
     BaseHeader,
@@ -84,20 +84,16 @@ class HeaderSetError(RuntimeError):
 
 
 class HeadersProtocol(Protocol):
-    """Protocol for response objects that expose a `headers` mapping."""
-
-    headers: MutableMapping[str, str]
+    # Intentionally broad: frameworks type headers differently.
+    headers: object
 
 
 class SetHeaderProtocol(Protocol):
-    """Protocol for response objects that expose a `set_header(name, value)` method."""
-
     def set_header(self, key: str, value: str) -> object | None: ...
 
 
-# Union type for supported response objects. This keeps the public API broad
-# enough to cover FastAPI/Starlette, Flask, Django, etc.
-ResponseProtocol = HeadersProtocol | SetHeaderProtocol
+# Union type for supported response objects.
+ResponseProtocol: ResponseProtocol = HeadersProtocol | SetHeaderProtocol
 
 
 # ---------------------------------------------------------------------------
@@ -801,7 +797,7 @@ class Secure:
     # Application to framework responses
     # ------------------------------------------------------------------
 
-    def set_headers(self, response: ResponseProtocol) -> None:
+    def set_headers(self, response: ResponseProtocol) -> None:  # noqa: PLR0912
         """
         Apply configured headers synchronously to ``response``.
 
@@ -811,6 +807,7 @@ class Secure:
         Supported patterns
         ------------------
         * ``response.set_header(name, value)`` (synchronous).
+        * ``response.headers.set(name, value)`` (Werkzeug-style headers container).
         * ``response.headers[name] = value`` (mapping interface).
 
         Parameters
@@ -825,7 +822,8 @@ class Secure:
             If an async setter is detected (for example an async method is used
             in a sync context).
         AttributeError
-            If the response lacks both ``.set_header`` and ``.headers``.
+            If the response lacks both ``.set_header`` and ``.headers``, or if
+            ``.headers`` does not support setting values.
         HeaderSetError
             If setting an individual header fails.
         """
@@ -853,27 +851,52 @@ class Secure:
 
             return
 
-        # Path 2: response.headers[...] mapping
+        # Path 2: response.headers...
         if hasattr(response, "headers"):
             hdrs = response.headers
+
+            # Prefer Werkzeug-style: response.headers.set(name, value)
+            set_fn = getattr(hdrs, "set", None)
+            if callable(set_fn):
+                if inspect.iscoroutinefunction(set_fn):
+                    raise RuntimeError(
+                        "Async headers setter detected in sync context. Use 'await set_headers_async(response)'."
+                    )
+
+                try:
+                    for name, value in items:
+                        result = set_fn(name, value)
+                        if inspect.isawaitable(result):
+                            raise RuntimeError(
+                                "Async headers setter returned awaitable in sync context. "
+                                "Use 'await set_headers_async(response)'."
+                            )
+                except (TypeError, ValueError, AttributeError) as e:
+                    raise HeaderSetError(f"Failed to set headers: {e}") from e
+
+                return
+
+            # Fallback: response.headers[name] = value  # noqa: ERA001
             setitem = getattr(hdrs, "__setitem__", None)
+            if callable(setitem):
+                if inspect.iscoroutinefunction(setitem):
+                    raise RuntimeError(
+                        "Async headers mapping detected in sync context. Use 'await set_headers_async(response)'."
+                    )
 
-            if inspect.iscoroutinefunction(setitem):
-                raise RuntimeError(
-                    "Async headers mapping detected in sync context. Use 'await set_headers_async(response)'."
-                )
+                try:
+                    for name, value in items:
+                        hdrs[name] = value
+                except (TypeError, ValueError, AttributeError) as e:
+                    raise HeaderSetError(f"Failed to set headers: {e}") from e
 
-            try:
-                for name, value in items:
-                    hdrs[name] = value
-            except (TypeError, ValueError, AttributeError) as e:
-                raise HeaderSetError(f"Failed to set headers: {e}") from e
+                return
 
-            return
+            raise AttributeError("Response object has .headers but it does not support setting header values.")
 
         raise AttributeError("Response object does not support setting headers.")
 
-    async def set_headers_async(self, response: ResponseProtocol) -> None:
+    async def set_headers_async(self, response: ResponseProtocol) -> None:  # noqa: PLR0912
         """
         Apply configured headers asynchronously to ``response``.
 
@@ -884,6 +907,8 @@ class Secure:
         ------------------
         * ``await response.set_header(name, value)`` for async setters.
         * ``response.set_header(name, value)`` for sync setters returning ``None``.
+        * ``await response.headers.set(name, value)`` for async headers containers.
+        * ``response.headers.set(name, value)`` for sync headers containers.
         * ``await response.headers.__setitem__(name, value)`` for async mappings.
         * ``response.headers[name] = value`` for sync mappings.
 
@@ -896,7 +921,8 @@ class Secure:
         Raises
         ------
         AttributeError
-            If the response lacks both ``.set_header`` and ``.headers``.
+            If the response lacks both ``.set_header`` and ``.headers``, or if
+            ``.headers`` does not support setting values.
         HeaderSetError
             If setting an individual header fails.
         """
@@ -916,18 +942,36 @@ class Secure:
 
             return
 
-        # Path 2: response.headers[...] mapping
+        # Path 2: response.headers...
         if hasattr(response, "headers"):
             hdrs = response.headers
 
-            try:
-                for name, value in items:
-                    result = hdrs.__setitem__(name, value)
-                    if inspect.isawaitable(result):
-                        await result
-            except (TypeError, ValueError, AttributeError) as e:
-                raise HeaderSetError(f"Failed to set headers: {e}") from e
+            # Prefer Werkzeug-style: response.headers.set(name, value)
+            set_fn = getattr(hdrs, "set", None)
+            if callable(set_fn):
+                try:
+                    for name, value in items:
+                        result = set_fn(name, value)
+                        if inspect.isawaitable(result):
+                            await result
+                except (TypeError, ValueError, AttributeError) as e:
+                    raise HeaderSetError(f"Failed to set headers: {e}") from e
 
-            return
+                return
+
+            # Fallback: response.headers.__setitem__(name, value)  # noqa: ERA001
+            setitem = getattr(hdrs, "__setitem__", None)
+            if callable(setitem):
+                try:
+                    for name, value in items:
+                        result = setitem(name, value)
+                        if inspect.isawaitable(result):
+                            await result
+                except (TypeError, ValueError, AttributeError) as e:
+                    raise HeaderSetError(f"Failed to set headers: {e}") from e
+
+                return
+
+            raise AttributeError("Response object has .headers but it does not support setting header values.")
 
         raise AttributeError("Response object does not support setting headers.")
