@@ -1,57 +1,57 @@
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable, Iterable, MutableMapping
+from collections.abc import Awaitable, Callable, Iterable
 from typing import Any, TypeAlias, cast
 
-from secure import Secure
-from secure.secure import MULTI_OK
+from ..secure import MULTI_OK, Secure
 
 # ---------------------------------------------------------------------------
 # ASGI typing aliases
 # ---------------------------------------------------------------------------
 
-Scope: TypeAlias = Any
-Message: TypeAlias = MutableMapping[str, Any]
+Scope: TypeAlias = dict[str, Any]
+Message: TypeAlias = dict[str, Any]
 
-Receive: TypeAlias = Callable[[], Awaitable[Any]]
-Send: TypeAlias = Callable[[Any], Awaitable[None]]
+Receive: TypeAlias = Callable[[], Awaitable[Message]]
+Send: TypeAlias = Callable[[Message], Awaitable[None]]
 
 ASGIApp: TypeAlias = Callable[[Scope, Receive, Send], Awaitable[None]]
 
-# ASGI response start header list type (ASGI uses bytes for header names/values)
+# ``http.response.start`` stores headers as a list of (name: bytes, value: bytes).
 HeaderList: TypeAlias = list[tuple[bytes, bytes]]
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
 
-def _norm_str(value: str) -> str:
-    """Normalize a header name for case-insensitive comparison."""
-    return value.strip().lower()
+def _normalize_header_name(name: str) -> str:
+    """Normalize a header field-name for case-insensitive comparison."""
+    return name.strip().lower()
 
 
-def _b_norm(value: bytes) -> bytes:
-    """Normalize header-name bytes for case-insensitive comparison."""
-    return value.strip().lower()
+def _normalize_header_name_bytes(name: bytes) -> bytes:
+    """Normalize a header field-name (bytes) for case-insensitive comparison."""
+    return name.strip().lower()
 
 
-def _encode_name(name: str) -> bytes:
+def _encode_header_name(name: str) -> bytes:
     """
     Encode an HTTP header field-name as ASCII bytes.
 
-    ASGI requires header names to be `bytes`. HTTP header field-names are ASCII.
+    ASGI requires header field-names to be ``bytes``. Per RFC 9110, header
+    field-names are ASCII.
     """
     return name.encode("ascii")
 
 
-def _encode_value(value: str) -> bytes:
+def _encode_header_value(value: str) -> bytes:
     """
-    Encode an HTTP header value as latin-1 bytes.
+    Encode an HTTP header field-value as latin-1 bytes.
 
-    In ASGI servers, header values are conventionally latin-1 encoded bytes.
-    (This matches typical ASGI implementations and avoids Unicode issues.)
+    ASGI transports header values as ``bytes``. The de-facto convention for ASGI
+    servers is latin-1 encoding, matching common implementations and avoiding
+    accidental Unicode transformations.
     """
     return value.encode("latin-1")
 
@@ -66,24 +66,33 @@ class SecureASGIMiddleware:
     Apply Secure's configured HTTP security headers to an ASGI application.
 
     This middleware wraps an ASGI app and injects headers by intercepting the
-    ``http.response.start`` message.
+    ``http.response.start`` message for HTTP requests.
 
-    When it applies
-    --------------
-    - Only for HTTP scopes (``scope["type"] == "http"``).
-    - It does not modify websocket/lifespan/etc scopes.
+    Parameters
+    ----------
+    app:
+        The ASGI application to wrap.
+    secure:
+        A configured :class:`~secure.Secure` instance. If omitted, uses
+        :meth:`~secure.Secure.with_default_headers`.
+    multi_ok:
+        Header names allowed to appear multiple times in a response. For these,
+        Secure's value is appended instead of overwriting. Defaults to
+        :data:`secure.secure.MULTI_OK`.
 
-    Overwrite vs append
-    -------------------
-    - For most headers, existing values are removed (case-insensitive) and the
-      Secure value is added to avoid duplicates.
-    - For headers listed in ``multi_ok`` (default: :data:`secure.secure.MULTI_OK`),
-      existing values are preserved and Secure's value is appended.
+    Behavior
+    --------
+    - Only applies to HTTP scopes (``scope["type"] == "http"``).
+    - For most headers, existing values are removed (case-insensitive) and
+      Secure's value is added to avoid duplicates.
+    - For headers listed in ``multi_ok``, existing values are preserved and
+      Secure's value is appended.
 
     Notes
     -----
-    - This approach works well for frameworks that don't expose a mutable
-      response object (e.g., some ASGI toolkits) and also works with Starlette/FastAPI.
+    This middleware is intentionally "response-object free": it does not require
+    a framework's response type, so it can be used with Starlette/FastAPI,
+    Quart, or any other ASGI-compliant stack.
     """
 
     def __init__(
@@ -98,34 +107,32 @@ class SecureASGIMiddleware:
 
         provided = MULTI_OK if multi_ok is None else multi_ok
         # Normalize once during init; comparisons during request handling are bytes-based.
-        self._multi_ok_b = frozenset(_b_norm(_encode_name(_norm_str(name))) for name in provided)
+        self._multi_ok: frozenset[bytes] = frozenset(
+            _normalize_header_name_bytes(_encode_header_name(_normalize_header_name(name))) for name in provided
+        )
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        scope_map = cast("MutableMapping[str, Any]", scope)
-        if scope_map.get("type") != "http":
+        if scope.get("type") != "http":
             await self.app(scope, receive, send)
             return
 
-        async def send_wrapper(message_any: Message) -> None:
-            message = message_any
-
+        async def send_wrapper(message: Message) -> None:
             if message.get("type") == "http.response.start":
                 raw_headers = message.get("headers", [])
-                headers: HeaderList = list(raw_headers)
+                headers: HeaderList = list(cast("Iterable[tuple[bytes, bytes]]", raw_headers))
 
-                # Build an index of existing header positions (case-insensitive).
-                # Key is normalized header name bytes.
+                # Track existing occurrences by normalized key.
                 positions: dict[bytes, list[int]] = {}
                 for i, (k, _v) in enumerate(headers):
-                    positions.setdefault(_b_norm(k), []).append(i)
+                    positions.setdefault(_normalize_header_name_bytes(k), []).append(i)
 
                 # Apply Secure headers.
                 for name_str, value_str in self.secure.headers.items():
-                    name_b = _encode_name(name_str)
-                    norm_name_b = _b_norm(name_b)
-                    value_b = _encode_value(value_str)
+                    name_b = _encode_header_name(name_str)
+                    norm_name_b = _normalize_header_name_bytes(name_b)
+                    value_b = _encode_header_value(value_str)
 
-                    if norm_name_b in self._multi_ok_b:
+                    if norm_name_b in self._multi_ok:
                         headers.append((name_b, value_b))
                         continue
 
@@ -140,6 +147,6 @@ class SecureASGIMiddleware:
 
                 message["headers"] = headers
 
-            await send(message_any)
+            await send(message)
 
         await self.app(scope, receive, send_wrapper)
