@@ -690,7 +690,7 @@ If you are using a framework that is not listed here, `secure` can still be inte
 ```python
 from secure import Secure
 
-secure_headers = Secure().with_default_headers()
+secure_headers = Secure.with_default_headers()
 
 def add_secure_headers(response):
     secure_headers.set_headers(response)
