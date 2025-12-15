@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable, Iterable
-from typing import Any, TypeAlias, cast
+from collections.abc import Awaitable, Callable, Coroutine, Iterable, MutableMapping
+from typing import Any, Protocol, TypeAlias, cast
 
 from ..secure import MULTI_OK, Secure
 
@@ -9,13 +9,21 @@ from ..secure import MULTI_OK, Secure
 # ASGI typing aliases
 # ---------------------------------------------------------------------------
 
-Scope: TypeAlias = dict[str, Any]
-Message: TypeAlias = dict[str, Any]
+Scope: TypeAlias = MutableMapping[str, Any]
+Message: TypeAlias = MutableMapping[str, Any]
 
 Receive: TypeAlias = Callable[[], Awaitable[Message]]
 Send: TypeAlias = Callable[[Message], Awaitable[None]]
 
-ASGIApp: TypeAlias = Callable[[Scope, Receive, Send], Awaitable[None]]
+
+class ASGIApp(Protocol):
+    def __call__(
+        self,
+        scope: Scope,
+        receive: Receive,
+        send: Send,
+    ) -> Coroutine[Any, Any, None]: ...
+
 
 # ``http.response.start`` stores headers as a list of (name: bytes, value: bytes).
 HeaderList: TypeAlias = list[tuple[bytes, bytes]]
