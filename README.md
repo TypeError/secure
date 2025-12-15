@@ -50,6 +50,7 @@ If you want your app to ship with a strong security baseline without pulling in 
 | [aiohttp](https://docs.aiohttp.org)                   | [Integration Guide](https://github.com/TypeError/secure/blob/main/docs/frameworks.md#aiohttp)    |
 | [Bottle](https://bottlepy.org)                        | [Integration Guide](https://github.com/TypeError/secure/blob/main/docs/frameworks.md#bottle)     |
 | [CherryPy](https://cherrypy.dev/)                     | [Integration Guide](https://github.com/TypeError/secure/blob/main/docs/frameworks.md#cherrypy)   |
+| [Dash](https://dash.plotly.com/)                      | [Integration Guide](https://github.com/TypeError/secure/blob/main/docs/frameworks.md#dash)       |
 | [Django](https://www.djangoproject.com)               | [Integration Guide](https://github.com/TypeError/secure/blob/main/docs/frameworks.md#django)     |
 | [Falcon](https://falconframework.org)                 | [Integration Guide](https://github.com/TypeError/secure/blob/main/docs/frameworks.md#falcon)     |
 | [FastAPI](https://fastapi.tiangolo.com)               | [Integration Guide](https://github.com/TypeError/secure/blob/main/docs/frameworks.md#fastapi)    |
@@ -60,6 +61,7 @@ If you want your app to ship with a strong security baseline without pulling in 
 | [Quart](https://quart.palletsprojects.com/en/latest/) | [Integration Guide](https://github.com/TypeError/secure/blob/main/docs/frameworks.md#quart)      |
 | [Responder](https://responder.kennethreitz.org/)      | [Integration Guide](https://github.com/TypeError/secure/blob/main/docs/frameworks.md#responder)  |
 | [Sanic](https://sanicframework.org)                   | [Integration Guide](https://github.com/TypeError/secure/blob/main/docs/frameworks.md#sanic)      |
+| [Shiny](https://shiny.posit.co/py/)                   | [Integration Guide](https://github.com/TypeError/secure/blob/main/docs/frameworks.md#shiny)      |
 | [Starlette](https://www.starlette.io/)                | [Integration Guide](https://github.com/TypeError/secure/blob/main/docs/frameworks.md#starlette)  |
 | [Tornado](https://www.tornadoweb.org/)                | [Integration Guide](https://github.com/TypeError/secure/blob/main/docs/frameworks.md#tornado)    |
 | [TurboGears](https://turbogears.org/)                 | [Integration Guide](https://github.com/TypeError/secure/blob/main/docs/frameworks.md#turbogears) |
@@ -154,7 +156,7 @@ If your framework uses a different contract, see the framework specific guides o
 
 ## Middleware
 
-`secure.middleware` re-exports `SecureWSGIMiddleware` and `SecureASGIMiddleware`. Each middleware accepts a `Secure` instance (defaulting to `Secure.with_default_headers()`), overwrites headers by default, and only appends duplicates when a normalized name is included in `multi_ok` (the default `secure.secure.MULTI_OK` includes `Content-Security-Policy`).
+`secure.middleware` re-exports `SecureWSGIMiddleware` and `SecureASGIMiddleware`. Each middleware accepts a `Secure` instance (defaulting to `Secure.with_default_headers()`), overwrites headers by default, and only appends duplicates when a normalized name is included in `multi_ok` (the default `secure.MULTI_OK` includes `Content-Security-Policy`).
 
 ### WSGI (Flask + Django)
 
@@ -295,10 +297,10 @@ Cross-Origin-Resource-Policy: same-origin
 Content-Security-Policy: default-src 'self'; base-uri 'self'; font-src 'self' https: data:; form-action 'self'; frame-ancestors 'self'; img-src 'self' data:; object-src 'none'; script-src 'self'; script-src-attr 'none'; style-src 'self' https: 'unsafe-inline'; upgrade-insecure-requests
 Strict-Transport-Security: max-age=31536000; includeSubDomains
 Referrer-Policy: no-referrer
-X-Content-Type-Options: nosniff
-X-Frame-Options: SAMEORIGIN
 X-Permitted-Cross-Domain-Policies: none
 X-DNS-Prefetch-Control: off
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
 Origin-Agent-Cluster: ?1
 X-Download-Options: noopen
 X-XSS-Protection: 0
@@ -334,10 +336,11 @@ Start with `BALANCED` and move to `STRICT` once you have validated that your app
 ### Content Security Policy
 
 ```python
-import secure
+from secure import Secure
+from secure.headers import ContentSecurityPolicy
 
 csp = (
-    secure.ContentSecurityPolicy()
+    ContentSecurityPolicy()
     .default_src("'self'")
     .script_src("'self'", "cdn.typeerror.com")
     .style_src("'unsafe-inline'")
@@ -345,7 +348,7 @@ csp = (
     .connect_src("'self'", "api.typeerror.com")
 )
 
-secure_headers = secure.Secure(csp=csp)
+secure_headers = Secure(csp=csp)
 ```
 
 Resulting header:
@@ -359,22 +362,20 @@ You can treat the CSP builder as a safe string builder for CSP directives and ke
 ### Permissions Policy
 
 ```python
-import secure
+from secure import Secure
+from secure.headers import PermissionsPolicy
 
 permissions = (
-    secure.PermissionsPolicy()
-    .geolocation("'self'")
-    .camera("'none'")
-    .microphone("'none'")
+    PermissionsPolicy().geolocation("'self'").camera("'none'").microphone("'none'")
 )
 
-secure_headers = secure.Secure(permissions=permissions)
+secure_headers = Secure(permissions=permissions)
 ```
 
 Resulting header:
 
 ```http
-Permissions-Policy: geolocation=('self'), camera=('none'), microphone=('none')
+Permissions-Policy: geolocation=(self), camera=(), microphone=()
 ```
 
 Other headers, such as `StrictTransportSecurity`, `CrossOriginOpenerPolicy`, `CrossOriginEmbedderPolicy`, `ReferrerPolicy`, `Server`, and `XFrameOptions`, also have small builder classes that mirror their directive structure.
@@ -387,27 +388,28 @@ For most applications, it is enough to construct a `Secure` instance and call `s
 
 ```python
 import logging
-import secure
+
+from secure import COMMA_JOIN_OK, DEFAULT_ALLOWED_HEADERS, MULTI_OK, Secure
 
 logger = logging.getLogger("secure")
 
 secure_headers = (
-    secure.Secure.with_default_headers()
+    Secure.with_default_headers()
     .allowlist_headers(
-        allowed=secure.DEFAULT_ALLOWED_HEADERS,
+        allowed=DEFAULT_ALLOWED_HEADERS,
         allow_extra=["X-My-App-Header"],
-        on_unexpected="warn",      # "raise" (default), "drop", or "warn"
+        on_unexpected="warn",  # "raise" (default), "drop", or "warn"
         allow_x_prefixed=False,
         logger=logger,
     )
     .deduplicate_headers(
-        action="raise",            # "raise" (default), "first", "last", or "concat"
-        comma_join_ok=secure.COMMA_JOIN_OK,
-        multi_ok=secure.MULTI_OK,
+        action="raise",  # "raise" (default), "first", "last", or "concat"
+        comma_join_ok=COMMA_JOIN_OK,
+        multi_ok=MULTI_OK,
         logger=logger,
     )
     .validate_and_normalize_headers(
-        on_invalid="drop",         # "drop" (default), "warn", or "raise"
+        on_invalid="drop",  # "drop" (default), "warn", or "raise"
         strict=False,
         allow_obs_text=False,
         logger=logger,
@@ -507,6 +509,27 @@ async def add_security_headers(request, call_next):
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
+```
+
+### Starlette
+
+#### Recommended: `add_middleware` (ASGI)
+
+```python
+from secure import Secure
+from secure.middleware import SecureASGIMiddleware
+from starlette.applications import Starlette
+from starlette.responses import JSONResponse
+
+secure_headers = Secure.with_default_headers()
+
+app = Starlette()
+app.add_middleware(SecureASGIMiddleware, secure=secure_headers)
+
+
+@app.route("/")
+async def read_root(request):
+    return JSONResponse({"hello": "world"})
 ```
 
 ### Flask
@@ -631,15 +654,19 @@ This project is licensed under the terms of the [MIT License](https://opensource
 
 ## Contributing
 
-Issues and pull requests are welcome. If you would like to discuss an idea, open an issue on GitHub so we can talk about the design before implementation.
+Issues and pull requests are welcome. If you’d like to discuss an idea, please open a GitHub issue so we can align on the design before implementation. See [CONTRIBUTING](https://github.com/TypeError/secure/blob/main/CONTRIBUTING.md) for details.
 
-Repository: <https://github.com/TypeError/secure>
+---
+
+## Code of Conduct
+
+See [CODE_OF_CONDUCT](https://github.com/TypeError/secure/blob/main/CODE_OF_CONDUCT.md) for our Code of Conduct.
 
 ---
 
 ## Changelog
 
-See the [CHANGELOG](https://github.com/TypeError/secure/blob/main/CHANGELOG.md) for a detailed list of changes by release.
+See [CHANGELOG](https://github.com/TypeError/secure/blob/main/CHANGELOG.md) for a detailed list of changes by release.
 
 ---
 
