@@ -1,5 +1,5 @@
 # Security header recommendations and information from the MDN Web Docs and the OWASP Secure Headers Project
-# https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy
+# https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Referrer-Policy
 # https://owasp.org/www-project-secure-headers/#referrer-policy
 #
 # Referrer-Policy by Mozilla Contributors is licensed under CC-BY-SA 2.5.
@@ -10,159 +10,161 @@ from __future__ import annotations  # type: ignore
 
 from dataclasses import dataclass, field
 
+from secure.headers._validation import normalize_header_value
 from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderName
+
+
+def _split_policies(value: str) -> list[str]:
+    """Split a header value into individual policy tokens."""
+    cleaned = normalize_header_value(value, what="Referrer-Policy value")
+    if not cleaned:
+        return []
+
+    parts: list[str] = []
+    for raw in cleaned.split(","):
+        token = raw.strip()
+        if not token:
+            continue
+
+        # Tokens should not contain internal whitespace; treat this as an error to
+        # help catch accidental pastes and prevent ambiguous serialization.
+        if any(ch in token for ch in (" ", "\t")):
+            raise ValueError(f"Invalid Referrer-Policy token {token!r}")
+
+        parts.append(token.lower())
+    return parts
 
 
 @dataclass
 class ReferrerPolicy(BaseHeader):
     """
-    Represents the `Referrer-Policy` HTTP header, which controls how much referrer information is sent with requests.
+    Builder for the ``Referrer-Policy`` HTTP response header.
 
-    Default header value: `strict-origin-when-cross-origin`
+    Default header value: ``strict-origin-when-cross-origin``
+
+    Notes:
+        * ``Referrer-Policy`` controls how much of the ``Referer`` header is sent.
+        * The comma-separated fallback list should place the primary policy last.
 
     Resources:
-        - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy
+        - https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Referrer-Policy
         - https://owasp.org/www-project-secure-headers/#referrer-policy
     """
 
-    header_name: str = HeaderName.REFERRER_POLICY.value
-    _directives: list[str] = field(default_factory=list)
-    _default_value: str = HeaderDefaultValue.REFERRER_POLICY.value
+    header_name: str = field(init=False, default=HeaderName.REFERRER_POLICY.value, repr=False)
+    _policies: list[str] = field(default_factory=list, repr=False)
+    _default_value: str = field(init=False, default=HeaderDefaultValue.REFERRER_POLICY.value, repr=False)
 
     @property
     def header_value(self) -> str:
-        """Return the current `Referrer-Policy` header value.
+        """Return the current ``Referrer-Policy`` header value."""
+        return ", ".join(self._policies) if self._policies else self._default_value
 
-        Returns:
-            The current Referrer-Policy header value as a string.
+    def _add_token(self, token: str) -> None:
+        if token not in self._policies:
+            self._policies.append(token)
+
+    def add(self, value: str) -> ReferrerPolicy:
+        """Add one or more policy tokens.
+
+        Parameters
+        ----------
+        value:
+            A single policy token (e.g., ``"no-referrer"``) or a comma-separated
+            list (e.g., ``"no-referrer, strict-origin-when-cross-origin"``).
+
+        Returns
+        -------
+        ReferrerPolicy
+            The same instance, for fluent chaining.
         """
-        return ", ".join(self._directives) if self._directives else self._default_value
+        for token in _split_policies(value):
+            self._add_token(token)
+        return self
 
-    def _build(self, directive: str) -> None:
-        """Add a directive to the `Referrer-Policy` header if it is not already added."""
-        if directive not in self._directives:
-            self._directives.append(directive)
-
+    # Backwards-compatible alias: historically this method appended rather than replaced.
     def set(self, value: str) -> ReferrerPolicy:
-        """
-        Set a custom value for the `Referrer-Policy` header.
+        """Alias of :meth:`add` (appends one or more policy tokens)."""
+        return self.add(value)
 
-        Args:
-            value: Custom header value.
+    def value(self, value: str) -> ReferrerPolicy:
+        """Replace the current policies with ``value``.
 
-        Returns:
-            The `ReferrerPolicy` instance for method chaining.
+        Use this when you want a single, explicit policy. For fallback lists,
+        call :meth:`add` repeatedly or pass a comma-separated list.
         """
-        self._build(value)
+        self.clear()
+        return self.add(value)
+
+    def custom(self, value: str) -> ReferrerPolicy:
+        """Escape hatch: same as :meth:`value`."""
+        return self.value(value)
+
+    def fallback(self, *policies: str) -> ReferrerPolicy:
+        """Replace the current policies with an explicit fallback list.
+
+        The desired (most modern) policy should be the **last** item.
+        """
+        self.clear()
+        for p in policies:
+            self.add(p)
         return self
 
     def clear(self) -> ReferrerPolicy:
-        """
-        Clear all directives from the `Referrer-Policy` header.
-
-        Returns:
-            The `ReferrerPolicy` instance for method chaining.
-        """
-        self._directives.clear()
+        """Clear all configured policies."""
+        self._policies.clear()
         return self
 
+    # --- Directive helpers (MDN-defined tokens) ---------------------------------
+
     def no_referrer(self) -> ReferrerPolicy:
-        """
-        Set the policy to `no-referrer`, meaning the `Referer` header will not be sent.
-
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy/no-referrer
-
-        Returns:
-            The `ReferrerPolicy` instance for method chaining.
-        """
-        return self.set("no-referrer")
+        """Set the policy to ``no-referrer`` (omit the ``Referer`` header entirely)."""
+        return self.add("no-referrer")
 
     def no_referrer_when_downgrade(self) -> ReferrerPolicy:
-        """
-        Set the policy to `no-referrer-when-downgrade`, meaning the `Referer` header will not be sent when moving from
-        HTTPS to HTTP.
+        """Set the policy to ``no-referrer-when-downgrade``.
 
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy/no-referrer-when-downgrade
-
-        Returns:
-            The `ReferrerPolicy` instance for method chaining.
+        Sends origin + path + query for same-or-more secure requests (HTTP→HTTP, HTTP→HTTPS, HTTPS→HTTPS),
+        but omits ``Referer`` for less secure destinations (HTTPS→HTTP, HTTPS→file).
         """
-        return self.set("no-referrer-when-downgrade")
+        return self.add("no-referrer-when-downgrade")
 
     def origin(self) -> ReferrerPolicy:
-        """
-        Set the policy to `origin`, meaning the `Referer` header will contain only the origin of the URL.
-
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy/origin
-
-        Returns:
-            The `ReferrerPolicy` instance for method chaining.
-        """
-        return self.set("origin")
+        """Set the policy to ``origin`` (send only the origin, e.g. ``https://example.com/``)."""
+        return self.add("origin")
 
     def origin_when_cross_origin(self) -> ReferrerPolicy:
-        """
-        Set the policy to `origin-when-cross-origin`, meaning the `Referer` header will contain the full URL for
-        same-origin requests, but only the origin for cross-origin requests.
+        """Set the policy to ``origin-when-cross-origin``.
 
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy/origin-when-cross-origin
-
-        Returns:
-            The `ReferrerPolicy` instance for method chaining.
+        Same-origin: send origin + path + query. Cross-origin (and HTTPS→HTTP): send only the origin.
         """
-        return self.set("origin-when-cross-origin")
+        return self.add("origin-when-cross-origin")
 
     def same_origin(self) -> ReferrerPolicy:
-        """
-        Set the policy to `same-origin`, meaning the `Referer` header will only be sent for same-origin requests.
+        """Set the policy to ``same-origin``.
 
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy/same-origin
-
-        Returns:
-            The `ReferrerPolicy` instance for method chaining.
+        Same-origin: send origin + path + query. Cross-origin: omit the ``Referer`` header.
         """
-        return self.set("same-origin")
+        return self.add("same-origin")
 
     def strict_origin(self) -> ReferrerPolicy:
-        """
-        Set the policy to `strict-origin`, meaning the `Referer` header will only be sent for same-origin requests,
-        and not for cross-origin requests.
+        """Set the policy to ``strict-origin``.
 
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy/strict-origin
-
-        Returns:
-            The `ReferrerPolicy` instance for method chaining.
+        Sends only the origin for same-security requests (HTTPS→HTTPS) and omits ``Referer`` on downgrade (HTTPS→HTTP).
         """
-        return self.set("strict-origin")
+        return self.add("strict-origin")
 
     def strict_origin_when_cross_origin(self) -> ReferrerPolicy:
-        """
-        Set the policy to `strict-origin-when-cross-origin`, meaning the `Referer` header will contain the origin for
-        cross-origin requests and only the full URL for same-origin requests.
+        """Set the policy to ``strict-origin-when-cross-origin`` (the modern default).
 
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy/strict-origin-when-cross-origin
-
-        Returns:
-            The `ReferrerPolicy` instance for method chaining.
+        Same-origin: send origin + path + query. Cross-origin: send only the origin on HTTPS→HTTPS,
+        and omit on downgrade (HTTPS→HTTP).
         """
-        return self.set("strict-origin-when-cross-origin")
+        return self.add("strict-origin-when-cross-origin")
 
     def unsafe_url(self) -> ReferrerPolicy:
-        """
-        Set the policy to `unsafe-url`, meaning the `Referer` header will contain the full URL for both same-origin
-        and cross-origin requests, regardless of security.
+        """Set the policy to ``unsafe-url`` (send origin + path + query for all requests, regardless of security).
 
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy/unsafe-url
-
-        Returns:
-            The `ReferrerPolicy` instance for method chaining.
+        Warning: this can leak sensitive URL data from HTTPS pages to insecure origins.
         """
-        return self.set("unsafe-url")
+        return self.add("unsafe-url")

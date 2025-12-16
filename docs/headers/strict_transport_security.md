@@ -1,61 +1,116 @@
-# Strict-Transport-Security (HSTS) Header
+# Strict-Transport-Security (HSTS)
 
 ## Purpose
 
-The `Strict-Transport-Security` (HSTS) header ensures that the application communicates over HTTPS, preventing man-in-the-middle attacks by instructing the browser to automatically upgrade all HTTP connections to HTTPS. Additionally, this header helps protect your site from downgrade attacks, where an attacker might try to force a user to communicate over an insecure HTTP connection.
+The `Strict-Transport-Security` (HSTS) header tells browsers that a host **must only be accessed over HTTPS**. Once a browser has received this header, it will automatically upgrade future HTTP navigations to HTTPS for the configured duration, helping prevent man-in-the-middle and downgrade attacks.
 
-## Best Practices
+> Important: Browsers **ignore** `Strict-Transport-Security` if it is delivered over **insecure HTTP**. You must send it over HTTPS only.
 
-- **Set a long max-age**: A duration of one year (`31536000` seconds) is recommended to enforce HTTPS for an extended period.
-- **Include subdomains**: Use the `includeSubDomains` directive to apply the policy to all subdomains.
-- **Use the preload directive**: Opt into the HSTS preload list to ensure that browsers always load your site over HTTPS, even on the first visit.
+## Default behavior
 
-## Configuration in `secure.py`
+If you do not configure any directives, this library emits the default header value:
 
-The `StrictTransportSecurity` class in `secure.py` allows you to configure the `Strict-Transport-Security` (HSTS) header with options like `max-age`, `includeSubDomains`, and `preload`.
+- **Default header value:** `max-age=31536000` (one year)
 
-### Example Configuration
+## Best practices
+
+- **Use a long `max-age`**: One year (`31536000` seconds) is a common baseline.
+- **Include subdomains (carefully)**: Add `includeSubDomains` only if _all_ subdomains are HTTPS-ready.
+- **Only use `preload` when you mean it**:
+  - `preload` is intended for submitting your domain to the HSTS preload list.
+  - When using `preload`, the library enforces MDN’s requirements:
+    - `max-age` must be **at least 31536000**
+    - `includeSubDomains` must be present
+
+## Configuration with `secure`
+
+The `StrictTransportSecurity` header module supports fluent, chainable configuration:
 
 ```python
+from secure import Secure
+from secure.headers import StrictTransportSecurity
+
 secure_headers = Secure(
     hsts=StrictTransportSecurity()
         .max_age(31536000)
         .include_subdomains()
-        .preload()
 )
 ```
 
-### Methods Available
+### Preload configuration
 
-- **`max_age(seconds)`**: Set the maximum duration (in seconds) for which the browser should enforce the HTTPS-only policy.
-- **`include_subdomains()`**: Apply the HSTS policy to all subdomains of the domain.
-- **`preload()`**: Opt into the HSTS preload list, ensuring that all requests to your site are made over HTTPS, even on the first visit.
-
-## Example Usage
-
-To set up a `Strict-Transport-Security` header with a one-year max age, including subdomains and opting into the HSTS preload list:
+If you opt into preload, the library ensures preload requirements are satisfied:
 
 ```python
-hsts_header = StrictTransportSecurity().max_age(31536000).include_subdomains().preload()
-print(hsts_header.header_name)   # Output: 'Strict-Transport-Security'
-print(hsts_header.header_value)  # Output: 'max-age=31536000; includeSubDomains; preload'
+from secure.headers import StrictTransportSecurity
+
+hsts = (
+    StrictTransportSecurity()
+    .max_age(31536000)
+    .include_subdomains()
+    .preload()
+)
+
+print(hsts.header_name)   # 'Strict-Transport-Security'
+print(hsts.header_value)  # 'max-age=31536000; includeSubDomains; preload'
 ```
 
-This can then be applied as part of your Secure headers configuration:
+If `preload()` is enabled with a `max-age` less than `31536000`, the header builder will raise a `ValueError`.
+
+## Methods available
+
+- **`max_age(seconds)`**
+  Set `max-age`: how long (in seconds) the browser should remember to only use HTTPS for this host.
+
+- **`include_subdomains()`**
+  Add `includeSubDomains`: apply the HSTS policy to all subdomains as well.
+
+- **`preload()`**
+  Add `preload`: indicates intent to meet HSTS preload requirements. This library:
+
+  - automatically enables `includeSubDomains`
+  - enforces `max-age >= 31536000`
+
+- **`clear()`**
+  Clear configured directives and reset back to the library default behavior.
+
+- **`value(str)` / `set(str)`**
+  Escape hatch: set a raw header value (replaces any configured directives). The value must not contain CR/LF characters.
+
+## Example usage
+
+Minimal one-year HSTS:
 
 ```python
-secure_headers = Secure(hsts=hsts_header)
+from secure.headers import StrictTransportSecurity
+
+hsts = StrictTransportSecurity().max_age(31536000)
+print(hsts.header_value)  # 'max-age=31536000'
 ```
 
-## **Resources**
+One-year HSTS including subdomains:
 
-- [MDN Web Docs: Strict-Transport-Security](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security)
-- [OWASP Secure Headers Project: HSTS](https://owasp.org/www-project-secure-headers/#http-strict-transport-security)
-- [HSTS Preload List](https://hstspreload.org/)
+```python
+from secure.headers import StrictTransportSecurity
 
-## **Attribution**
+hsts = StrictTransportSecurity().max_age(31536000).include_subdomains()
+print(hsts.header_value)  # 'max-age=31536000; includeSubDomains'
+```
+
+## Resources
+
+- MDN Web Docs: Strict-Transport-Security
+  [https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Strict-Transport-Security](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Strict-Transport-Security)
+- OWASP Secure Headers Project
+  [https://owasp.org/www-project-secure-headers/](https://owasp.org/www-project-secure-headers/)
+- HSTS Preload List
+  [https://hstspreload.org/](https://hstspreload.org/)
+
+## Attribution
 
 This library implements security recommendations from trusted sources:
 
-- [MDN Web Docs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security) (licensed under [CC-BY-SA 2.5](https://creativecommons.org/licenses/by-sa/2.5/))
-- [OWASP Secure Headers Project](https://owasp.org/www-project-secure-headers/#http-strict-transport-security) (licensed under [CC-BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/))
+- MDN Web Docs: Strict-Transport-Security (licensed under CC-BY-SA 2.5)
+  [https://creativecommons.org/licenses/by-sa/2.5/](https://creativecommons.org/licenses/by-sa/2.5/)
+- OWASP Secure Headers Project (licensed under CC-BY-SA 4.0)
+  [https://creativecommons.org/licenses/by-sa/4.0/](https://creativecommons.org/licenses/by-sa/4.0/)

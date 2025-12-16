@@ -1,52 +1,66 @@
-# Cross-Origin-Opener-Policy Header
+# Cross-Origin-Opener-Policy
 
 ## Purpose
 
-The `Cross-Origin-Opener-Policy` (COOP) header isolates your browsing context from potentially untrusted contexts, preventing attackers from accessing your global object through popups and mitigating cross-origin attacks such as XS-Leaks. By setting this header, you protect against malicious cross-origin interactions that could compromise your application's security.
+The `Cross-Origin-Opener-Policy` (COOP) response header controls whether documents opened via `Window.open()` (or navigations) share the same **browsing context group (BCG)** as their opener. When a document is opened into a new BCG, references between the opener and the opened document are severed, which helps mitigate cross-origin attacks often referred to as **XS-Leaks**.
+
+## Defaults
+
+- **Browser/spec behavior:** If the header is **absent**, the effective behavior is equivalent to `unsafe-none` (opt-out).
+- **Library default:** This library’s builder defaults to `same-origin` (a secure default), and the built-in presets also configure COOP as `same-origin`.
 
 ## Best Practices
 
-- **`same-origin`**: This is the most secure option, isolating your document from other origins.
-- **`same-origin-allow-popups`**: Allows popups while maintaining some level of isolation.
-- **`unsafe-none`**: Disables COOP, potentially exposing your application to cross-origin risks. Use this only if isolation is not required.
+- **`same-origin`**: Strong isolation; commonly used for cross-origin isolation (often paired with COEP).
+- **`same-origin-allow-popups`**: Like `same-origin`, but relaxes behavior for integrations that open trusted popups/tabs that opt out (e.g., OAuth/payment flows).
+- **`noopener-allow-popups`**: Always isolates into a new BCG (except when opened by a same-origin document that also uses `noopener-allow-popups`). Useful when you need to isolate **same-origin** apps from each other (e.g., `/chat` vs `/passwords`) while still allowing popups.
+- **`unsafe-none`**: Opts out of COOP isolation.
 
-## Configuration in `secure.py`
+## Configuration with `secure`
 
-The `CrossOriginOpenerPolicy` class in `secure.py` allows you to configure the COOP header with options like `same-origin`, `same-origin-allow-popups`, or `unsafe-none` to control the behavior of popups and cross-origin contexts.
-
-### Example Configuration
+Use the `CrossOriginOpenerPolicy` builder and pass it into `Secure(...)`:
 
 ```python
+from secure import Secure
+from secure.headers import CrossOriginOpenerPolicy
+
 secure_headers = Secure(
     coop=CrossOriginOpenerPolicy().same_origin()
 )
 ```
 
-### Methods Available
+## Methods Available
 
-- **`same_origin()`**: Isolates the browsing context to the same origin, preventing cross-origin documents from being loaded.
-- **`same_origin_allow_popups()`**: Retains references to popups or tabs that opt out of isolation.
-- **`unsafe_none()`**: Disables the COOP protection, allowing the document to be added to its opener’s browsing context group.
+Directive helpers (recommended):
+
+- `same_origin()`
+- `same_origin_allow_popups()`
+- `noopener_allow_popups()`
+- `unsafe_none()`
+
+Escape hatches:
+
+- `value("...")` / `custom("...")`: Set a raw value (rejects CR/LF).
+- `set("...")`: Backwards-compatible alias for `value(...)`.
+- `clear()`: Reset back to the library default (`same-origin`).
 
 ## Example Usage
 
-To set up a `Cross-Origin-Opener-Policy` header that isolates your application from cross-origin contexts:
-
 ```python
 coop = CrossOriginOpenerPolicy().same_origin()
-print(coop.header_name)   # Output: 'Cross-Origin-Opener-Policy'
-print(coop.header_value)  # Output: 'same-origin'
-```
+print(coop.header_name)   # 'Cross-Origin-Opener-Policy'
+print(coop.header_value)  # 'same-origin'
 
-This can then be applied as part of your Secure headers configuration.
-
-```python
 secure_headers = Secure(coop=coop)
 ```
 
-## **Attribution**
+## Notes
+
+- For **cross-origin isolation** (e.g., `SharedArrayBuffer`), COOP is typically paired with **COEP** (often `require-corp`), and your app must satisfy other isolation requirements.
+
+## Attribution
 
 This library implements security recommendations from trusted sources:
 
-- [MDN Web Docs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Opener-Policy) (licensed under [CC-BY-SA 2.5](https://creativecommons.org/licenses/by-sa/2.5/))
-- [OWASP Secure Headers Project](https://owasp.org/www-project-secure-headers/#cross-origin-opener-policy) (licensed under [CC-BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/))
+- MDN Web Docs: Cross-Origin-Opener-Policy (licensed under CC-BY-SA 2.5)
+- OWASP Secure Headers Project (licensed under CC-BY-SA 4.0)

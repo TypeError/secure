@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Placeholder for upcoming changes.
 
+## [2.0.0] - 2025-12-13
+
+### Breaking Changes
+
+- The `Secure` API now requires Python 3.10+ and uses the new builder-style header modules with full typing; this release replaces the previous legacy surface and removes the older cookie-centric helpers.
+  
+### Added
+
+- Comprehensive validation pipeline helpers (`allowlist_headers`, `deduplicate_headers`, `validate_and_normalize_headers`) and typed presets for `Secure`.
+- New header builder coverage for modern headers (CSP, Permissions Policy, COEP, etc.) with deterministic outputs.
+- Async-safe `set_headers_async` support for both method-call and mapping-style response objects plus helper mocks and contract tests.
+
+### Testing
+
+- Added full contract tests for the header builders along with end-to-end coverage for `Secure` usage and response integration.
+
+### Docs
+
+- Expanded README with usage examples, advanced pipeline guidance, and updated framework integration references.
+
 ## [1.0.1] - 2024-10-18
 
 ### Fixed

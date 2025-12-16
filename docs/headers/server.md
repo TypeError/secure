@@ -9,9 +9,9 @@ The `Server` header provides information about the server software handling the 
 - **Set an empty value or custom string**: It's generally advisable to set the `Server` header to an empty value (`""`) or use a non-informative value to avoid revealing specific details about the server software.
 - **Avoid exposing server information**: Avoid leaving the default server response, which may expose sensitive version information.
 
-## Configuration in `secure.py`
+## Configuration with `secure`
 
-The `Server` class in `secure.py` allows you to easily control the `Server` header value, with the default value set to an empty string to enhance security.
+The `Server` class in `secure` allows you to easily control the `Server` header value, with the default value set to an empty string to enhance security.
 
 ### Example Configuration
 

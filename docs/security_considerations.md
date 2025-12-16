@@ -2,7 +2,7 @@
 
 ## Overview
 
-Security headers are a critical component of modern web application security. They help mitigate common attack vectors such as Cross-Site Scripting (XSS), clickjacking, and man-in-the-middle (MITM) attacks. This guide highlights the security implications of each header supported by `secure.py` and offers best practices based on OWASP recommendations.
+Security headers are a critical component of modern web application security. They help mitigate common attack vectors such as Cross-Site Scripting (XSS), clickjacking, and man-in-the-middle (MITM) attacks. This guide highlights the security implications of each header supported by `secure` and offers best practices based on OWASP recommendations.
 
 ## Importance of Security Headers
 

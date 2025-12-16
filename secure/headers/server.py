@@ -2,22 +2,29 @@ from __future__ import annotations  # type: ignore
 
 from dataclasses import dataclass, field
 
+from secure.headers._validation import normalize_header_value
 from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderName
 
 
 @dataclass
 class Server(BaseHeader):
     """
-    Represents the `Server` HTTP header, which provides information about the software used by the server.
+    Builder for the ``Server`` HTTP response header.
 
-    Header default value: `""`
+    Default header value: ``""``
 
-    By default, the `Server` header is set to an empty value to obscure specific server details
-    and enhance security by avoiding unnecessary exposure of server information.
+    Notes:
+        * The default is intentionally empty to avoid leaking server details.
+        * Callers can override this value for compatibility with legacy tooling.
+
+    Resources:
+        - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Server
+        - https://owasp.org/www-project-secure-headers/
     """
 
-    header_name: str = HeaderName.SERVER.value
-    _value: str = field(default=HeaderDefaultValue.SERVER.value)
+    header_name: str = field(init=False, default=HeaderName.SERVER.value, repr=False)
+    _default_value: str = field(init=False, default=HeaderDefaultValue.SERVER.value, repr=False)
+    _value: str = field(default=HeaderDefaultValue.SERVER.value, repr=False)
 
     @property
     def header_value(self) -> str:
@@ -42,8 +49,12 @@ class Server(BaseHeader):
         Returns:
             Server: The current instance, allowing for method chaining.
         """
-        self._value = value
+        self._value = normalize_header_value(value, what="Server value")
         return self
+
+    def value(self, value: str) -> Server:
+        """Alias for :meth:`set` (kept for feature parity with other headers)."""
+        return self.set(value)
 
     def clear(self) -> Server:
         """
@@ -55,5 +66,5 @@ class Server(BaseHeader):
         Returns:
             Server: The current instance, allowing for method chaining.
         """
-        self._value = HeaderDefaultValue.SERVER.value
+        self._value = self._default_value
         return self

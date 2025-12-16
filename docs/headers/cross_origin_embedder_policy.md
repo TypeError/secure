@@ -1,50 +1,90 @@
-# Cross-Origin-Embedder-Policy Header
+# Cross-Origin-Embedder-Policy (COEP)
 
 ## Purpose
 
-The `Cross-Origin-Embedder-Policy` (COEP) header prevents a document from loading any cross-origin resources that don’t explicitly grant permission. It works alongside the `Cross-Origin-Resource-Policy` (CORP) to enhance security, especially in modern applications dealing with cross-origin requests.
+The **`Cross-Origin-Embedder-Policy`** response header configures the current document’s policy for **loading and embedding cross-origin resources**.
 
-## Best Practices
+At a high level, COEP lets you:
 
-- **`require-corp`**: Only allow loading resources from the same origin or those explicitly permitting cross-origin access. This is the most secure setting.
-- **`unsafe-none`**: Permits loading cross-origin resources without explicit permission. Use this only when security constraints aren't a concern.
+- keep the default behavior (`unsafe-none`),
+- require explicit opt-in via **CORP** (`Cross-Origin-Resource-Policy`) and/or **CORS** (`require-corp`), or
+- allow some cross-origin loading while **stripping credentials** (`credentialless`).
 
-## Configuration in `secure.py`
+## Directive values
 
-The `CrossOriginEmbedderPolicy` class in `secure.py` allows you to configure the COEP header with options like `require-corp` or `unsafe-none` to control resource loading policies.
+COEP is a **single-value** header (choose one):
 
-### Example Configuration
+| Value            | Meaning                                                                                                                                                                                                     |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `unsafe-none`    | Allows cross-origin resources **without** explicit permission via CORP or CORS. _(This is the browser default if the header is not sent.)_                                                                  |
+| `require-corp`   | Blocks cross-origin resource loading unless the resource is permitted via **CORP** (for `no-cors` requests) or via **CORS** (for `cors` requests).                                                          |
+| `credentialless` | Allows `no-cors` cross-origin resource loading **without** CORP opt-in, but sends requests **without credentials** (cookies omitted and ignored). For other request modes, behavior matches `require-corp`. |
+
+## Library default vs browser default
+
+- **Browser behavior when the header is absent:** `unsafe-none`.
+- **This library’s builder default:** `require-corp` (a stricter, security-forward default).
+
+If you want “no-op” behavior, you must explicitly choose it:
 
 ```python
-secure_headers = Secure(
-    coep=CrossOriginEmbedderPolicy().require_corp()
+from secure.headers import CrossOriginEmbedderPolicy
+
+coep = CrossOriginEmbedderPolicy().unsafe_none()
+```
+
+## Cross-origin isolation (COOP + COEP)
+
+Some powerful browser features require your document to be **cross-origin isolated**. To enable this, you generally need:
+
+- `Cross-Origin-Embedder-Policy: require-corp` **or** `credentialless`, and
+- `Cross-Origin-Opener-Policy: same-origin`.
+
+## Usage with `Secure`
+
+```python
+from secure import Secure
+from secure.headers import CrossOriginEmbedderPolicy, CrossOriginOpenerPolicy
+
+secure = Secure(
+    coep=CrossOriginEmbedderPolicy().require_corp(),
+    coop=CrossOriginOpenerPolicy().same_origin(),
 )
+
+# Inspect emitted headers:
+print(secure.header_items())
 ```
 
-### Methods Available
-
-- **`require_corp()`**: Ensures resources are loaded only from the same origin or from origins that grant explicit permission.
-- **`unsafe_none()`**: Disables the COEP policy, allowing cross-origin resources to be loaded without restriction.
-
-## Example Usage
-
-To set up a `Cross-Origin-Embedder-Policy` header that requires cross-origin resources to explicitly permit being loaded:
+## Header builder API
 
 ```python
-coep = CrossOriginEmbedderPolicy().require_corp()
-print(coep.header_name)   # Output: 'Cross-Origin-Embedder-Policy'
-print(coep.header_value)  # Output: 'require-corp'
+from secure.headers import CrossOriginEmbedderPolicy
+
+coep = (
+    CrossOriginEmbedderPolicy()
+    .credentialless()   # or .require_corp() / .unsafe_none()
+)
+
+print(coep.header_name)   # "Cross-Origin-Embedder-Policy"
+print(coep.header_value)  # "credentialless"
 ```
 
-This can then be applied as part of your Secure headers configuration.
+### Methods
 
-```python
-secure_headers = Secure(coep=coep)
-```
+- `unsafe_none()` — set value to `unsafe-none`
+- `require_corp()` — set value to `require-corp`
+- `credentialless()` — set value to `credentialless`
+- `set(value)` — escape hatch: set a custom value (string)
+- `clear()` — reset to the library default (`require-corp`)
 
-## **Attribution**
+## Notes / gotchas
 
-This library implements security recommendations from trusted sources:
+- `require-corp` can break embedding third-party resources unless they opt-in via CORP or are requested in `cors` mode.
+- `credentialless` can be a pragmatic alternative for some `no-cors` resources, but it comes with the tradeoff of **no cookies/credentials**.
 
-- [MDN Web Docs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Embedder-Policy) (licensed under [CC-BY-SA 2.5](https://creativecommons.org/licenses/by-sa/2.5/))
-- [OWASP Secure Headers Project](https://owasp.org/www-project-secure-headers/#cross-origin-embedder-policy) (licensed under [CC-BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/))
+## Attribution
+
+This library implements security recommendations and definitions from trusted sources:
+
+- MDN Web Docs (CC-BY-SA 2.5): https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cross-Origin-Embedder-Policy
+- OWASP Secure Headers Project (CC-BY-SA 4.0): https://owasp.org/www-project-secure-headers/#cross-origin-embedder-policy

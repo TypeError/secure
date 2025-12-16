@@ -10,23 +10,28 @@ from __future__ import annotations  # type: ignore
 
 from dataclasses import dataclass, field
 
+from secure.headers._validation import normalize_header_value
 from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderName
 
 
 @dataclass
 class XContentTypeOptions(BaseHeader):
     """
-    Represents the `X-Content-Type-Options` HTTP header, which prevents MIME-sniffing by browsers.
+    Builder for the `X-Content-Type-Options` HTTP header.
 
     Default header value: `nosniff`
+
+    Notes:
+        * The only standardized directive is `nosniff`; other values are allowed but discouraged.
 
     Resources:
         - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Content-Type-Options
         - https://owasp.org/www-project-secure-headers/#x-content-type-options
     """
 
-    header_name: str = HeaderName.X_CONTENT_TYPE_OPTIONS.value
-    _value: str = field(default=HeaderDefaultValue.X_CONTENT_TYPE_OPTIONS.value)
+    header_name: str = field(init=False, default=HeaderName.X_CONTENT_TYPE_OPTIONS.value, repr=False)
+    _default_value: str = field(init=False, default=HeaderDefaultValue.X_CONTENT_TYPE_OPTIONS.value, repr=False)
+    _value: str = field(default=HeaderDefaultValue.X_CONTENT_TYPE_OPTIONS.value, repr=False)
 
     @property
     def header_value(self) -> str:
@@ -47,8 +52,12 @@ class XContentTypeOptions(BaseHeader):
         Returns:
             The `XContentTypeOptions` instance for method chaining.
         """
-        self._value = value
+        self._value = normalize_header_value(value, what="X-Content-Type-Options value")
         return self
+
+    def value(self, value: str) -> XContentTypeOptions:
+        """Alias for :meth:`set` to match other headers."""
+        return self.set(value)
 
     def clear(self) -> XContentTypeOptions:
         """
@@ -57,7 +66,7 @@ class XContentTypeOptions(BaseHeader):
         Returns:
             The `XContentTypeOptions` instance for method chaining.
         """
-        self._value = HeaderDefaultValue.X_CONTENT_TYPE_OPTIONS.value
+        self._value = self._default_value
         return self
 
     def nosniff(self) -> XContentTypeOptions:

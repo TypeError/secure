@@ -30,6 +30,9 @@ class HeaderName(Enum):
     # Context isolation
     CROSS_ORIGIN_OPENER_POLICY = "Cross-Origin-Opener-Policy"
 
+    # Cross-origin resource sharing
+    CROSS_ORIGIN_RESOURCE_POLICY = "Cross-Origin-Resource-Policy"
+
     # Permissions
     PERMISSION_POLICY = "Permissions-Policy"
 
@@ -45,8 +48,14 @@ class HeaderName(Enum):
     # MIME type protection
     X_CONTENT_TYPE_OPTIONS = "X-Content-Type-Options"
 
+    # DNS prefetching control
+    X_DNS_PREFETCH_CONTROL = "X-DNS-Prefetch-Control"
+
     # Clickjacking protection
     X_FRAME_OPTIONS = "X-Frame-Options"
+
+    # Cross-domain policies
+    X_PERMITTED_CROSS_DOMAIN_POLICIES = "X-Permitted-Cross-Domain-Policies"
 
 
 class HeaderDefaultValue(Enum):
@@ -58,11 +67,17 @@ class HeaderDefaultValue(Enum):
     """
 
     # Cache-Control to prevent caching of sensitive data
-    CACHE_CONTROL = "no-store"
+    CACHE_CONTROL = "no-store, max-age=0"
 
     # Basic Content Security Policy to allow resources only from the same origin
     CONTENT_SECURITY_POLICY = (
-        "default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'"
+        "default-src 'self'; "
+        "script-src 'self'; "
+        "style-src 'self'; "
+        "object-src 'none'; "
+        "base-uri 'self'; "
+        "frame-ancestors 'self'; "
+        "form-action 'self'"
     )
 
     # Cross-Origin Embedder Policy set to 'require-corp' to enforce stricter security.
@@ -72,6 +87,9 @@ class HeaderDefaultValue(Enum):
 
     # Cross-Origin Opener Policy to isolate browsing contexts and prevent cross-origin leaks
     CROSS_ORIGIN_OPENER_POLICY = "same-origin"
+
+    # Cross-Origin Resource Policy to restrict resource loading to the same origin
+    CROSS_ORIGIN_RESOURCE_POLICY = "same-origin"
 
     # Permissions Policy to disable risky features by default (geolocation, microphone, camera)
     PERMISSION_POLICY = "geolocation=(), microphone=(), camera=()"
@@ -88,8 +106,14 @@ class HeaderDefaultValue(Enum):
     # Prevent MIME-type sniffing to block potential security threats from improperly typed content
     X_CONTENT_TYPE_OPTIONS = "nosniff"
 
+    # X-DNS-Prefetch-Control to disable DNS prefetching for privacy
+    X_DNS_PREFETCH_CONTROL = "off"
+
     # Clickjacking protection, allows framing only from the same origin
     X_FRAME_OPTIONS = "SAMEORIGIN"
+
+    # X-Permitted-Cross-Domain-Policies to disallow all cross-domain policies
+    X_PERMITTED_CROSS_DOMAIN_POLICIES = "none"
 
 
 @dataclass

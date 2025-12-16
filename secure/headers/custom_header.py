@@ -1,32 +1,40 @@
 from __future__ import annotations  # type: ignore
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
+from secure.headers._validation import normalize_header_value
 from secure.headers.base_header import BaseHeader
 
 
 @dataclass
 class CustomHeader(BaseHeader):
     """
-    Represents a custom HTTP header.
+    Wrapper for an arbitrary HTTP header.
 
-    This class allows users to create and manage custom HTTP headers
-    with arbitrary names and values. It is useful for adding non-standard
-    headers to HTTP responses or requests.
+    Default header value: provided by the caller at initialization.
+
+    Notes:
+        * Header names and values are normalized via ``normalize_header_value`` to
+          prevent header injection.
+        * This class keeps parity with other builders via ``value``, ``set``, and
+          escape-hatch helpers so it plugs into the fluent API.
+
+    Resources:
+        - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers
     """
 
     header_name: str
-    _value: str
+    _value: str = field(repr=False)
 
     def __init__(self, header: str, value: str) -> None:
         """
-        Initialize the `CustomHeader` with a custom header name and value.
+        Initialize a custom header name and value.
 
         Args:
-            header: The name of the custom header (e.g., "X-Custom-Header").
-            value: The value associated with the custom header.
+            header: The header name (for example, ``"X-Custom-Header"``).
+            value: The header value to emit.
         """
-        self.header_name = header
+        self.header_name = normalize_header_value(header, what="custom header name")
         self._value = value
 
     @property
@@ -52,5 +60,11 @@ class CustomHeader(BaseHeader):
         Returns:
             CustomHeader: The current instance, allowing for method chaining.
         """
-        self._value = value
+        self._value = normalize_header_value(value, what="custom header value")
         return self
+
+    def value(self, value: str) -> CustomHeader:
+        """
+        Alias for :meth:`set`, provided for parity with other headers.
+        """
+        return self.set(value)

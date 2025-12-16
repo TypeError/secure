@@ -1,6 +1,6 @@
 # Security header recommendations and information from the MDN Web Docs and the OWASP Secure Headers Project
-# https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security
-# https://owasp.org/www-project-secure-headers/#http-strict-transport-security
+# https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Strict-Transport-Security
+# https://owasp.org/www-project-secure-headers/
 #
 # Strict-Transport-Security by Mozilla Contributors is licensed under CC-BY-SA 2.5.
 # https://developer.mozilla.org/en-US/docs/MDN/Community/Roles_teams#contributor
@@ -10,109 +10,146 @@ from __future__ import annotations  # type: ignore
 
 from dataclasses import dataclass, field
 
+from secure.headers._validation import normalize_header_value
 from secure.headers.base_header import BaseHeader, HeaderDefaultValue, HeaderName
+
+_PRELOAD_MIN_MAX_AGE_SECONDS = 31_536_000  # 1 year
 
 
 @dataclass
 class StrictTransportSecurity(BaseHeader):
     """
-    Represents the `Strict-Transport-Security` (HSTS) HTTP header, which ensures that the application
-    communication is sent over HTTPS and helps prevent man-in-the-middle attacks.
+    Builder for the ``Strict-Transport-Security`` (HSTS) HTTP response header.
 
-    Default header value: `max-age=31536000`
+    Default header value: ``max-age=31536000``
+
+    Notes:
+        * Only send this header over HTTPS; browsers ignore it otherwise.
+        * ``preload`` requires ``includeSubDomains`` and at least one year ``max-age``.
+        * ``max-age`` is required by the HSTS specification.
 
     Resources:
-        - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security
-        - https://owasp.org/www-project-secure-headers/#http-strict-transport-security
+        - https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Strict-Transport-Security
+        - https://hstspreload.org/
+        - https://owasp.org/www-project-secure-headers/
     """
 
-    header_name: str = HeaderName.STRICT_TRANSPORT_SECURITY.value
-    _directives: list[str] = field(default_factory=list)
-    _default_value: str = HeaderDefaultValue.STRICT_TRANSPORT_SECURITY.value
+    header_name: str = field(init=False, default=HeaderName.STRICT_TRANSPORT_SECURITY.value, repr=False)
+    _default_value: str = field(init=False, default=HeaderDefaultValue.STRICT_TRANSPORT_SECURITY.value, repr=False)
+
+    # Structured directives
+    _max_age: int | None = None
+    _include_subdomains: bool = False
+    _preload: bool = False
+
+    # Escape hatch: if set, emitted exactly as provided (after basic safety checks).
+    _raw_value: str | None = None
+
+    # ------------------------------------------------------------------
+    # Serialization
+    # ------------------------------------------------------------------
 
     @property
     def header_value(self) -> str:
-        """Return the current `Strict-Transport-Security` header value.
+        """Return the serialized ``Strict-Transport-Security`` header value."""
+        if self._raw_value is not None:
+            return self._raw_value
 
-        Returns:
-            The `Strict-Transport-Security` header as a string.
-        """
-        return "; ".join(self._directives) if self._directives else self._default_value
+        # If nothing was explicitly configured, emit the library default.
+        if self._max_age is None and not self._include_subdomains and not self._preload:
+            return self._default_value
 
-    def _build(self, directive: str) -> None:
-        """Add a directive to the `Strict-Transport-Security` policy if not already present.
+        max_age = self._max_age if self._max_age is not None else self._default_max_age_seconds()
 
-        Args:
-            directive: The directive to add to the HSTS policy.
-        """
-        if directive not in self._directives:
-            self._directives.append(directive)
+        parts: list[str] = [f"max-age={max_age}"]
 
-    def set(self, value: str) -> StrictTransportSecurity:
-        """
-        Set a custom value for the `Strict-Transport-Security` header, replacing any existing directives.
+        if self._preload:
+            # MDN: preload requires includeSubDomains and min max-age.
+            if max_age < _PRELOAD_MIN_MAX_AGE_SECONDS:
+                raise ValueError(
+                    "preload requires max-age to be at least 31536000 seconds (1 year). "
+                    "Increase max-age or remove preload()."
+                )
+            parts.append("includeSubDomains")
+            parts.append("preload")
+            return "; ".join(parts)
 
-        Args:
-            value: The custom header value.
+        if self._include_subdomains:
+            parts.append("includeSubDomains")
 
-        Returns:
-            The `StrictTransportSecurity` instance for method chaining.
-        """
-        self._directives = [value]
-        return self
+        return "; ".join(parts)
+
+    def _default_max_age_seconds(self) -> int:
+        """Extract the integer max-age from the library default (fallback: 31536000)."""
+        prefix = "max-age="
+        if self._default_value.startswith(prefix):
+            rest = self._default_value[len(prefix) :].split(";", 1)[0].strip()
+            try:
+                return int(rest)
+            except ValueError:
+                pass
+        return _PRELOAD_MIN_MAX_AGE_SECONDS
+
+    @staticmethod
+    def _ensure_no_newlines(value: str) -> str:
+        """Reject values that could enable header injection via CR/LF."""
+        return normalize_header_value(value, what="Strict-Transport-Security value")
 
     def clear(self) -> StrictTransportSecurity:
-        """
-        Clear all directives from the `Strict-Transport-Security` header and reset to the default value.
+        """Clear configured directives and reset back to the library default."""
+        self._max_age = None
+        self._include_subdomains = False
+        self._preload = False
+        self._raw_value = None
+        return self
 
-        Returns:
-            The `StrictTransportSecurity` instance for method chaining.
-        """
-        self._directives.clear()
+    # ------------------------------------------------------------------
+    # Directive builders
+    # ------------------------------------------------------------------
+
+    def value(self, value: str) -> StrictTransportSecurity:
+        """Set a raw header value (escape hatch), replacing any configured directives."""
+        value = self._ensure_no_newlines(value).strip()
+        self._raw_value = value
+        self._max_age = None
+        self._include_subdomains = False
+        self._preload = False
+        return self
+
+    # Backwards-compatible alias used by other header modules in this codebase.
+    set = value
+
+    def max_age(self, seconds: int) -> StrictTransportSecurity:
+        """Set ``max-age``: how long (in seconds) the browser should remember to use HTTPS only."""
+        if seconds < 0:
+            raise ValueError("max-age must be a non-negative integer (use 0 to disable HSTS).")
+
+        if self._preload and seconds < _PRELOAD_MIN_MAX_AGE_SECONDS:
+            raise ValueError(
+                "preload requires max-age to be at least 31536000 seconds (1 year). "
+                "Increase max-age or remove preload()."
+            )
+
+        self._raw_value = None
+        self._max_age = int(seconds)
         return self
 
     def include_subdomains(self) -> StrictTransportSecurity:
-        """
-        Add the `includeSubDomains` directive, which ensures that the HSTS policy is applied
-        to all subdomains of the domain.
-
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security#includeSubDomains
-
-        Returns:
-            The `StrictTransportSecurity` instance for method chaining.
-        """
-        self._build("includeSubDomains")
-        return self
-
-    def max_age(self, seconds: int) -> StrictTransportSecurity:
-        """
-        Set the `max-age` directive, instructing the browser to enforce the HTTPS-only policy
-        for the specified duration in seconds.
-
-        Args:
-            seconds: The number of seconds for which the HSTS policy will be applied.
-
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security#max-age
-
-        Returns:
-            The `StrictTransportSecurity` instance for method chaining.
-        """
-        self._build(f"max-age={seconds}")
+        """Add ``includeSubDomains``: apply the HSTS policy to all subdomains as well."""
+        self._raw_value = None
+        self._include_subdomains = True
         return self
 
     def preload(self) -> StrictTransportSecurity:
-        """
-        Add the `preload` directive, indicating that the site should be included in the HSTS preload list,
-        instructing browsers to always load the site over HTTPS.
+        """Add ``preload``: enable HSTS preload list requirements (requires includeSubDomains and 1y+ max-age)."""
+        self._raw_value = None
+        self._preload = True
+        self._include_subdomains = True  # required when preload is used (per MDN)
 
-        Resources:
-            https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security#preload
-            https://hstspreload.org
+        if self._max_age is not None and self._max_age < _PRELOAD_MIN_MAX_AGE_SECONDS:
+            raise ValueError(
+                "preload requires max-age to be at least 31536000 seconds (1 year). "
+                "Increase max-age or remove preload()."
+            )
 
-        Returns:
-            The `StrictTransportSecurity` instance for method chaining.
-        """
-        self._build("preload")
         return self
