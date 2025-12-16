@@ -25,7 +25,6 @@ classifiers = [
   "Programming Language :: Python :: 3.14",
   "Typing :: Typed",
   "Topic :: Software Development :: Libraries",
-  "License :: OSI Approved :: MIT License",
 ]
 dependencies = []
 
