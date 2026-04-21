@@ -17,4 +17,5 @@ class SetHeaderProtocol(Protocol):
 
 
 ResponseProtocol: TypeAlias = HeadersProtocol | SetHeaderProtocol
-HeaderItems: TypeAlias = tuple[tuple[str, str], ...]
+HeaderPair: TypeAlias = tuple[str, str]
+HeaderItems: TypeAlias = tuple[HeaderPair, ...]

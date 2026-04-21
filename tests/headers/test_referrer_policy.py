@@ -7,9 +7,7 @@ class TestReferrerPolicy(unittest.TestCase):
     def test_default_referrer_policy(self):
         """Test default Referrer-Policy header."""
         referrer_policy = ReferrerPolicy()
-        self.assertEqual(
-            referrer_policy.header_value, "strict-origin-when-cross-origin"
-        )
+        self.assertEqual(referrer_policy.header_value, "strict-origin-when-cross-origin")
 
     def test_set_custom_policy(self):
         """Test setting a custom referrer policy."""
@@ -49,9 +47,7 @@ class TestReferrerPolicy(unittest.TestCase):
     def test_strict_origin_when_cross_origin(self):
         """Test setting the Referrer-Policy to 'strict-origin-when-cross-origin'."""
         referrer_policy = ReferrerPolicy().strict_origin_when_cross_origin()
-        self.assertEqual(
-            referrer_policy.header_value, "strict-origin-when-cross-origin"
-        )
+        self.assertEqual(referrer_policy.header_value, "strict-origin-when-cross-origin")
 
     def test_unsafe_url(self):
         """Test setting the Referrer-Policy to 'unsafe-url'."""
@@ -61,9 +57,7 @@ class TestReferrerPolicy(unittest.TestCase):
     def test_clear_policy(self):
         """Test clearing the referrer policy directives and resetting to default."""
         referrer_policy = ReferrerPolicy().set("custom-policy").clear()
-        self.assertEqual(
-            referrer_policy.header_value, "strict-origin-when-cross-origin"
-        )
+        self.assertEqual(referrer_policy.header_value, "strict-origin-when-cross-origin")
 
 
 if __name__ == "__main__":

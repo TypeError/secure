@@ -1,12 +1,12 @@
 import asyncio
-from unittest import mock
 import unittest
+from unittest import mock
 
 from secure import DEFAULT_ALLOWED_HEADERS, MULTI_OK
-from secure.headers import CustomHeader
 from secure._internal.emit import set_headers_async
 from secure._internal.normalize import normalize_header_items
 from secure._internal.policy import allowlist_header_objects, deduplicate_header_objects
+from secure.headers import CustomHeader
 
 
 class _AsyncHeadersMapping:

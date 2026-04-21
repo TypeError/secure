@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-from functools import cached_property
 import logging
-from types import MappingProxyType
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping
 
-    from ._internal.types import DeduplicateAction, OnInvalidPolicy, OnUnexpectedPolicy, ResponseProtocol
+    from ._internal.types import DeduplicateAction, HeaderItems, OnInvalidPolicy, OnUnexpectedPolicy, ResponseProtocol
     from .headers import (
         BaseHeader,
         CacheControl,
@@ -28,6 +26,7 @@ if TYPE_CHECKING:
     )
 
 from ._internal import emit as _emit
+from ._internal.configured_headers import ConfiguredHeaders, header_items_from_objects, header_mapping_from_items
 from ._internal.constants import COMMA_JOIN_OK, DEFAULT_ALLOWED_HEADERS, MULTI_OK
 from ._internal.normalize import normalize_header_items
 from ._internal.policy import allowlist_header_objects, deduplicate_header_objects
@@ -120,9 +119,7 @@ class Secure:
         xfo :
             X-Frame-Options header configuration.
         """
-        self.headers_list: list[BaseHeader] = []
-
-        params: list[BaseHeader | None] = [
+        params: tuple[BaseHeader | None, ...] = (
             cache,
             coep,
             coop,
@@ -136,21 +133,41 @@ class Secure:
             server,
             xcto,
             xfo,
-        ]
-
-        for header in params:
-            if header is not None:
-                self.headers_list.append(header)
+        )
+        configured_headers = [header for header in params if header is not None]
 
         if custom:
-            self.headers_list.extend(custom)
+            configured_headers.extend(custom)
 
-        self._headers_override: Mapping[str, str] | None = None
+        self._headers = ConfiguredHeaders(configured_headers, on_change=self._discard_normalized_headers)
+        self._normalized_headers: Mapping[str, str] | None = None
+        self._normalized_source_items: HeaderItems | None = None
 
-    def _invalidate_cached_headers(self, *, clear_override: bool = False) -> None:
-        if clear_override:
-            self._headers_override = None
-        self.__dict__.pop("headers", None)
+    @property
+    def headers_list(self) -> list[BaseHeader]:
+        """Mutable ordered list of configured header builders."""
+        return self._headers
+
+    @headers_list.setter
+    def headers_list(self, headers: Iterable[BaseHeader]) -> None:
+        self._headers.replace_all(headers)
+
+    def _discard_normalized_headers(self) -> None:
+        self._normalized_headers = None
+        self._normalized_source_items = None
+
+    def _normalized_headers_for(
+        self,
+        header_items: HeaderItems,
+    ) -> Mapping[str, str] | None:
+        if self._normalized_headers is None:
+            return None
+
+        if self._normalized_source_items != header_items:
+            self._discard_normalized_headers()
+            return None
+
+        return self._normalized_headers
 
     @classmethod
     def with_default_headers(cls) -> Secure:
@@ -220,8 +237,8 @@ class Secure:
         This operates on :meth:`header_items` (not ``headers_list`` directly) to
         preserve ordering, multi-valued behavior, and any prior deduplication.
 
-        The resulting mapping is stored as an internal override that is returned
-        by :attr:`headers`.
+        The resulting mapping is stored as a normalized snapshot that is returned
+        by :attr:`headers` until the configured headers change.
 
         Parameters
         ----------
@@ -251,14 +268,15 @@ class Secure:
             if duplicates are found when building the single-valued mapping,
             or if ``strict=True`` and CR/LF or disallowed characters are present.
         """
-        self._headers_override = normalize_header_items(
-            self.header_items(),
+        header_items = self.header_items()
+        self._normalized_headers = normalize_header_items(
+            header_items,
             on_invalid=on_invalid,
             strict=strict,
             allow_obs_text=allow_obs_text,
             logger=logger or logging.getLogger(__name__),
         )
-        self._invalidate_cached_headers()
+        self._normalized_source_items = header_items
         return self
 
     def deduplicate_headers(
@@ -301,13 +319,12 @@ class Secure:
             and the action is ``"raise"`` or ``"concat"`` for unsafe headers.
         """
         self.headers_list = deduplicate_header_objects(
-            self.headers_list,
+            self._headers,
             action=action,
             comma_join_ok=comma_join_ok,
             multi_ok=multi_ok,
             logger=logger or logging.getLogger(__name__),
         )
-        self._invalidate_cached_headers(clear_override=True)
         return self
 
     def allowlist_headers(
@@ -350,28 +367,22 @@ class Secure:
             If ``on_unexpected="raise"`` and any header is not in the allowlist.
         """
         self.headers_list = allowlist_header_objects(
-            self.headers_list,
+            self._headers,
             allowed=allowed,
             allow_extra=allow_extra,
             on_unexpected=on_unexpected,
             allow_x_prefixed=allow_x_prefixed,
             logger=logger or logging.getLogger(__name__),
         )
-        self._invalidate_cached_headers(clear_override=True)
         return self
 
     # ------------------------------------------------------------------
     # Serialization / access
     # ------------------------------------------------------------------
 
-    def header_items(self) -> tuple[tuple[str, str], ...]:
+    def header_items(self) -> HeaderItems:
         """
         Serialize the current headers into ``(name, value)`` pairs.
-
-        This method supports two forms in :attr:`headers_list`:
-
-        * Header objects with ``.header_name`` and ``.header_value`` attributes.
-        * Tuple-like items with at least two elements (name, value).
 
         It does not enforce uniqueness. Use :meth:`deduplicate_headers` or
         :meth:`validate_and_normalize_headers` when you need a single-valued
@@ -382,36 +393,26 @@ class Secure:
         tuple[tuple[str, str], ...]
             Immutable sequence of ``(name, value)`` pairs.
         """
-        header_tuple_size = 2
-        items: list[tuple[str, str]] = []
-        append = items.append
+        return header_items_from_objects(self._headers)
 
-        for h in self.headers_list:
-            if hasattr(h, "header_name") and hasattr(h, "header_value"):
-                append((h.header_name, h.header_value))
-            elif isinstance(h, (tuple, list)) and len(h) >= header_tuple_size:
-                append((h[0], h[1]))
-            else:
-                raise TypeError("header_items() expected elements with .header_name/.header_value or 2-tuples")
-
-        return tuple(items)
-
-    def _resolved_header_items(self) -> tuple[tuple[str, str], ...]:
+    def _resolved_header_items(self) -> HeaderItems:
         """
         Return the list of header items honoring any normalized override.
         """
-        if self._headers_override is not None:
-            return tuple(self._headers_override.items())
-        return self.header_items()
+        header_items = self.header_items()
+        normalized_headers = self._normalized_headers_for(header_items)
+        if normalized_headers is not None:
+            return tuple(normalized_headers.items())
+        return header_items
 
-    @cached_property
+    @property
     def headers(self) -> Mapping[str, str]:
         """
         Single-valued, immutable mapping of headers.
 
         By default, this is derived from :meth:`header_items`. If
         :meth:`validate_and_normalize_headers` has been called, the mapping
-        returned here is the normalized override produced by that method.
+        returned here is the normalized snapshot produced by that method.
 
         Returns
         -------
@@ -426,20 +427,12 @@ class Secure:
             in :data:`MULTI_OK`. Use :meth:`header_items` to emit multi-valued
             headers or call :meth:`deduplicate_headers` first.
         """
-        if self._headers_override is not None:
-            return self._headers_override
+        header_items = self.header_items()
+        normalized_headers = self._normalized_headers_for(header_items)
+        if normalized_headers is not None:
+            return normalized_headers
 
-        data: dict[str, str] = {}
-        seen: set[str] = set()
-
-        for name, value in self.header_items():
-            k = name.lower()
-            if k in seen:
-                raise ValueError(f"Multiple '{name}' headers present; use `header_items()` when emitting multiples.")
-            seen.add(k)
-            data[name] = value
-
-        return MappingProxyType(data)
+        return header_mapping_from_items(header_items)
 
     # ------------------------------------------------------------------
     # Application to framework responses

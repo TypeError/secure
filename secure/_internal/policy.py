@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from collections import defaultdict
 import logging
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
-from ..headers import CustomHeader
+from ..headers.base_header import BaseHeader
+from ..headers.custom_header import CustomHeader
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-    from ..headers import BaseHeader
     from .types import DeduplicateAction, OnUnexpectedPolicy
 
 
@@ -28,11 +28,11 @@ def deduplicate_header_objects(
     groups: dict[str, list[tuple[int, BaseHeader]]] = defaultdict(list)
 
     for index, header in enumerate(headers):
-        typed_header = _require_header_object(header, operation="deduplicate_headers")
-        groups[typed_header.header_name.lower()].append((index, typed_header))
+        validated_header = _require_header_object(header, operation="deduplicate_headers")
+        groups[validated_header.header_name.lower()].append((index, validated_header))
 
     ordered_keys = sorted(groups.keys(), key=lambda key: groups[key][0][0])
-    new_list: list[BaseHeader] = []
+    deduplicated_headers: list[BaseHeader] = []
     duplicate_errors: list[str] = []
 
     for lowered_name in ordered_keys:
@@ -40,22 +40,22 @@ def deduplicate_header_objects(
 
         if len(entries) == 1:
             _, header = entries[0]
-            new_list.append(_clone_header(header.header_name, header.header_value))
+            deduplicated_headers.append(_clone_as_custom_header(header.header_name, header.header_value))
             continue
 
         if lowered_name in multi_ok:
             for _, header in entries:
-                new_list.append(_clone_header(header.header_name, header.header_value))
+                deduplicated_headers.append(_clone_as_custom_header(header.header_name, header.header_value))
             continue
 
-        produced, error_name = _handle_disallowed_duplicates(
+        resolved_headers, error_name = _resolve_duplicate_headers(
             lowered_name,
             entries,
             action=action,
             comma_join_ok=comma_join_ok,
             logger=log,
         )
-        new_list.extend(produced)
+        deduplicated_headers.extend(resolved_headers)
 
         if error_name is not None:
             duplicate_errors.append(error_name)
@@ -64,7 +64,7 @@ def deduplicate_header_objects(
         names = ", ".join(sorted(set(duplicate_errors)))
         raise ValueError(f"Duplicate header(s) not allowed: {names}. Define each at most once.")
 
-    return new_list
+    return deduplicated_headers
 
 
 def allowlist_header_objects(  # noqa: PLR0913
@@ -88,25 +88,25 @@ def allowlist_header_objects(  # noqa: PLR0913
     unexpected_names: list[str] = []
 
     for header in headers:
-        typed_header = _require_header_object(header, operation="allowlist_headers")
-        name = typed_header.header_name
-        lowered_name = name.lower()
+        validated_header = _require_header_object(header, operation="allowlist_headers")
+        header_name = validated_header.header_name
+        lowered_name = header_name.lower()
 
         if _is_allowed_header_name(
             lowered_name,
             allowed=allowed_lc,
             allow_x_prefixed=allow_x_prefixed,
         ):
-            kept.append(typed_header)
+            kept.append(validated_header)
             continue
 
         if on_unexpected == "warn":
-            log.warning("Unexpected header %r kept (not in allowlist)", name)
-            kept.append(typed_header)
+            log.warning("Unexpected header %r kept (not in allowlist)", header_name)
+            kept.append(validated_header)
         elif on_unexpected == "drop":
-            log.warning("Unexpected header %r dropped (not in allowlist)", name)
+            log.warning("Unexpected header %r dropped (not in allowlist)", header_name)
         else:
-            unexpected_names.append(name)
+            unexpected_names.append(header_name)
 
     if unexpected_names:
         names = ", ".join(sorted(set(unexpected_names)))
@@ -118,16 +118,16 @@ def allowlist_header_objects(  # noqa: PLR0913
 
 
 def _require_header_object(header: object, *, operation: str) -> BaseHeader:
-    if not hasattr(header, "header_name") or not hasattr(header, "header_value"):
+    if not isinstance(header, BaseHeader):
         raise TypeError(f"{operation}() requires BaseHeader objects only")
-    return cast("BaseHeader", header)
+    return header
 
 
-def _clone_header(name: str, value: str) -> BaseHeader:
+def _clone_as_custom_header(name: str, value: str) -> BaseHeader:
     return CustomHeader(header=name, value=value)
 
 
-def _handle_disallowed_duplicates(
+def _resolve_duplicate_headers(
     lowered_name: str,
     entries: list[tuple[int, BaseHeader]],
     *,
@@ -139,19 +139,19 @@ def _handle_disallowed_duplicates(
         _, header = entries[0]
         if len(entries) > 1:
             logger.warning("Dropping duplicate header(s) for %r (keeping first)", header.header_name)
-        return [_clone_header(header.header_name, header.header_value)], None
+        return [_clone_as_custom_header(header.header_name, header.header_value)], None
 
     if action == "last":
         _, header = entries[-1]
         if len(entries) > 1:
             logger.warning("Dropping duplicate header(s) for %r (keeping last)", header.header_name)
-        return [_clone_header(header.header_name, header.header_value)], None
+        return [_clone_as_custom_header(header.header_name, header.header_value)], None
 
     if action == "concat":
         if lowered_name in comma_join_ok:
             name = entries[0][1].header_name
             joined_value = ", ".join(header.header_value for _, header in entries)
-            return [_clone_header(name, joined_value)], None
+            return [_clone_as_custom_header(name, joined_value)], None
 
         return [], entries[0][1].header_name
 

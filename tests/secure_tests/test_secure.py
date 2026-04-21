@@ -119,8 +119,6 @@ class TestSecure(unittest.TestCase):
                 CustomHeader("X-Test-Header-2", "Value2"),
             ]
         )
-        # Precompute headers dictionary
-        self.secure.headers = {header.header_name: header.header_value for header in self.secure.headers_list}
 
     def test_with_default_headers(self) -> None:
         """Test that the Balanced defaults are correctly applied."""
@@ -627,6 +625,17 @@ class TestSecure(unittest.TestCase):
         secure_headers = Secure()
         self.assertEqual(secure_headers.headers, {})
 
+    def test_headers_property_tracks_builder_mutation_after_access(self) -> None:
+        """Header mapping should reflect later builder updates instead of staying cached."""
+        server = Server().set("Initial")
+        secure_headers = Secure(server=server)
+
+        self.assertEqual(secure_headers.headers["Server"], "Initial")
+
+        server.set("Updated")
+
+        self.assertEqual(secure_headers.headers["Server"], "Updated")
+
     def test_allowlist_headers_drop_unexpected(self) -> None:
         """Headers not on the allowlist are removed when using drop policy."""
         secure_headers = Secure(custom=[CustomHeader("X-Not-Allowed", "value")])
@@ -686,6 +695,31 @@ class TestSecure(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             secure_headers.validate_and_normalize_headers(strict=True)
+
+    def test_validate_and_normalize_headers_is_cleared_by_headers_list_mutation(self) -> None:
+        """Mutating `headers_list` should discard any normalized snapshot."""
+        secure_headers = Secure(custom=[CustomHeader("X-Test", "value\nwith\r\nspaces")])
+        secure_headers.validate_and_normalize_headers()
+
+        secure_headers.headers_list.append(CustomHeader("X-New", "fresh"))
+
+        self.assertEqual(
+            secure_headers.header_items(),
+            (
+                ("X-Test", "value\nwith\r\nspaces"),
+                ("X-New", "fresh"),
+            ),
+        )
+
+    def test_validate_and_normalize_headers_is_cleared_by_builder_mutation(self) -> None:
+        """Mutating an existing builder should invalidate stale normalized output."""
+        server = Server().set("Initial")
+        secure_headers = Secure(server=server)
+        secure_headers.validate_and_normalize_headers()
+
+        server.set("Updated")
+
+        self.assertEqual(secure_headers.headers["Server"], "Updated")
 
     def test_headers_property_raises_on_duplicates(self) -> None:
         """Accessing `headers` should fail when duplicates are configured."""
