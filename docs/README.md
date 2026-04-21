@@ -19,7 +19,7 @@ See [Framework Integration](./frameworks.md) for WSGI and ASGI examples. The gui
 - [Content-Security-Policy](./headers/content_security_policy.md)
 - [Cross-Origin-Embedder-Policy](./headers/cross_origin_embedder_policy.md)
 - [Cross-Origin-Opener-Policy](./headers/cross_origin_opener_policy.md)
-- [Cross-Origin-Resource-Policy](./headers/cross-origin-resource-policy.md)
+- [Cross-Origin-Resource-Policy](./headers/cross_origin_resource_policy.md)
 - [Custom Header](./headers/custom_header.md)
 - [Permissions-Policy](./headers/permissions_policy.md)
 - [Referrer-Policy](./headers/referrer_policy.md)

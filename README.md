@@ -94,7 +94,7 @@ If you want your app to ship with a strong security baseline without pulling in 
 
 - **Python 3.10 or higher**
 
-  `secure` targets modern Python and is currently tested on Python 3.10 through 3.13.
+  `secure` targets modern Python and is currently tested on Python 3.10 through 3.14.
 
   It uses features introduced in Python 3.10, including:
 
@@ -620,7 +620,7 @@ For additional examples, framework specific helpers, and more detailed guidance,
 - Configuration details.
 - Framework integration notes.
 - Reference for header builder classes.
-- Migration notes for the v2.0.0 release and preset/default changes: <https://github.com/TypeError/secure/tree/main/docs/migration.md>
+- Migration notes for the v2 release and preset/default changes: <https://github.com/TypeError/secure/blob/main/docs/migration.md>
 
 Documentation: <https://github.com/TypeError/secure/tree/main/docs>
 

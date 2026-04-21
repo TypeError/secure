@@ -1,4 +1,6 @@
-# v2.0.0 Migration Notes
+# v2 Migration Notes
+
+The first stable v2 release is `2.0.1`. Version `2.0.0` was burned and should be skipped when upgrading or tagging releases.
 
 ## Package and import changes
 
@@ -34,4 +36,4 @@ secure_headers = Secure(
 - The `Server` header defaults to an empty string, so disable framework defaults (e.g., `uvicorn --no-server-header`) if you apply a custom value to avoid duplicate headers.
 - `Preset.BASIC` includes legacy/compatibility defaults such as `X-Permitted-Cross-Domain-Policies: none` and `X-XSS-Protection: 0`. Use `Preset.BALANCED` (or roll your own `Secure` instance) when you want a leaner header set.
 
-Refer back to the [README](../README.md) and the individual header docs for exact builder methods when adapting your existing configuration to v2.0.0.
+Refer back to the [README](../README.md) and the individual header docs for exact builder methods when adapting your existing configuration to v2.
