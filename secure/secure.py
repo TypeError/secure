@@ -1,131 +1,39 @@
 from __future__ import annotations
 
-from collections import defaultdict
-from enum import Enum
 from functools import cached_property
-import inspect
 import logging
-import re
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Literal, Protocol, TypeAlias, cast
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable, Mapping, MutableMapping
+    from collections.abc import Iterable, Mapping
 
-from .headers import (
-    BaseHeader,
-    CacheControl,
-    ContentSecurityPolicy,
-    CrossOriginEmbedderPolicy,
-    CrossOriginOpenerPolicy,
-    CrossOriginResourcePolicy,
-    CustomHeader,
-    PermissionsPolicy,
-    ReferrerPolicy,
-    Server,
-    StrictTransportSecurity,
-    XContentTypeOptions,
-    XDnsPrefetchControl,
-    XFrameOptions,
-    XPermittedCrossDomainPolicies,
-)
-
-# ---------------------------------------------------------------------------
-# Configuration / constants
-# ---------------------------------------------------------------------------
-
-# Headers that may appear multiple times as separate fields.
-MULTI_OK: frozenset[str] = frozenset(
-    {
-        "content-security-policy",
-    }
-)
-
-# Headers where RFC7230-style comma merging is safe/expected.
-COMMA_JOIN_OK: frozenset[str] = frozenset({"cache-control"})
-
-# A default allowlist of secure headers.
-DEFAULT_ALLOWED_HEADERS: frozenset[str] = frozenset(
-    {
-        "cache-control",
-        "content-security-policy",
-        "content-security-policy-report-only",
-        "cross-origin-embedder-policy",
-        "cross-origin-opener-policy",
-        "cross-origin-resource-policy",
-        "origin-agent-cluster",
-        "permissions-policy",
-        "referrer-policy",
-        "strict-transport-security",
-        "x-content-type-options",
-        "x-dns-prefetch-control",
-        "x-download-options",
-        "x-frame-options",
-        "x-permitted-cross-domain-policies",
-        "x-xss-protection",
-    }
-)
-
-# RFC 7230 token (visible ASCII except separators).
-HEADER_NAME_RE = re.compile(r"^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$")
-
-OnInvalidPolicy = Literal["drop", "warn", "raise"]
-DeduplicateAction = Literal["raise", "first", "last", "concat"]
-OnUnexpectedPolicy = Literal["raise", "drop", "warn"]
-
-
-# ---------------------------------------------------------------------------
-# Protocols / errors
-# ---------------------------------------------------------------------------
-
-
-class HeaderSetError(RuntimeError):
-    """Raised when applying a header to a response fails."""
-
-
-class HeadersProtocol(Protocol):
-    @property
-    def headers(self) -> object: ...
-
-
-class SetHeaderProtocol(Protocol):
-    def set_header(self, key: str, value: str) -> object | None: ...
-
-
-# Union type for supported response objects.
-ResponseProtocol: TypeAlias = HeadersProtocol | SetHeaderProtocol
-
-
-# ---------------------------------------------------------------------------
-# Presets
-# ---------------------------------------------------------------------------
-
-
-class Preset(Enum):
-    """Predefined security header presets for :class:`Secure`."""
-
-    BASIC = "basic"
-    BALANCED = "balanced"
-    STRICT = "strict"
-
-
-def _baseline_content_security_policy() -> ContentSecurityPolicy:
-    """Shared CSP builder used by the BASIC and BALANCED presets."""
-    return (
-        ContentSecurityPolicy()
-        .default_src("'self'")
-        .base_uri("'self'")
-        .font_src("'self'", "https:", "data:")
-        .form_action("'self'")
-        .frame_ancestors("'self'")
-        .img_src("'self'", "data:")
-        .object_src("'none'")
-        .script_src("'self'")
-        .script_src_attr("'none'")
-        .style_src("'self'", "https:", "'unsafe-inline'")
-        .upgrade_insecure_requests()
+    from ._internal.types import DeduplicateAction, OnInvalidPolicy, OnUnexpectedPolicy, ResponseProtocol
+    from .headers import (
+        BaseHeader,
+        CacheControl,
+        ContentSecurityPolicy,
+        CrossOriginEmbedderPolicy,
+        CrossOriginOpenerPolicy,
+        CrossOriginResourcePolicy,
+        CustomHeader,
+        PermissionsPolicy,
+        ReferrerPolicy,
+        Server,
+        StrictTransportSecurity,
+        XContentTypeOptions,
+        XDnsPrefetchControl,
+        XFrameOptions,
+        XPermittedCrossDomainPolicies,
     )
 
+from ._internal import emit as _emit
+from ._internal.constants import COMMA_JOIN_OK, DEFAULT_ALLOWED_HEADERS, MULTI_OK
+from ._internal.normalize import normalize_header_items
+from ._internal.policy import allowlist_header_objects, deduplicate_header_objects
+from ._internal.presets import Preset, preset_kwargs
+
+HeaderSetError = _emit.HeaderSetError
 
 # ---------------------------------------------------------------------------
 # Core API
@@ -239,6 +147,11 @@ class Secure:
 
         self._headers_override: Mapping[str, str] | None = None
 
+    def _invalidate_cached_headers(self, *, clear_override: bool = False) -> None:
+        if clear_override:
+            self._headers_override = None
+        self.__dict__.pop("headers", None)
+
     @classmethod
     def with_default_headers(cls) -> Secure:
         """
@@ -279,70 +192,7 @@ class Secure:
         ValueError
             If an unknown preset is provided.
         """
-        match preset:
-            case Preset.BASIC:
-                return cls(
-                    coop=CrossOriginOpenerPolicy().same_origin(),
-                    csp=_baseline_content_security_policy(),
-                    corp=CrossOriginResourcePolicy().same_origin(),
-                    hsts=StrictTransportSecurity().max_age(31536000).include_subdomains(),
-                    referrer=ReferrerPolicy().no_referrer(),
-                    xcto=XContentTypeOptions().nosniff(),
-                    xfo=XFrameOptions().sameorigin(),
-                    xdfc=XDnsPrefetchControl().disable(),
-                    xpcdp=XPermittedCrossDomainPolicies().none(),
-                    custom=[
-                        CustomHeader(
-                            header="Origin-Agent-Cluster",
-                            value="?1",
-                        ),
-                        CustomHeader(
-                            header="X-Download-Options",
-                            value="noopen",
-                        ),
-                        CustomHeader(
-                            header="X-XSS-Protection",
-                            value="0",
-                        ),
-                    ],
-                )
-            case Preset.BALANCED:
-                return cls(
-                    coop=CrossOriginOpenerPolicy().same_origin(),
-                    corp=CrossOriginResourcePolicy().same_origin(),
-                    csp=_baseline_content_security_policy(),
-                    hsts=StrictTransportSecurity().max_age(31536000).include_subdomains(),
-                    permissions=PermissionsPolicy().geolocation().microphone().camera(),
-                    referrer=ReferrerPolicy().strict_origin_when_cross_origin(),
-                    server=Server().set(""),
-                    xcto=XContentTypeOptions().nosniff(),
-                    xfo=XFrameOptions().sameorigin(),
-                )
-
-            case Preset.STRICT:
-                return cls(
-                    cache=CacheControl().no_store().max_age(0),
-                    coep=CrossOriginEmbedderPolicy().require_corp(),
-                    coop=CrossOriginOpenerPolicy().same_origin(),
-                    csp=(
-                        ContentSecurityPolicy()
-                        .default_src("'self'")
-                        .script_src("'self'")
-                        .style_src("'self'")
-                        .object_src("'none'")
-                        .base_uri("'none'")
-                        .frame_ancestors("'none'")
-                    ),
-                    hsts=StrictTransportSecurity().max_age(63072000).include_subdomains(),
-                    permissions=PermissionsPolicy().geolocation().microphone().camera(),
-                    referrer=ReferrerPolicy().no_referrer(),
-                    server=Server().set(""),
-                    xcto=XContentTypeOptions().nosniff(),
-                    xfo=XFrameOptions().deny(),
-                )
-
-            case _:
-                raise ValueError(f"Unknown preset: {preset}")
+        return cls(**preset_kwargs(preset))
 
     def __str__(self) -> str:
         """Return a human-readable listing of headers and their effective values."""
@@ -356,7 +206,7 @@ class Secure:
     # Header normalization / safety helpers
     # ------------------------------------------------------------------
 
-    def validate_and_normalize_headers(  # noqa: PLR0915
+    def validate_and_normalize_headers(
         self,
         *,
         on_invalid: OnInvalidPolicy = "drop",
@@ -401,112 +251,14 @@ class Secure:
             if duplicates are found when building the single-valued mapping,
             or if ``strict=True`` and CR/LF or disallowed characters are present.
         """
-        log = logger or logging.getLogger(__name__)
-
-        # Visible ASCII per RFCs.
-        sp = 0x20
-        vchar_min, vchar_max = 0x21, 0x7E
-        obs_min, obs_max = 0x80, 0xFF
-
-        def _handle_invalid(msg: str) -> None:
-            if on_invalid == "warn":
-                log.warning(msg)
-            elif on_invalid == "raise":
-                raise ValueError(msg)
-            # on_invalid == "drop": silently drop
-
-        def _validate_pair(name: str, value: str) -> tuple[str, str] | None:  # noqa: PLR0912
-            strict_flag = bool(strict)
-            name = name.strip()
-
-            if not HEADER_NAME_RE.match(name):
-                _handle_invalid(f"Invalid header name {name!r} (RFC 7230 token required)")
-                return None
-
-            # Prevent folded-header smuggling.
-            if value.startswith((" ", "\t")):
-                _handle_invalid(f"Header {name!r} starts with forbidden whitespace")
-                return None
-
-            # CR/LF must never appear in values.
-            if ("\r" in value) or ("\n" in value):
-                if strict_flag:
-                    raise ValueError(f"Header {name!r} contained CR/LF")
-                value = " ".join(value.splitlines())
-
-            value = value.strip()
-            if not value:
-                _handle_invalid(f"Dropping header {name!r}: empty value")
-                return None
-
-            _allow_obs = allow_obs_text
-
-            needs_sanitize = False
-            for ch in value:
-                code = ord(ch)
-                if not (
-                    ch == "\t"
-                    or code == sp
-                    or (vchar_min <= code <= vchar_max)
-                    or (_allow_obs and (obs_min <= code <= obs_max))
-                ):
-                    needs_sanitize = True
-                    break
-
-            if not needs_sanitize:
-                return name, value
-
-            sanitized: list[str] = []
-            append = sanitized.append
-
-            for ch in value:
-                code = ord(ch)
-                if (
-                    ch == "\t"
-                    or code == sp
-                    or (vchar_min <= code <= vchar_max)
-                    or (_allow_obs and (obs_min <= code <= obs_max))
-                ):
-                    append(ch)
-                else:
-                    if strict_flag:
-                        raise ValueError(f"Header {name!r} contains disallowed char U+{code:04X}")
-                    append(" ")
-
-            norm_value = "".join(sanitized).strip()
-            if not norm_value:
-                _handle_invalid(f"Dropping header {name!r}: empty after sanitization")
-                return None
-
-            return name, norm_value
-
-        items = self.header_items()
-
-        cleaned: dict[str, str] = {}
-        seen_lc: set[str] = set()
-
-        for name, value in items:
-            pair = _validate_pair(name, value)
-            if pair is None:
-                continue
-
-            norm_name, norm_value = pair
-            lname = norm_name.lower()
-
-            if lname in seen_lc:
-                raise ValueError(
-                    f"Duplicate header {norm_name!r} encountered during normalization. "
-                    "Run deduplicate_headers() first or use header_items() for multi-valued headers."
-                )
-
-            seen_lc.add(lname)
-            cleaned[norm_name] = norm_value
-
-        self._headers_override = MappingProxyType(cleaned)
-
-        # Reset cached_property.
-        self.__dict__.pop("headers", None)
-
+        self._headers_override = normalize_header_items(
+            self.header_items(),
+            on_invalid=on_invalid,
+            strict=strict,
+            allow_obs_text=allow_obs_text,
+            logger=logger or logging.getLogger(__name__),
+        )
+        self._invalidate_cached_headers()
         return self
 
     def deduplicate_headers(
@@ -548,82 +300,14 @@ class Secure:
             If duplicates are found for headers that are not in ``multi_ok``
             and the action is ``"raise"`` or ``"concat"`` for unsafe headers.
         """
-        log = logger or logging.getLogger(__name__)
-
-        # Group by lowercase name; store (first_index, BaseHeader).
-        groups: dict[str, list[tuple[int, BaseHeader]]] = defaultdict(list)
-
-        for idx, h in enumerate(self.headers_list):
-            if not hasattr(h, "header_name") or not hasattr(h, "header_value"):
-                raise TypeError("deduplicate_headers() requires BaseHeader objects only")
-            groups[h.header_name.lower()].append((idx, h))
-
-        # Stable processing order by first appearance.
-        ordered_keys = sorted(groups.keys(), key=lambda k: groups[k][0][0])
-
-        def _clone(name: str, value: str) -> BaseHeader:
-            # Preserve type stability using CustomHeader as neutral carrier.
-            return CustomHeader(header=name, value=value)
-
-        def _handle_disallowed_dupes(
-            lname: str,
-            entries: list[tuple[int, BaseHeader]],
-        ) -> tuple[list[BaseHeader], str | None]:
-            """Return (new_items, dup_error_name_if_any)."""
-            if action == "first":
-                _, h = entries[0]
-                if len(entries) > 1:
-                    log.warning("Dropping duplicate header(s) for %r (keeping first)", h.header_name)
-                return [_clone(h.header_name, h.header_value)], None
-
-            if action == "last":
-                _, h = entries[-1]
-                if len(entries) > 1:
-                    log.warning("Dropping duplicate header(s) for %r (keeping last)", h.header_name)
-                return [_clone(h.header_name, h.header_value)], None
-
-            if action == "concat":
-                if lname in comma_join_ok:
-                    nm = entries[0][1].header_name
-                    joined = ", ".join(h.header_value for _, h in entries)
-                    return [_clone(nm, joined)], None
-
-                # Not safe to join.
-                return [], entries[0][1].header_name
-
-            # Default "raise".
-            return [], entries[0][1].header_name
-
-        new_list: list[BaseHeader] = []
-        dup_errors: list[str] = []
-
-        for lname in ordered_keys:
-            entries = groups[lname]
-
-            if len(entries) == 1:
-                _, h = entries[0]
-                new_list.append(_clone(h.header_name, h.header_value))
-                continue
-
-            if lname in multi_ok:
-                for _, h in entries:
-                    new_list.append(_clone(h.header_name, h.header_value))
-                continue
-
-            produced, err = _handle_disallowed_dupes(lname, entries)
-            new_list.extend(produced)
-
-            if err is not None:
-                dup_errors.append(err)
-
-        if dup_errors:
-            names = ", ".join(sorted(set(dup_errors)))
-            raise ValueError(f"Duplicate header(s) not allowed: {names}. Define each at most once.")
-
-        self.headers_list = new_list
-        self._headers_override = None
-        self.__dict__.pop("headers", None)
-
+        self.headers_list = deduplicate_header_objects(
+            self.headers_list,
+            action=action,
+            comma_join_ok=comma_join_ok,
+            multi_ok=multi_ok,
+            logger=logger or logging.getLogger(__name__),
+        )
+        self._invalidate_cached_headers(clear_override=True)
         return self
 
     def allowlist_headers(
@@ -665,51 +349,15 @@ class Secure:
         ValueError
             If ``on_unexpected="raise"`` and any header is not in the allowlist.
         """
-        log = logger or logging.getLogger(__name__)
-
-        # Build the lowercase allowlist.
-        allowed_lc = {h.lower() for h in allowed}
-        if allow_extra:
-            allowed_lc.update(h.lower() for h in allow_extra)
-
-        def _keep(name_lc: str) -> bool:
-            return (name_lc in allowed_lc) or (allow_x_prefixed and name_lc.startswith("x-"))
-
-        kept: list[BaseHeader] = []
-        unexpected_names: list[str] = []
-
-        for h in self.headers_list:
-            if not hasattr(h, "header_name") or not hasattr(h, "header_value"):
-                raise TypeError("allowlist_headers() requires BaseHeader objects only")
-
-            name = h.header_name
-            lname = name.lower()
-
-            if _keep(lname):
-                kept.append(h)
-                continue
-
-            if on_unexpected == "warn":
-                log.warning("Unexpected header %r kept (not in allowlist)", name)
-                kept.append(h)
-            elif on_unexpected == "drop":
-                log.warning("Unexpected header %r dropped (not in allowlist)", name)
-            else:  # "raise" (default)
-                unexpected_names.append(name)
-
-        if unexpected_names:
-            names = ", ".join(sorted(set(unexpected_names)))
-            raise ValueError(
-                f"Unexpected header(s) not in allowlist: {names}. "
-                "Enable allow_extra or set on_unexpected to 'drop'/'warn'."
-            )
-
-        self.headers_list = kept
-
-        # Invalidate any cached mapping / overrides derived from headers_list.
-        self._headers_override = None
-        self.__dict__.pop("headers", None)
-
+        self.headers_list = allowlist_header_objects(
+            self.headers_list,
+            allowed=allowed,
+            allow_extra=allow_extra,
+            on_unexpected=on_unexpected,
+            allow_x_prefixed=allow_x_prefixed,
+            logger=logger or logging.getLogger(__name__),
+        )
+        self._invalidate_cached_headers(clear_override=True)
         return self
 
     # ------------------------------------------------------------------
@@ -797,7 +445,7 @@ class Secure:
     # Application to framework responses
     # ------------------------------------------------------------------
 
-    def set_headers(self, response: ResponseProtocol) -> None:  # noqa: PLR0912
+    def set_headers(self, response: ResponseProtocol) -> None:
         """
         Apply configured headers synchronously to ``response``.
 
@@ -827,80 +475,9 @@ class Secure:
         HeaderSetError
             If setting an individual header fails.
         """
-        items = self._resolved_header_items()
+        _emit.set_headers_sync(response, self._resolved_header_items())
 
-        # Path 1: response.set_header(...)
-        if hasattr(response, "set_header"):
-            set_header = response.set_header
-
-            if inspect.iscoroutinefunction(set_header):
-                raise RuntimeError(
-                    "Async 'set_header' detected in sync context. Use 'await set_headers_async(response)'."
-                )
-
-            try:
-                for name, value in items:
-                    result = set_header(name, value)
-                    if inspect.isawaitable(result):
-                        raise RuntimeError(
-                            "Async 'set_header' returned awaitable in sync context. "
-                            "Use 'await set_headers_async(response)'."
-                        )
-            except (TypeError, ValueError, AttributeError) as e:
-                raise HeaderSetError(f"Failed to set headers: {e}") from e
-
-            return
-
-        # Path 2: response.headers...
-        if hasattr(response, "headers"):
-            hdrs = cast("object", response.headers)
-
-            set_fn = getattr(hdrs, "set", None)
-            if callable(set_fn):
-                set_fn_typed = cast("Callable[[str, str], object]", set_fn)
-
-                if inspect.iscoroutinefunction(set_fn_typed):
-                    raise RuntimeError(
-                        "Async headers setter detected in sync context. Use 'await set_headers_async(response)'."
-                    )
-
-                try:
-                    for name, value in items:
-                        result = set_fn_typed(name, value)
-                        if inspect.isawaitable(result):
-                            raise RuntimeError(
-                                "Async headers setter returned awaitable in sync context. "
-                                "Use 'await set_headers_async(response)'."
-                            )
-                except (TypeError, ValueError, AttributeError) as e:
-                    raise HeaderSetError(f"Failed to set headers: {e}") from e
-
-                return
-
-            setitem = getattr(hdrs, "__setitem__", None)
-            if callable(setitem):
-                setitem_typed = cast("Callable[[str, str], object]", setitem)
-
-                if inspect.iscoroutinefunction(setitem_typed):
-                    raise RuntimeError(
-                        "Async headers mapping detected in sync context. Use 'await set_headers_async(response)'."
-                    )
-
-                try:
-                    # Use mapping assignment for the common case.
-                    hdrs_map = cast("MutableMapping[str, str]", hdrs)
-                    for name, value in items:
-                        hdrs_map[name] = value
-                except (TypeError, ValueError, AttributeError) as e:
-                    raise HeaderSetError(f"Failed to set headers: {e}") from e
-
-                return
-
-            raise AttributeError("Response object has .headers but it does not support setting header values.")
-
-        raise AttributeError("Response object does not support setting headers.")
-
-    async def set_headers_async(self, response: ResponseProtocol) -> None:  # noqa: PLR0912
+    async def set_headers_async(self, response: ResponseProtocol) -> None:
         """
         Apply configured headers asynchronously to ``response``.
 
@@ -930,54 +507,4 @@ class Secure:
         HeaderSetError
             If setting an individual header fails.
         """
-        items = self._resolved_header_items()
-
-        # Path 1: response.set_header(...)
-        if hasattr(response, "set_header"):
-            set_header = response.set_header
-
-            try:
-                for name, value in items:
-                    result = set_header(name, value)
-                    if inspect.isawaitable(result):
-                        await result
-            except (TypeError, ValueError, AttributeError) as e:
-                raise HeaderSetError(f"Failed to set headers: {e}") from e
-
-            return
-
-        # Path 2: response.headers...
-        if hasattr(response, "headers"):
-            hdrs = cast("object", response.headers)
-
-            set_fn = getattr(hdrs, "set", None)
-            if callable(set_fn):
-                set_fn_typed = cast("Callable[[str, str], object]", set_fn)
-
-                try:
-                    for name, value in items:
-                        result = set_fn_typed(name, value)
-                        if inspect.isawaitable(result):
-                            await result
-                except (TypeError, ValueError, AttributeError) as e:
-                    raise HeaderSetError(f"Failed to set headers: {e}") from e
-
-                return
-
-            setitem = getattr(hdrs, "__setitem__", None)
-            if callable(setitem):
-                setitem_typed = cast("Callable[[str, str], object]", setitem)
-
-                try:
-                    for name, value in items:
-                        result = setitem_typed(name, value)
-                        if inspect.isawaitable(result):
-                            await result
-                except (TypeError, ValueError, AttributeError) as e:
-                    raise HeaderSetError(f"Failed to set headers: {e}") from e
-
-                return
-
-            raise AttributeError("Response object has .headers but it does not support setting header values.")
-
-        raise AttributeError("Response object does not support setting headers.")
+        await _emit.set_headers_async(response, self._resolved_header_items())
