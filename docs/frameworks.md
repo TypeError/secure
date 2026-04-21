@@ -1,6 +1,6 @@
 # Framework Integration
 
-`secure` supports several popular Python web frameworks. Below are examples showing how to set the default security headers in each framework, along with a brief introduction and links to each project. Additionally, we provide guidance for integrating Secure Headers with custom or unsupported frameworks.
+`secure` uses the same `Secure` object across frameworks. The only thing that changes is how you attach it: call `set_headers(...)` for synchronous response objects, call `set_headers_async(...)` when the response setter is asynchronous, or wrap the whole application with the provided middleware.
 
 ## Table of Contents
 
@@ -27,7 +27,7 @@
 
 ### Note: Overriding the `Server` Header in Uvicorn-based Frameworks
 
-If you're using Uvicorn as the ASGI server (commonly used with frameworks like FastAPI, Starlette, and others), Uvicorn automatically injects a `Server: uvicorn` header into all HTTP responses by default. This can lead to multiple `Server` headers when using `secure` to set a custom `Server` header.
+If you're using Uvicorn as the ASGI server (commonly used with frameworks like FastAPI and Starlette), Uvicorn injects a `Server: uvicorn` header by default. Disable that behavior if you need full control over the `Server` header value.
 
 To prevent Uvicorn from adding its default `Server` header, you can disable it by passing the `--no-server-header` option when running Uvicorn, or by setting `server_header=False` in the `uvicorn.run()` method:
 
@@ -202,7 +202,7 @@ def add_security_headers(response):
 import dash
 from dash import html
 from secure import Secure
-from secure.middleware.wsgi import SecureWSGIMiddleware
+from secure.middleware import SecureWSGIMiddleware
 
 secure_headers = Secure.with_default_headers()
 
@@ -298,7 +298,7 @@ app.add_route("/", HelloWorldResource())
 
 ## FastAPI
 
-**[FastAPI](https://fastapi.tiangolo.com)** is a modern, fast web framework for building APIs with Python 3.6+.
+**[FastAPI](https://fastapi.tiangolo.com)** is a modern ASGI web framework for building APIs and applications.
 
 #### Recommended: `SecureASGIMiddleware`
 
@@ -801,4 +801,4 @@ def add_secure_headers(response):
 
 ### Need Help?
 
-If you encounter any issues integrating Secure Headers with your custom framework, feel free to open an issue on our [GitHub repository](https://github.com/TypeError/secure) or consult the framework's documentation for handling response headers.
+If you run into an unsupported response contract, use `Secure.header_items()` to emit the headers manually or open an issue on the [GitHub repository](https://github.com/TypeError/secure).

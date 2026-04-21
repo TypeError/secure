@@ -1,12 +1,8 @@
 # Usage Guide
 
-## Overview
+`Secure` is the main entry point for applying HTTP security headers. Start with a preset, customize the builders you need, then apply the result to sync or async response objects.
 
-The `secure` library is designed to simplify the configuration of HTTP security headers in Python web applications. This guide provides detailed examples of how to use the library, from setting basic security headers to leveraging advanced presets and custom configurations.
-
-## Setting Basic Security Headers
-
-To start using `secure`, you can quickly set up a default configuration that applies common security headers. Here's a basic example:
+## Quick start
 
 ```python
 from secure import Secure
@@ -18,46 +14,33 @@ def add_security_headers(response):
     return response
 ```
 
-This will apply a standard set of HTTP security headers, such as `Content-Security-Policy`, `Strict-Transport-Security`, and `X-Frame-Options`, ensuring a baseline level of security.
-
----
-
-## Using Presets
-
-### Presets Overview
-
-`secure` offers three preset configurations: `BALANCED`, `BASIC`, and `STRICT`. These are pre-configured sets of security headers that can be quickly applied to your web application for different security needs.
-
----
-
-## **BALANCED Preset**
-
-The `BALANCED` preset is the recommended default and corresponds to `Secure.with_default_headers()`. It keeps the response headers focused while still enforcing CSP, HSTS, COOP/Corp, and other modern defaults.
-
-### Example Code:
+For async frameworks or async response objects:
 
 ```python
-from flask import Flask, Response
-
-from secure import Preset, Secure
-
-app = Flask(__name__)
-secure_headers = Secure.from_preset(Preset.BALANCED)
-
-@app.after_request
-def add_security_headers(response: Response):
-    secure_headers.set_headers(response)
+async def add_security_headers(response):
+    await secure_headers.set_headers_async(response)
     return response
-
-@app.route("/")
-def home():
-    return "Hello, world"
-
-if __name__ == "__main__":
-    app.run()
 ```
 
-### Example Headers:
+`set_headers` works with synchronous `set_header(...)` methods or mutable `headers` mappings. `set_headers_async` supports the same contracts and also awaits async setters when the response object requires them.
+
+## Presets
+
+`secure` ships with three presets:
+
+- `Preset.BALANCED` is the recommended default and matches `Secure.with_default_headers()`.
+- `Preset.BASIC` is a compatibility-oriented profile with a few legacy and interoperability headers.
+- `Preset.STRICT` is a tighter profile for deployments that can tolerate stricter CSP, framing, and caching rules.
+
+### `Preset.BALANCED`
+
+```python
+from secure import Preset, Secure
+
+secure_headers = Secure.from_preset(Preset.BALANCED)
+```
+
+Representative headers:
 
 ```http
 Cross-Origin-Opener-Policy: same-origin
@@ -71,47 +54,20 @@ X-Content-Type-Options: nosniff
 X-Frame-Options: SAMEORIGIN
 ```
 
-Balanced omits `Cache-Control` and the legacy/resource headers included by `Preset.BASIC`, so add them manually when your deployment still relies on them.
+Balanced intentionally omits `Cache-Control` and the compatibility headers that `Preset.BASIC` adds.
 
----
-
-## **BASIC Preset**
-
-The `BASIC` preset mirrors Helmet.js defaults. It extends the Balanced set with extra compatibility headers such as `X-Permitted-Cross-Domain-Policies` and `X-XSS-Protection`.
-
-### Example Code:
+### `Preset.BASIC`
 
 ```python
-from flask import Flask, Response
-
 from secure import Preset, Secure
 
-app = Flask(__name__)
 secure_headers = Secure.from_preset(Preset.BASIC)
-
-@app.after_request
-def add_security_headers(response: Response):
-    secure_headers.set_headers(response)
-    return response
-
-@app.route("/")
-def home():
-    return "Hello, world"
-
-if __name__ == "__main__":
-    app.run()
 ```
 
-### Example Headers:
+In addition to the Balanced baseline, `Preset.BASIC` adds:
 
 ```http
-Cross-Origin-Opener-Policy: same-origin
-Cross-Origin-Resource-Policy: same-origin
-Content-Security-Policy: default-src 'self'; base-uri 'self'; font-src 'self' https: data:; form-action 'self'; frame-ancestors 'self'; img-src 'self' data:; object-src 'none'; script-src 'self'; script-src-attr 'none'; style-src 'self' https: 'unsafe-inline'; upgrade-insecure-requests
-Strict-Transport-Security: max-age=31536000; includeSubDomains
 Referrer-Policy: no-referrer
-X-Content-Type-Options: nosniff
-X-Frame-Options: SAMEORIGIN
 X-Permitted-Cross-Domain-Policies: none
 X-DNS-Prefetch-Control: off
 Origin-Agent-Cluster: ?1
@@ -119,38 +75,15 @@ X-Download-Options: noopen
 X-XSS-Protection: 0
 ```
 
-Use this preset when you want to match the Helmet.js defaults exactly.
-
----
-
-## **STRICT Preset**
-
-The `STRICT` preset applies the most walls for security-focused deployments that tolerate tighter restrictions. It enables COEP, CSP base/frame restrictions, and aggressive HSTS (without preload by default).
-
-### Example Code:
+### `Preset.STRICT`
 
 ```python
-from flask import Flask, Response
-
 from secure import Preset, Secure
 
-app = Flask(__name__)
 secure_headers = Secure.from_preset(Preset.STRICT)
-
-@app.after_request
-def add_security_headers(response: Response):
-    secure_headers.set_headers(response)
-    return response
-
-@app.route("/")
-def home():
-    return "Hello, world"
-
-if __name__ == "__main__":
-    app.run()
 ```
 
-### Example Headers:
+Representative headers:
 
 ```http
 Cache-Control: no-store, max-age=0
@@ -165,158 +98,95 @@ X-Content-Type-Options: nosniff
 X-Frame-Options: DENY
 ```
 
-Start with `BALANCED` and move to `STRICT` once you have validated that your application works correctly with the stricter Content Security Policy, caching, and frame restrictions.
+`Preset.STRICT` does not enable HSTS preload by default. Opt in separately with `StrictTransportSecurity().preload()` once your deployment is ready.
 
----
+## Customizing headers
 
-You can easily adjust between these presets based on your application's needs by importing `Preset.BASIC`, `Preset.BALANCED`, or `Preset.STRICT` and applying it to your response handlers.
-
----
-
-## Customizing Individual Headers
-
-In addition to using presets, you can tailor individual headers to fit your application’s specific security requirements.
-
-### Example: Customizing `Content-Security-Policy`
+Use the package-level builder exports to tailor individual headers while keeping `Secure` as the facade:
 
 ```python
 from secure import ContentSecurityPolicy, Secure
 
 secure_headers = Secure(
     csp=ContentSecurityPolicy()
-         .default_src("'self'")
-         .img_src("https://trusted-images.com")
+    .default_src("'self'")
+    .img_src("'self'", "https://trusted-images.example")
 )
-
-def add_security_headers(response):
-    secure_headers.set_headers(response)
-    return response
 ```
 
-In this example, the `Content-Security-Policy` (CSP) header is customized to allow images from a trusted domain while enforcing `'self'` as the default source for all other content.
-
----
-
-## Asynchronous Usage
-
-For asynchronous frameworks (such as `aiohttp`, `FastAPI`, or `Quart`), you can use the `set_headers_async()` method to apply security headers without blocking the event loop:
+You can also start from a preset and replace specific builders:
 
 ```python
-async def add_security_headers(response):
-    await secure_headers.set_headers_async(response)
-    return response
+from secure import Preset, Secure, StrictTransportSecurity
+
+secure_headers = Secure.from_preset(Preset.BALANCED)
+secure_headers.headers_list = [
+    header
+    for header in secure_headers.headers_list
+    if header.header_name != "Strict-Transport-Security"
+]
+secure_headers.headers_list.append(
+    StrictTransportSecurity().max_age(63072000).include_subdomains()
+)
 ```
 
-This approach ensures that your security headers are applied efficiently in non-blocking environments.
+## Validation pipeline
 
----
+Most applications can stop at `Secure(...).set_headers(...)`. If you want stricter checks before emission, run the optional pipeline helpers:
+
+```python
+import logging
+
+from secure import COMMA_JOIN_OK, DEFAULT_ALLOWED_HEADERS, MULTI_OK, Secure
+
+logger = logging.getLogger("secure")
+
+secure_headers = (
+    Secure.with_default_headers()
+    .allowlist_headers(
+        allowed=DEFAULT_ALLOWED_HEADERS,
+        allow_extra=["X-My-App-Header"],
+        on_unexpected="warn",
+        logger=logger,
+    )
+    .deduplicate_headers(
+        action="raise",
+        comma_join_ok=COMMA_JOIN_OK,
+        multi_ok=MULTI_OK,
+        logger=logger,
+    )
+    .validate_and_normalize_headers(on_invalid="drop", logger=logger)
+)
+```
+
+After `validate_and_normalize_headers()`, the normalized single-valued mapping is available via `secure_headers.headers`. If you need ordered or multi-valued output, use `secure_headers.header_items()` instead.
 
 ## Middleware
 
-Secure exposes `SecureWSGIMiddleware` and `SecureASGIMiddleware` through `secure.middleware`. Each middleware accepts a `Secure` instance (defaulting to `Secure.with_default_headers()`), overwrites headers by default, and only appends duplicates when the normalized header name is listed in `multi_ok` (which defaults to `secure.MULTI_OK`, including `Content-Security-Policy`).
+`secure.middleware` exposes `SecureWSGIMiddleware` and `SecureASGIMiddleware` for framework-wide integration.
 
-### WSGI (Flask)
-
-Wrap a Flask app by replacing its `wsgi_app`, ensuring every response passes through the middleware:
+WSGI example:
 
 ```python
 from flask import Flask
 from secure import Secure
 from secure.middleware import SecureWSGIMiddleware
 
-secure_headers = Secure.with_default_headers()
 app = Flask(__name__)
+secure_headers = Secure.with_default_headers()
 app.wsgi_app = SecureWSGIMiddleware(app.wsgi_app, secure=secure_headers)
 ```
 
-### WSGI (Django)
-
-Django middleware wraps requests and responses rather than the raw WSGI callable, so apply secure headers with a lightweight middleware class:
-
-```python
-from secure import Secure
-
-class SecureHeadersMiddleware:
-    def __init__(self, get_response):
-        self.get_response = get_response
-        self.secure = Secure.with_default_headers()
-
-    def __call__(self, request):
-        response = self.get_response(request)
-        self.secure.set_headers(response)
-        return response
-```
-
-Add `SecureHeadersMiddleware` to the `MIDDLEWARE` setting to run secure headers on every Django response.
-
-### ASGI (FastAPI)
-
-`SecureASGIMiddleware` touches only HTTP scopes and leaves WebSocket traffic unchanged. Mount it manually or via FastAPI’s middleware helper:
+ASGI example:
 
 ```python
 from fastapi import FastAPI
 from secure import Secure
 from secure.middleware import SecureASGIMiddleware
 
-secure_headers = Secure.with_default_headers()
 app = FastAPI()
+secure_headers = Secure.with_default_headers()
 app.add_middleware(SecureASGIMiddleware, secure=secure_headers)
 ```
 
-### ASGI (Shiny for Python)
-
-Wrap a Shiny `App` directly with the middleware to secure HTTP responses:
-
-```python
-from shiny import App
-from secure import Secure
-from secure.middleware import SecureASGIMiddleware
-
-secure_headers = Secure.with_default_headers()
-app = SecureASGIMiddleware(App(), secure=secure_headers)
-```
-
-### Customizing `multi_ok`
-
-Pass an explicit `multi_ok` iterable to either middleware to append headers whose names must appear multiple times (for example, when downstream code already emits `Content-Security-Policy`).
-
----
-
-## Full Example with Customization
-
-The following is a complete example demonstrating how to combine default headers with custom configurations:
-
-```python
-from secure import Secure, StrictTransportSecurity, XFrameOptions
-
-secure_headers = Secure(
-    hsts=StrictTransportSecurity()
-         .max_age(63072000)
-         .include_subdomains(),
-    xfo=XFrameOptions().deny()
-)
-
-def add_security_headers(response):
-    # Apply security headers to the response
-    secure_headers.set_headers(response)
-    return response
-```
-
-In this example, a custom `Strict-Transport-Security` (HSTS) header is configured to enforce HTTPS for two years across all subdomains, and the `X-Frame-Options` header is set to `DENY` to prevent clickjacking.
-
----
-
-## Summary
-
-The `secure` library offers flexibility and ease of use when configuring HTTP security headers for Python web applications. You can use pre-configured presets for quick setups or customize headers individually to meet your specific security needs. By leveraging both synchronous and asynchronous methods, `secure` fits seamlessly into any Python-based web framework.
-
-For more details on the individual headers and advanced usage, refer to the [Security Headers](./headers) documentation.
-
----
-
-## **Attribution**
-
-This library implements security recommendations from trusted sources:
-
-- [MDN Web Docs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers) (licensed under [CC-BY-SA 2.5](https://creativecommons.org/licenses/by-sa/2.5/))
-- [OWASP Secure Headers Project](https://owasp.org/www-project-secure-headers/) (licensed under [CC-BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/))
+See [Framework Integration](./frameworks.md) for more examples.

@@ -2,7 +2,7 @@
 
 ## Package and import changes
 
-- The package is now published as `secure` (not `secure.py`). Import the public API via `import secure` or `from secure import Secure, Preset, ContentSecurityPolicy`, and the builder classes are re-exported at the package level for convenience.
+- The package is published as `secure` (not `secure.py`). Import the public API via `from secure import Secure, Preset, ContentSecurityPolicy`, and prefer package-level re-exports in application code and examples.
 - `Secure.with_default_headers()` now equals `Secure.from_preset(Preset.BALANCED)`, so you can keep calling the same helpers while taking advantage of the new preset enum. Balanced is the recommended default and intentionally omits `Cache-Control`; add it explicitly when your deployment depends on caching directives.
 
 ```python
@@ -15,8 +15,8 @@ secure_headers = Secure(
 
 ## Presets and defaults
 
-- There are three built-in presets now: `Preset.BALANCED` (the recommended default that `with_default_headers()` uses), `Preset.BASIC` (Helmet compatibility parity), and `Preset.STRICT` (the hardened profile). `Preset.MODERN` has been removed in favor of this clearer contract between the default, compatibility, and strict profiles.
-- The `BASIC` preset emits additional legacy/compatibility headers such as `X-Permitted-Cross-Domain-Policies`, `X-DNS-Prefetch-Control`, `Origin-Agent-Cluster`, `X-Download-Options`, and `X-XSS-Protection`. Use `Preset.BALANCED` when you want the same security posture without the extra response headers, and add those legacy headers manually only when you still depend on them.
+- There are three built-in presets now: `Preset.BALANCED` (the recommended default that `with_default_headers()` uses), `Preset.BASIC` (the compatibility-oriented profile), and `Preset.STRICT` (the hardened profile). `Preset.MODERN` has been removed in favor of this clearer contract.
+- The `BASIC` preset emits additional compatibility headers such as `X-Permitted-Cross-Domain-Policies`, `X-DNS-Prefetch-Control`, `Origin-Agent-Cluster`, `X-Download-Options`, and `X-XSS-Protection`. Use `Preset.BALANCED` when you want a leaner baseline and add those headers manually only when you still depend on them.
 - `Preset.STRICT` continues to enable COEP, CSP base/frame restrictions, and a strict permissions policy, but it no longer preloads HSTS by default; add `.preload()` yourself when you are ready to opt into the preload list.
 
 ## Header pipeline helpers
@@ -26,7 +26,8 @@ secure_headers = Secure(
 
 ## Setters and async support
 
-- `set_headers` now raises clear errors if the response object only exposes async setters, while `set_headers_async` transparently awaits either sync or async `set_header`/`headers.__setitem__` calls. If you previously manipulated headers manually, switching to these helpers gives you timeouts, logging, and validation hooks.
+- `set_headers` raises a clear error if the response object only exposes async setters, while `set_headers_async` transparently awaits either sync or async `set_header`/`headers.__setitem__` calls.
+- `secure.middleware` provides the framework-agnostic `SecureWSGIMiddleware` and `SecureASGIMiddleware` entry points for application-wide integration.
 
 ## Security gotchas
 

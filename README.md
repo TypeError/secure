@@ -13,17 +13,17 @@ A small, focused library for adding modern security headers to Python web applic
 
 Security headers are one of the simplest ways to raise the security bar for a web application, but they are often applied inconsistently across frameworks and deployments.
 
-`secure` gives you a single, modern, well typed API for configuring and applying HTTP security headers in Python. It focuses on:
+`secure` gives you a single, modern, well typed API for configuring and applying HTTP security headers in Python. The public API centers on `Secure`, with small builder classes for individual headers when you need to customize defaults. It focuses on:
 
 - Good defaults that are safe to adopt.
 - A small, explicit API instead of a large framework.
 - Support for both synchronous and asynchronous response objects.
 - Framework agnostic integration so you can use the same configuration everywhere.
 
-The package is published on PyPI as `secure` and imported with:
+The package is published on PyPI as `secure`. Most applications only need the package-level API:
 
 ```python
-import secure
+from secure import Secure
 ```
 
 ---
@@ -131,12 +131,12 @@ pip install secure
 
 ## Quick start
 
-The core entry point is the `Secure` class. A typical simple setup looks like this:
+`Secure` is the core entry point. A typical simple setup looks like this:
 
 ```python
-import secure
+from secure import Secure
 
-secure_headers = secure.Secure.with_default_headers()
+secure_headers = Secure.with_default_headers()
 
 # For a synchronous framework
 secure_headers.set_headers(response)
@@ -145,7 +145,7 @@ secure_headers.set_headers(response)
 await secure_headers.set_headers_async(response)
 ```
 
-`Secure.with_default_headers()` is equivalent to `Secure.from_preset(Preset.BALANCED)`, the recommended default profile.
+`Secure.with_default_headers()` is equivalent to `Secure.from_preset(Preset.BALANCED)`, the recommended default profile for most applications.
 
 `set_headers` and `set_headers_async` both operate on a response object that either:
 
@@ -262,7 +262,7 @@ from secure import Preset, Secure
 # Recommended defaults for most applications
 balanced_headers = Secure.from_preset(Preset.BALANCED)
 
-# Helmet-parity defaults for compatibility-focused setups
+# Compatibility-oriented defaults
 basic_headers = Secure.from_preset(Preset.BASIC)
 
 # Hardened defaults for security-focused deployments
@@ -289,7 +289,7 @@ Balanced omits `Cache-Control` and the legacy/resource headers included by `Pres
 
 ### BASIC preset
 
-The `BASIC` preset matches Helmet.js defaults and ships with a broader compatibility-focused header set. It is useful when you require the same collection of headers Helmet enables out of the box:
+The `BASIC` preset is the compatibility-focused profile. It keeps the same modern baseline as `BALANCED` while adding a handful of legacy and interoperability headers:
 
 ```http
 Cross-Origin-Opener-Policy: same-origin
@@ -306,7 +306,7 @@ X-Download-Options: noopen
 X-XSS-Protection: 0
 ```
 
-This preset still avoids `Cache-Control` and `Server` but includes the extra headers that Helmet adds for historical/compatibility reasons.
+This preset still avoids `Cache-Control` and `Server` but includes the extra headers some deployments still expect for historical or interoperability reasons.
 
 ### STRICT preset
 
@@ -331,13 +331,12 @@ Start with `BALANCED` and move to `STRICT` once you have validated that your app
 
 ## Policy builders
 
-`secure` lets you build rich header values through small, focused builder classes. Two common examples are `ContentSecurityPolicy` and `PermissionsPolicy`.
+`secure` works well as a facade over small, focused builder classes. Two common examples are `ContentSecurityPolicy` and `PermissionsPolicy`.
 
 ### Content Security Policy
 
 ```python
-from secure import Secure
-from secure.headers import ContentSecurityPolicy
+from secure import ContentSecurityPolicy, Secure
 
 csp = (
     ContentSecurityPolicy()
@@ -362,11 +361,13 @@ You can treat the CSP builder as a safe string builder for CSP directives and ke
 ### Permissions Policy
 
 ```python
-from secure import Secure
-from secure.headers import PermissionsPolicy
+from secure import PermissionsPolicy, Secure
 
 permissions = (
-    PermissionsPolicy().geolocation("'self'").camera("'none'").microphone("'none'")
+    PermissionsPolicy()
+    .geolocation("self")
+    .camera("https://media.example.com")
+    .microphone()
 )
 
 secure_headers = Secure(permissions=permissions)
@@ -375,7 +376,7 @@ secure_headers = Secure(permissions=permissions)
 Resulting header:
 
 ```http
-Permissions-Policy: geolocation=(self), camera=(), microphone=()
+Permissions-Policy: geolocation=(self), camera=("https://media.example.com"), microphone=()
 ```
 
 Other headers, such as `StrictTransportSecurity`, `CrossOriginOpenerPolicy`, `CrossOriginEmbedderPolicy`, `ReferrerPolicy`, `Server`, and `XFrameOptions`, also have small builder classes that mirror their directive structure.
@@ -564,12 +565,12 @@ if __name__ == "__main__":
 #### Alternative: WSGI middleware (`app.wsgi_app`)
 
 Wraps the WSGI application and injects headers by wrapping `start_response`.
-Useful for deployment-level / framework-agnostic WSGI setups.
+Useful for deployment-level or framework-agnostic WSGI setups.
 
 ```python
 from flask import Flask
 from secure import Secure
-from secure.middleware.wsgi import SecureWSGIMiddleware
+from secure.middleware import SecureWSGIMiddleware
 
 app = Flask(__name__)
 secure_headers = Secure.with_default_headers()

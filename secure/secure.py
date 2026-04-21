@@ -43,9 +43,9 @@ class Secure:
     """
     Configure and apply HTTP security headers for web applications.
 
-    A :class:`Secure` instance encapsulates a set of header objects that can be
-    applied to response objects from common Python web frameworks (FastAPI,
-    Starlette, Flask, Django, etc.).
+    A :class:`Secure` instance is the library's public facade. It encapsulates a
+    set of typed header builders and applies them to response objects from common
+    Python web frameworks (FastAPI, Starlette, Flask, Django, etc.).
 
     Typical pipeline:
 
@@ -195,8 +195,8 @@ class Secure:
         ----------
         preset :
             The security preset to use, for example :data:`Preset.BALANCED` for the
-            recommended default profile, :data:`Preset.BASIC` for Helmet-parity
-            behavior, or :data:`Preset.STRICT` for a hardened configuration with
+            recommended default profile, :data:`Preset.BASIC` for compatibility-
+            oriented behavior, or :data:`Preset.STRICT` for a hardened configuration with
             stronger guarantees.
 
         Returns
