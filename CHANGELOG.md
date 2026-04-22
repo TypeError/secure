@@ -13,23 +13,78 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This is the first stable v2 release. Version `2.0.0` was burned and should be skipped when tagging or publishing.
 
+v2 focuses on a cleaner public API, a redesigned preset model, first-class ASGI/WSGI middleware, and stricter, safer header handling.
+
 ### Breaking Changes
 
-- The `Secure` API now requires Python 3.10+ and uses the new builder-style header modules with full typing; this release replaces the previous legacy surface and removes the older cookie-centric helpers.
-  
+- `Secure.headers` is now strict and read-only
+  - v1: `headers` was a cached `dict[str, str]` and silently collapsed duplicate names
+  - v2: duplicate header names (case-insensitive) raise `ValueError`
+  - use `header_items()` for multi-valued output or `deduplicate_headers()` to resolve duplicates
+
+- Default headers have changed
+  - `Secure.with_default_headers()` now maps to `Preset.BALANCED`
+  - v1 default included `Cache-Control: no-store`; v2 does not
+  - applications relying on v1 defaults should explicitly configure required headers
+
+- Presets redesigned
+  - new `Preset.BALANCED` (recommended default)
+  - `Preset.BASIC` updated for Helmet.js parity and no longer matches v1 BASIC
+  - `Preset.STRICT` no longer enables HSTS preload by default
+  - cache behavior and header composition differ across presets compared to v1
+
+- FastAPI / ASGI integration model changed in practice
+  - v1 relied on per-response mutation (`set_headers` / `set_headers_async`)
+  - v2 introduces middleware-based integration as the recommended approach
+
 ### Added
 
-- Comprehensive validation pipeline helpers (`allowlist_headers`, `deduplicate_headers`, `validate_and_normalize_headers`) and typed presets for `Secure`.
-- New header builder coverage for modern headers (CSP, Permissions Policy, COEP, etc.) with deterministic outputs.
-- Async-safe `set_headers_async` support for both method-call and mapping-style response objects plus helper mocks and contract tests.
+- Middleware
+  - `SecureASGIMiddleware`
+  - `SecureWSGIMiddleware`
+  - `secure.middleware` module
 
-### Testing
+- Header pipeline helpers
+  - `allowlist_headers(...)`
+  - `deduplicate_headers(...)`
+  - `validate_and_normalize_headers(...)`
+  - `header_items()` for ordered `(name, value)` output
 
-- Added full contract tests for the header builders along with end-to-end coverage for `Secure` usage and response integration.
+- New header builders and constants
+  - `CrossOriginResourcePolicy`
+  - `XDnsPrefetchControl`
+  - `XPermittedCrossDomainPolicies`
+  - `MULTI_OK`, `COMMA_JOIN_OK`, `DEFAULT_ALLOWED_HEADERS`
+  - policy enums: `OnInvalidPolicy`, `OnUnexpectedPolicy`, `DeduplicateAction`
 
-### Docs
+### Changed
 
-- Expanded README with usage examples, advanced pipeline guidance, updated framework integration references, and v2 migration guidance.
+- `Secure.with_default_headers()` now returns the balanced preset
+- Header handling is stricter and fails fast on invalid or duplicate configurations
+- Header normalization and validation are first-class operations
+- Response integration is more robust across sync and async frameworks
+- `headers_list` mutations are now reflected correctly (no stale cached state)
+- Documentation updated to emphasize middleware usage and preset selection
+
+### Migration Notes
+
+- Do not assume v1 defaults
+  - compare emitted headers and explicitly configure any required behavior
+
+- Audit any usage of `Secure.headers`
+  - treat as read-only in v2
+  - use `header_items()` or `deduplicate_headers()` when duplicates are possible
+
+- Move to middleware for ASGI/WSGI apps
+  - replace per-response `set_headers_async()` calls with `SecureASGIMiddleware` or `SecureWSGIMiddleware`
+
+- Explicitly configure behavior that changed
+  - add `Cache-Control` if you relied on v1 defaults
+  - add HSTS preload manually if required
+
+### Notes
+
+- Neither v1 nor v2 exposes `secure.__version__`; use package metadata for version checks
 
 ## [1.0.1] - 2024-10-18
 
