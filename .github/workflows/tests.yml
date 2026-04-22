@@ -3,6 +3,9 @@ name: Unit Tests
 on:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   tests:
     runs-on: ubuntu-latest
