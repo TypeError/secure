@@ -26,6 +26,7 @@ uvicorn.run(app, host="0.0.0.0", port=8000, server_header=False)
 - [aiohttp](#aiohttp)
 - [Bottle](#bottle)
 - [CherryPy](#cherrypy)
+- [Custom frameworks](#custom-frameworks)
 - [Dash](#dash)
 - [Django](#django)
 - [Falcon](#falcon)
@@ -41,8 +42,6 @@ uvicorn.run(app, host="0.0.0.0", port=8000, server_header=False)
 - [Starlette](#starlette)
 - [Tornado](#tornado)
 - [TurboGears](#turbogears)
-- [Web2py](#web2py)
-- [Custom frameworks](#custom-frameworks)
 
 ## aiohttp
 
@@ -138,6 +137,34 @@ class App:
 
 
 cherrypy.quickstart(App())
+```
+
+## Custom frameworks
+
+If your framework is not listed here, the integration rule is still simple: configure one `Secure` instance, then apply it to the response as late as possible before it is sent.
+
+### Recommended: use the response object's setter or headers mapping
+
+```python
+from secure import Secure
+
+secure_headers = Secure.with_default_headers()
+
+
+def add_security_headers(response):
+    secure_headers.set_headers(response)
+    return response
+```
+
+### Fallback: emit header pairs manually
+
+```python
+from secure import Secure
+
+secure_headers = Secure.with_default_headers()
+
+for name, value in secure_headers.header_items():
+    response.headers[name] = value
 ```
 
 ## Dash
@@ -250,6 +277,10 @@ class HelloWorldResource:
     def on_get(self, req, resp):
         resp.text = "Hello, world"
         secure_headers.set_headers(resp)
+
+
+app = falcon.App()
+app.add_route("/", HelloWorldResource())
 ```
 
 ## FastAPI
@@ -337,30 +368,26 @@ app.wsgi_app = SecureWSGIMiddleware(app.wsgi_app, secure=secure_headers)
 
 ## Masonite
 
-If you already have a response hook or middleware layer, apply `Secure` there. Otherwise, set headers where you return the response.
+Minimal fallback example. Masonite routing and controller setup varies by version, so apply `Secure` to the response object you return.
 
 ### Fallback: apply to the response you return
 
 ```python
-from masonite.foundation import Application
-from masonite.request import Request
 from masonite.response import Response
 from secure import Secure
 
-app = Application()
 secure_headers = Secure.with_default_headers()
 
 
-@app.route("/")
-def home(request: Request, response: Response):
-    rendered = response.view("Hello, world")
+def home(response: Response):
+    rendered = response.json({"hello": "world"})
     secure_headers.set_headers(rendered)
     return rendered
 ```
 
 ## Morepath
 
-Morepath does not use a conventional middleware layer for this.
+Minimal fallback example. Morepath does not use a conventional middleware layer for this.
 
 ### Fallback: set headers in the view
 
@@ -392,6 +419,8 @@ def home(self, request):
 Pyramid applications commonly use tweens for cross-cutting response changes.
 
 ### Recommended: tween
+
+Register the tween in your `Configurator` with `config.add_tween("yourpackage.security.add_security_headers")`.
 
 ```python
 from secure import Secure
@@ -462,7 +491,7 @@ async def home():
 
 ## Responder
 
-Async framework where route handlers typically own the response.
+Minimal fallback example. Route handlers typically own the response.
 
 ### Fallback: set headers in the route
 
@@ -484,7 +513,7 @@ async def home(req, resp):
 
 Sanic exposes response middleware for app-wide coverage.
 
-### Recommended: response middleware
+### Recommended: response middleware with `set_headers_async()`
 
 ```python
 from sanic import Sanic
@@ -496,7 +525,7 @@ secure_headers = Secure.with_default_headers()
 
 @app.middleware("response")
 async def add_security_headers(request, response):
-    secure_headers.set_headers(response)
+    await secure_headers.set_headers_async(response)
     return response
 ```
 
@@ -513,7 +542,7 @@ secure_headers = Secure.with_default_headers()
 @app.get("/")
 async def home(request):
     resp = response.text("Hello, world")
-    secure_headers.set_headers(resp)
+    await secure_headers.set_headers_async(resp)
     return resp
 ```
 
@@ -551,10 +580,17 @@ ASGI framework. Use ASGI middleware unless you only need route-level control.
 from secure import Secure
 from secure.middleware import SecureASGIMiddleware
 from starlette.applications import Starlette
+from starlette.responses import PlainTextResponse
+from starlette.routing import Route
 
-app = Starlette()
 secure_headers = Secure.with_default_headers()
 
+
+async def home(request):
+    return PlainTextResponse("Hello, world")
+
+
+app = Starlette(routes=[Route("/", home)])
 app.add_middleware(SecureASGIMiddleware, secure=secure_headers)
 ```
 
@@ -599,7 +635,7 @@ class MainHandler(tornado.web.RequestHandler):
 
 ## TurboGears
 
-If you do not already have a framework-level hook in place, apply headers in the controller response path.
+Minimal fallback example. If you do not already have a framework-level hook in place, apply headers in the controller response path.
 
 ### Fallback: set headers in the controller
 
@@ -616,50 +652,4 @@ class RootController(TGController):
         response = Response("Hello, world")
         secure_headers.set_headers(response)
         return response
-```
-
-## Web2py
-
-Web2py exposes the response object globally for the current request.
-
-### Fallback: set headers on `current.response`
-
-```python
-from gluon import current
-from secure import Secure
-
-secure_headers = Secure.with_default_headers()
-
-
-def index():
-    secure_headers.set_headers(current.response)
-    return "Hello, world"
-```
-
-## Custom frameworks
-
-If your framework is not listed here, the integration rule is still simple: configure one `Secure` instance, then apply it to the response as late as possible before it is sent.
-
-### Recommended: use the response object's setter or headers mapping
-
-```python
-from secure import Secure
-
-secure_headers = Secure.with_default_headers()
-
-
-def add_security_headers(response):
-    secure_headers.set_headers(response)
-    return response
-```
-
-### Fallback: emit header pairs manually
-
-```python
-from secure import Secure
-
-secure_headers = Secure.with_default_headers()
-
-for name, value in secure_headers.header_items():
-    response.headers[name] = value
 ```
