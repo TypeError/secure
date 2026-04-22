@@ -27,10 +27,12 @@ This matches modern browser defaults: if no policy is specified (or the provided
 ```python
 from secure import ReferrerPolicy, Secure
 
-secure = Secure(
+secure_headers = Secure(
     referrer=ReferrerPolicy()  # uses the default: strict-origin-when-cross-origin
 )
 ```
+
+`Preset.BALANCED` uses `strict-origin-when-cross-origin`; `Preset.BASIC` and `Preset.STRICT` use `no-referrer`.
 
 ### Set a single explicit policy
 
@@ -39,7 +41,7 @@ Use `value(...)` (or `custom(...)`) when you want to **replace** any configured 
 ```python
 from secure import ReferrerPolicy, Secure
 
-secure = Secure(
+secure_headers = Secure(
     referrer=ReferrerPolicy().value("no-referrer")
 )
 ```
@@ -47,7 +49,7 @@ secure = Secure(
 You can also use the fluent directive helpers:
 
 ```python
-secure = Secure(
+secure_headers = Secure(
     referrer=ReferrerPolicy().no_referrer()
 )
 ```

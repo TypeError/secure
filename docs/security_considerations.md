@@ -2,7 +2,9 @@
 
 ## Overview
 
-Security headers are a critical component of modern web application security. They help mitigate common attack vectors such as Cross-Site Scripting (XSS), clickjacking, and man-in-the-middle (MITM) attacks. This guide highlights the security implications of each header supported by `secure` and offers best practices based on OWASP recommendations.
+Security headers are one part of a web application's security posture. They help browsers enforce transport, embedding, content loading, and privacy rules, but they do not replace application-layer controls such as output encoding, CSRF protection, authentication, or input validation.
+
+This guide keeps the advice tied to what `secure` actually emits and where the tradeoffs are operational rather than theoretical.
 
 ## Importance of Security Headers
 
@@ -11,24 +13,24 @@ Security headers are a critical component of modern web application security. Th
 The `Strict-Transport-Security` header ensures that browsers only connect to your site over HTTPS, preventing MITM attacks by forcing a secure connection. It tells the browser to remember to always access the site via HTTPS, even if the user tries to access it over HTTP.
 
 - [MDN Docs - Strict-Transport-Security](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security)
-- **Best Practice**: Set a long `max-age` (e.g., `max-age=63072000` for two years) and include subdomains.
+- **Best Practice**: Use a long `max-age` and include subdomains only when every subdomain is HTTPS-ready.
 - **Pitfall**: Be cautious when setting the `preload` directive, as it’s difficult to remove once added to the HSTS preload list.
 
 ---
 
 ### **Content-Security-Policy (CSP)**
 
-The `Content-Security-Policy` header helps prevent XSS and data injection attacks by specifying which content sources are allowed to be loaded by the browser. It is one of the most effective ways to mitigate XSS attacks.
+The `Content-Security-Policy` header limits which sources the browser will trust for scripts, styles, images, frames, and other resource types. A well-tuned CSP reduces the impact of XSS and unsafe third-party content, but the policy still has to match how your frontend actually loads code and assets.
 
 - [MDN Docs - Content-Security-Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy)
-- **Best Practice**: Start with a strict `default-src 'self'` policy and expand only as needed. Use nonce-based policies for inline scripts.
+- **Best Practice**: Start with a restrictive baseline and expand only where the application requires it. Use nonces or hashes for inline scripts when possible.
 - **Pitfall**: Overly permissive CSP rules (e.g., using `unsafe-inline`, `unsafe-eval`, or `*`) can leave your application vulnerable to XSS attacks.
 
 ---
 
 ### **X-Frame-Options**
 
-The `X-Frame-Options` header prevents clickjacking attacks by controlling whether your site can be embedded in an iframe.
+The `X-Frame-Options` header prevents clickjacking by controlling whether a page can be framed. In modern deployments, treat it as a compatibility header alongside CSP `frame-ancestors`.
 
 - [MDN Docs - X-Frame-Options](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options)
 - **Best Practice**: Set to `DENY` to completely block framing, or `SAMEORIGIN` if you only want to allow framing from your own domain.
@@ -38,11 +40,11 @@ The `X-Frame-Options` header prevents clickjacking attacks by controlling whethe
 
 ### **X-Content-Type-Options**
 
-The `X-Content-Type-Options` header prevents MIME-sniffing by telling the browser to strictly follow the declared `Content-Type`. This helps prevent certain types of attacks, including drive-by downloads.
+The `X-Content-Type-Options` header prevents MIME-sniffing by telling browsers to respect the declared `Content-Type`. In practice, it is most relevant for blocking incorrectly typed script and stylesheet responses.
 
 - [MDN Docs - X-Content-Type-Options](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Content-Type-Options)
 - **Best Practice**: Always set this header to `nosniff`.
-- **Pitfall**: None. This header is very low-risk but high-reward from a security perspective.
+- **Pitfall**: This header can surface incorrect `Content-Type` handling in your app or asset pipeline.
 
 ---
 
@@ -58,7 +60,7 @@ The `Referrer-Policy` header controls how much referrer information is included 
 
 ### **Permissions-Policy**
 
-The `Permissions-Policy` (formerly `Feature-Policy`) header allows you to enable or disable browser features such as geolocation, camera access, and more.
+The `Permissions-Policy` header allows you to disable or scope browser features such as geolocation, camera access, and microphone access.
 
 - [MDN Docs - Permissions-Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Permissions-Policy)
 - **Best Practice**: Disable unnecessary features (e.g., `camera`, `microphone`, `geolocation`) to reduce attack surface.
@@ -68,27 +70,27 @@ The `Permissions-Policy` (formerly `Feature-Policy`) header allows you to enable
 
 ### **Cross-Origin-Embedder-Policy (COEP)**
 
-The `Cross-Origin-Embedder-Policy` header prevents a document from loading any cross-origin resources that don’t explicitly grant the document permission.
+The `Cross-Origin-Embedder-Policy` header controls whether a document can load cross-origin resources that do not explicitly opt in via CORP or CORS.
 
 - [MDN Docs - Cross-Origin-Embedder-Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Embedder-Policy)
-- **Best Practice**: Use `require-corp` to ensure that all embedded resources are loaded securely.
-- **Pitfall**: Misconfiguration can prevent legitimate cross-origin resource sharing.
+- **Best Practice**: Use COEP when you need cross-origin isolation and can verify that your own and third-party resources are compatible.
+- **Pitfall**: Misconfiguration often breaks legitimate cross-origin assets before it improves anything.
 
 ---
 
 ### **Cross-Origin-Opener-Policy (COOP)**
 
-The `Cross-Origin-Opener-Policy` header helps isolate your browsing context by preventing access to your global object via cross-origin documents.
+The `Cross-Origin-Opener-Policy` header isolates a document's browsing context group, which helps reduce XS-Leaks and is typically paired with COEP when you need cross-origin isolation.
 
 - [MDN Docs - Cross-Origin-Opener-Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Opener-Policy)
 - **Best Practice**: Set this to `same-origin` to protect against XS-Leaks and ensure that only same-origin documents can access the browsing context.
-- **Pitfall**: Incompatibility with certain cross-origin interactions, such as embedded third-party services.
+- **Pitfall**: Popups, payment flows, or OAuth-style integrations may need a less strict value than `same-origin`.
 
 ---
 
 ### **Cache-Control**
 
-The `Cache-Control` header controls how and for how long browsers cache responses. Setting it properly can prevent sensitive data from being stored in caches.
+The `Cache-Control` header controls how responses are cached. For security-sensitive responses, it helps prevent browsers and intermediaries from storing content that should not persist.
 
 - [MDN Docs - Cache-Control](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control)
 - **Best Practice**: Use `no-store` for sensitive pages like login or payment forms to ensure that they are not cached.
@@ -98,26 +100,24 @@ The `Cache-Control` header controls how and for how long browsers cache response
 
 ### **Server**
 
-The `Server` header is typically used to reveal information about the server software being used. Hiding or customizing this header can obscure specific server details from attackers.
+The `Server` header can disclose software details, but changing or clearing it should be treated as passive information reduction, not as a primary defense.
 
 - [MDN Docs - Server](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Server)
-- **Best Practice**: Either remove or set this to a generic value to avoid exposing server details.
-- **Pitfall**: Leaving this header exposed can give attackers valuable information about your server’s configuration, potentially making it easier to exploit.
+- **Best Practice**: Set a generic or empty value when your stack allows it, and disable framework or proxy defaults that would re-add a value upstream.
+- **Pitfall**: Do not assume hiding `Server` materially hardens a vulnerable application.
 
 ---
 
 ### **Custom Headers**
 
-In addition to the predefined headers, you can define custom security headers based on your application's specific needs.
-
-- **Best Practice**: Use custom headers for non-standard security requirements or business-specific security mechanisms.
+`CustomHeader` is an escape hatch for application-specific response headers. Use it when you need to emit a header that does not have a dedicated builder, but keep the semantics and deployment expectations documented elsewhere in your application.
 
 ---
 
 ## Common Pitfalls
 
-- **Improper CSP Configurations**: Using `unsafe-inline` or `unsafe-eval` weakens CSP protections and should be avoided.
-- **Weak HSTS Settings**: A short `max-age` value undermines the effectiveness of HSTS, as users will not remain protected if the connection is downgraded.
+- **Improper CSP configurations**: Using `unsafe-inline`, `unsafe-eval`, or broad source allowlists weakens CSP quickly.
+- **Weak HSTS rollout discipline**: Sending HSTS before all routes and subdomains are HTTPS-ready can break access just as easily as it improves transport security.
 
 ## OWASP Guidelines
 

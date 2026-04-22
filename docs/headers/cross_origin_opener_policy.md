@@ -16,13 +16,12 @@ The `Cross-Origin-Opener-Policy` (COOP) response header controls whether documen
 - **`noopener-allow-popups`**: Always isolates into a new BCG (except when opened by a same-origin document that also uses `noopener-allow-popups`). Useful when you need to isolate **same-origin** apps from each other (e.g., `/chat` vs `/passwords`) while still allowing popups.
 - **`unsafe-none`**: Opts out of COOP isolation.
 
-## Configuration with `secure`
+## Configuration with `Secure`
 
 Use the `CrossOriginOpenerPolicy` builder and pass it into `Secure(...)`:
 
 ```python
-from secure import Secure
-from secure.headers import CrossOriginOpenerPolicy
+from secure import CrossOriginOpenerPolicy, Secure
 
 secure_headers = Secure(
     coop=CrossOriginOpenerPolicy().same_origin()
@@ -47,6 +46,8 @@ Escape hatches:
 ## Example Usage
 
 ```python
+from secure import CrossOriginOpenerPolicy, Secure
+
 coop = CrossOriginOpenerPolicy().same_origin()
 print(coop.header_name)   # 'Cross-Origin-Opener-Policy'
 print(coop.header_value)  # 'same-origin'

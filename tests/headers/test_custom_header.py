@@ -18,9 +18,7 @@ class TestCustomHeader(unittest.TestCase):
 
     def test_method_chaining(self):
         """Test method chaining while setting a new value for the custom header."""
-        custom_header = CustomHeader("X-Custom-Header", "initial-value").set(
-            "new-value"
-        )
+        custom_header = CustomHeader("X-Custom-Header", "initial-value").set("new-value")
         self.assertEqual(custom_header.header_value, "new-value")
 
 

@@ -2,20 +2,23 @@
 
 ## Purpose
 
-The `Server` header provides information about the server software handling the request. By default, this header exposes the server's technology stack, which can increase the risk of targeted attacks. For enhanced security, it is recommended to obscure or remove this header to prevent unnecessary exposure of server details.
+The `Server` header can reveal details about the software handling the request. In `secure`, the builder defaults to an empty string so your application can avoid adding identifying detail when the surrounding stack allows it.
 
 ## Best Practices
 
-- **Set an empty value or custom string**: It's generally advisable to set the `Server` header to an empty value (`""`) or use a non-informative value to avoid revealing specific details about the server software.
+- **Set an empty value or custom string**: Use an empty or generic value when you want `secure` to control the header.
 - **Avoid exposing server information**: Avoid leaving the default server response, which may expose sensitive version information.
+- **Check upstream defaults**: Proxies, ASGI servers, and framework middleware may still add their own `Server` header unless you disable that behavior.
 
-## Configuration with `secure`
+## Configuration with `Secure`
 
-The `Server` class in `secure` allows you to easily control the `Server` header value, with the default value set to an empty string to enhance security.
+Use `Server` to control the `Server` header value. Its default value is an empty string.
 
 ### Example Configuration
 
 ```python
+from secure import Secure, Server
+
 secure_headers = Secure(
     server=Server().set("")
 )
@@ -31,14 +34,18 @@ secure_headers = Secure(
 To set up the `Server` header and hide the server information:
 
 ```python
+from secure import Server
+
 server_header = Server().set("")
 print(server_header.header_name)   # Output: 'Server'
 print(server_header.header_value)  # Output: ''
 ```
 
-This can then be applied as part of your Secure headers configuration:
+Then pass it into `Secure`:
 
 ```python
+from secure import Secure
+
 secure_headers = Secure(server=server_header)
 ```
 

@@ -81,7 +81,7 @@ class SecureASGIMiddleware:
     multi_ok:
         Header names allowed to appear multiple times in a response. For these,
         Secure's value is appended instead of overwriting. Defaults to
-        :data:`secure.secure.MULTI_OK`.
+        :data:`secure.MULTI_OK`.
 
     Behavior
     --------

@@ -9,7 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Placeholder for upcoming changes.
 
-## [2.0.0] - 2025-12-13
+## [2.0.1] - 2026-04-21
+
+This is the first stable v2 release. Version `2.0.0` was burned and should be skipped when tagging or publishing.
 
 ### Breaking Changes
 
@@ -27,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Docs
 
-- Expanded README with usage examples, advanced pipeline guidance, and updated framework integration references.
+- Expanded README with usage examples, advanced pipeline guidance, updated framework integration references, and v2 migration guidance.
 
 ## [1.0.1] - 2024-10-18
 

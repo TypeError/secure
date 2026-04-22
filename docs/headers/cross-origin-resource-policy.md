@@ -12,19 +12,22 @@ This header is commonly used to reduce cross-origin data leaks by controlling wh
 - **`same-site`**: Useful when you need to share resources across subdomains on the same “site” but not with unrelated sites.
 - **`cross-origin`**: Most permissive; allow any origin to load the resource (use intentionally, not by accident).
 
-## Configuration with `secure`
+## Configuration with `Secure`
 
 The `CrossOriginResourcePolicy` class provides a fluent API for setting CORP directives and integrates cleanly with `Secure(...)`.
 
 ### Example Configuration
 
 ```python
+from secure import CrossOriginResourcePolicy, Secure
+
 secure_headers = Secure(
     corp=CrossOriginResourcePolicy().same_origin()
 )
 ```
 
 > Library default: if you do not change it, the library’s default value is `same-origin`.
+> Presets: `Preset.BASIC` and `Preset.BALANCED` include `same-origin`; `Preset.STRICT` does not add CORP by default.
 
 ### Methods Available
 

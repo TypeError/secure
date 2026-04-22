@@ -1,12 +1,34 @@
 # Framework Integration
 
-`secure` supports several popular Python web frameworks. Below are examples showing how to set the default security headers in each framework, along with a brief introduction and links to each project. Additionally, we provide guidance for integrating Secure Headers with custom or unsupported frameworks.
+`secure` keeps the same `Secure` object across frameworks. What changes is how you attach it.
 
-## Table of Contents
+Some sections below are first-class integrations with clear framework-level hooks or middleware. Others are intentionally minimal fallback examples where support is thinner or framework APIs vary by version.
+
+## How to choose an integration style
+
+- Use `set_headers()` when the response object is synchronous and you are already inside a response hook, middleware callback, or view.
+- Use `set_headers_async()` in async middleware, hooks, or handlers when you want one helper that works safely across async response objects.
+- Use `SecureWSGIMiddleware` when you want app-wide coverage and can wrap a WSGI application directly.
+- Use `SecureASGIMiddleware` when you want app-wide coverage in an ASGI stack such as FastAPI, Starlette, or Shiny.
+
+Prefer middleware when your framework makes it easy and you want app-wide coverage. Use per-response setters when you are integrating into an existing hook, view, or minimal handler path.
+
+## Uvicorn `Server` header
+
+Uvicorn adds `Server: uvicorn` by default. If you want `secure` to control the `Server` header, disable Uvicorn's default header with `--no-server-header` or `server_header=False`.
+
+```python
+import uvicorn
+
+uvicorn.run(app, host="0.0.0.0", port=8000, server_header=False)
+```
+
+## Table of contents
 
 - [aiohttp](#aiohttp)
 - [Bottle](#bottle)
 - [CherryPy](#cherrypy)
+- [Dash](#dash)
 - [Django](#django)
 - [Falcon](#falcon)
 - [FastAPI](#fastapi)
@@ -17,48 +39,24 @@
 - [Quart](#quart)
 - [Responder](#responder)
 - [Sanic](#sanic)
+- [Shiny](#shiny)
 - [Starlette](#starlette)
 - [Tornado](#tornado)
 - [TurboGears](#turbogears)
-- [Web2py](#web2py)
-- [Custom Frameworks](#custom-frameworks)
-
----
-
-### Note: Overriding the `Server` Header in Uvicorn-based Frameworks
-
-If you're using Uvicorn as the ASGI server (commonly used with frameworks like FastAPI, Starlette, and others), Uvicorn automatically injects a `Server: uvicorn` header into all HTTP responses by default. This can lead to multiple `Server` headers when using `secure` to set a custom `Server` header.
-
-To prevent Uvicorn from adding its default `Server` header, you can disable it by passing the `--no-server-header` option when running Uvicorn, or by setting `server_header=False` in the `uvicorn.run()` method:
-
-```python
-import uvicorn
-
-uvicorn.run(
-    app,
-    host="0.0.0.0",
-    port=8000,
-    server_header=False,  # Disable Uvicorn's default Server header
-)
-```
-
-If you're using Uvicorn via Gunicorn (e.g., with the `UvicornWorker`), note that this setting is not passed through automatically. In such cases, you may need to subclass the worker to fully override the `Server` header.
-
-For more information, refer to the [Uvicorn Settings](https://www.uvicorn.org/settings/#http).
-
----
+- [Custom frameworks](#custom-frameworks)
 
 ## aiohttp
 
-**[aiohttp](https://docs.aiohttp.org)** is an asynchronous HTTP client/server framework for asyncio and Python. It's designed for building efficient web applications with asynchronous capabilities.
+Async framework with first-class middleware support.
 
-### Middleware Example
+### Recommended: middleware with `set_headers_async()`
 
 ```python
 from aiohttp import web
 from secure import Secure
 
 secure_headers = Secure.with_default_headers()
+
 
 @web.middleware
 async def add_security_headers(request, handler):
@@ -66,13 +64,11 @@ async def add_security_headers(request, handler):
     await secure_headers.set_headers_async(response)
     return response
 
-app = web.Application(middlewares=[add_security_headers])
 
-app.router.add_get("/", lambda request: web.Response(text="Hello, world"))
-web.run_app(app)
+app = web.Application(middlewares=[add_security_headers])
 ```
 
-### Single Route Example
+### Alternative: set headers in a single handler
 
 ```python
 from aiohttp import web
@@ -80,79 +76,53 @@ from secure import Secure
 
 secure_headers = Secure.with_default_headers()
 
-async def handle(request):
+
+async def home(request):
     response = web.Response(text="Hello, world")
     await secure_headers.set_headers_async(response)
     return response
-
-app = web.Application()
-app.router.add_get("/", handle)
-web.run_app(app)
 ```
-
----
 
 ## Bottle
 
-**[Bottle](https://bottlepy.org)** is a fast, simple, and lightweight WSGI micro web-framework for Python. It's perfect for small applications and rapid prototyping.
+Small WSGI framework with request hooks.
 
-### Middleware Example
+### Recommended: `after_request` hook with `set_headers()`
 
 ```python
-from bottle import Bottle, response, run
+from bottle import Bottle, response
 from secure import Secure
 
-secure_headers = Secure.with_default_headers()
 app = Bottle()
+secure_headers = Secure.with_default_headers()
+
 
 @app.hook("after_request")
 def add_security_headers():
     secure_headers.set_headers(response)
-
-run(app, host="localhost", port=8080)
 ```
 
-### Single Route Example
+### Fallback: set headers in a route
 
 ```python
-from bottle import Bottle, response, run
+from bottle import Bottle, response
 from secure import Secure
 
-secure_headers = Secure.with_default_headers()
 app = Bottle()
+secure_headers = Secure.with_default_headers()
+
 
 @app.route("/")
-def index():
+def home():
     secure_headers.set_headers(response)
     return "Hello, world"
-
-run(app, host="localhost", port=8080)
 ```
-
----
 
 ## CherryPy
 
-**[CherryPy](https://cherrypy.dev)** is a minimalist, object-oriented web framework that allows developers to build web applications in a way similar to building other Python applications.
+Minimal fallback example. CherryPy exposes the response object in the handler, so handler-level mutation is the practical integration point.
 
-### Middleware Example
-
-```python
-import cherrypy
-from secure import Secure
-
-secure_headers = Secure.with_default_headers()
-
-class HelloWorld:
-    @cherrypy.expose
-    def index(self):
-        cherrypy.response.headers.update(secure_headers.headers)
-        return b"Hello, world"
-
-cherrypy.quickstart(HelloWorld())
-```
-
-### Single Route Example
+### Minimal fallback: set headers in the exposed method
 
 ```python
 import cherrypy
@@ -160,32 +130,31 @@ from secure import Secure
 
 secure_headers = Secure.with_default_headers()
 
-class HelloWorld:
+
+class App:
     @cherrypy.expose
     def index(self):
-        cherrypy.response.headers.update(secure_headers.headers)
+        secure_headers.set_headers(cherrypy.response)
         return b"Hello, world"
 
-cherrypy.quickstart(HelloWorld())
-```
 
----
+cherrypy.quickstart(App())
+```
 
 ## Dash
 
-**[Dash](https://dash.plotly.com/)** is a Python framework for building interactive data apps and dashboards, built on top of Plotly.js, React, and Flask.
+Dash runs on top of Flask, so the usual Flask integration patterns apply.
 
-### Middleware Example
+### Recommended: Flask `after_request` on `app.server`
 
 ```python
 import dash
 from dash import html
 from secure import Secure
 
-secure_headers = Secure.with_default_headers()
-
 app = dash.Dash(__name__)
 server = app.server
+secure_headers = Secure.with_default_headers()
 
 app.layout = html.Div("Hello Dash!")
 
@@ -196,53 +165,53 @@ def add_security_headers(response):
     return response
 ```
 
-#### Alternative: WSGI middleware
+### Alternative: `SecureWSGIMiddleware`
 
 ```python
 import dash
 from dash import html
 from secure import Secure
-from secure.middleware.wsgi import SecureWSGIMiddleware
-
-secure_headers = Secure.with_default_headers()
+from secure.middleware import SecureWSGIMiddleware
 
 app = dash.Dash(__name__)
-server = app.server  # Flask app underneath Dash
+server = app.server
+secure_headers = Secure.with_default_headers()
 
 app.layout = html.Div("Hello Dash!")
-
 server.wsgi_app = SecureWSGIMiddleware(server.wsgi_app, secure=secure_headers)
 ```
 
----
-
 ## Django
 
-**[Django](https://www.djangoproject.com)** is a high-level Python web framework that encourages rapid development and clean, pragmatic design.
+Django is usually best integrated through Django middleware rather than raw WSGI wrapping.
 
-### Middleware Example
+### Recommended: Django middleware class
+
+Register the middleware class in your Django `MIDDLEWARE` setting.
 
 ```python
-from django.http import HttpResponse
 from secure import Secure
 
-secure_headers = Secure.with_default_headers()
 
-def set_secure_headers(get_response):
-    def middleware(request):
-        response = get_response(request)
-        secure_headers.set_headers(response)
+class SecureHeadersMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+        self.secure = Secure.with_default_headers()
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        self.secure.set_headers(response)
         return response
-    return middleware
 ```
 
-### Single Route Example
+### Fallback: set headers in a view
 
 ```python
 from django.http import HttpResponse
 from secure import Secure
 
 secure_headers = Secure.with_default_headers()
+
 
 def home(request):
     response = HttpResponse("Hello, world")
@@ -250,34 +219,28 @@ def home(request):
     return response
 ```
 
----
-
 ## Falcon
 
-**[Falcon](https://falconframework.org)** is a minimalist WSGI library for building speedy web APIs and app backends.
+Falcon exposes a clean response middleware hook.
 
-### Middleware Example
+### Recommended: Falcon middleware
 
 ```python
 import falcon
 from secure import Secure
 
 secure_headers = Secure.with_default_headers()
+
 
 class SecureMiddleware:
     def process_response(self, req, resp, resource, req_succeeded):
         secure_headers.set_headers(resp)
 
+
 app = falcon.App(middleware=[SecureMiddleware()])
-
-class HelloWorldResource:
-    def on_get(self, req, resp):
-        resp.text = "Hello, world"
-
-app.add_route("/", HelloWorldResource())
 ```
 
-### Single Route Example
+### Fallback: set headers in the resource
 
 ```python
 import falcon
@@ -285,22 +248,22 @@ from secure import Secure
 
 secure_headers = Secure.with_default_headers()
 
+
 class HelloWorldResource:
     def on_get(self, req, resp):
         resp.text = "Hello, world"
         secure_headers.set_headers(resp)
 
+
 app = falcon.App()
 app.add_route("/", HelloWorldResource())
 ```
 
----
-
 ## FastAPI
 
-**[FastAPI](https://fastapi.tiangolo.com)** is a modern, fast web framework for building APIs with Python 3.6+.
+ASGI framework. Middleware is the clearest default.
 
-#### Recommended: `SecureASGIMiddleware`
+### Recommended: `SecureASGIMiddleware`
 
 ```python
 from fastapi import FastAPI
@@ -309,10 +272,11 @@ from secure.middleware import SecureASGIMiddleware
 
 app = FastAPI()
 secure_headers = Secure.with_default_headers()
+
 app.add_middleware(SecureASGIMiddleware, secure=secure_headers)
 ```
 
-#### Alternative: route-level hook with `@app.middleware("http")`
+### Alternative: `@app.middleware("http")`
 
 ```python
 from fastapi import FastAPI
@@ -321,6 +285,7 @@ from secure import Secure
 app = FastAPI()
 secure_headers = Secure.with_default_headers()
 
+
 @app.middleware("http")
 async def add_security_headers(request, call_next):
     response = await call_next(request)
@@ -328,7 +293,7 @@ async def add_security_headers(request, call_next):
     return response
 ```
 
-### Single Route Example
+### Fallback: set headers in one route
 
 ```python
 from fastapi import FastAPI, Response
@@ -337,34 +302,34 @@ from secure import Secure
 app = FastAPI()
 secure_headers = Secure.with_default_headers()
 
-@app.get("/")
-def read_root(response: Response):
-    secure_headers.set_headers(response)
-    return {"Hello": "World"}
-```
 
----
+@app.get("/")
+def home(response: Response):
+    secure_headers.set_headers(response)
+    return {"hello": "world"}
+```
 
 ## Flask
 
-**[Flask](https://flask.palletsprojects.com)** is a lightweight WSGI web application framework.
+WSGI framework with a straightforward response hook.
 
-### Middleware Example
+### Recommended: `after_request`
 
 ```python
-from flask import Flask, Response
+from flask import Flask
 from secure import Secure
 
 app = Flask(__name__)
 secure_headers = Secure.with_default_headers()
 
+
 @app.after_request
-def add_security_headers(response: Response):
+def add_security_headers(response):
     secure_headers.set_headers(response)
     return response
 ```
 
-#### Alternative: WSGI middleware
+### Alternative: `SecureWSGIMiddleware`
 
 ```python
 from flask import Flask
@@ -377,70 +342,29 @@ secure_headers = Secure.with_default_headers()
 app.wsgi_app = SecureWSGIMiddleware(app.wsgi_app, secure=secure_headers)
 ```
 
-### Single Route Example
-
-```python
-from flask import Flask, Response
-from secure import Secure
-
-app = Flask(__name__)
-secure_headers = Secure.with_default_headers()
-
-@app.route("/")
-def home():
-    response = Response("Hello, world")
-    secure_headers.set_headers(response)
-    return response
-```
-
----
-
 ## Masonite
 
-**[Masonite](https://docs.masoniteproject.com)** is a modern and developer-friendly Python web framework.
+Minimal fallback example. Masonite routing and response APIs vary by version, so apply `Secure` to the response object you actually return.
 
-### Middleware Example
-
-```python
-from masonite.foundation import Application
-from masonite.response import Response
-from secure import Secure
-
-app = Application()
-secure_headers = Secure.with_default_headers()
-
-def add_security_headers(response: Response):
-    secure_headers.set_headers(response)
-    return response
-```
-
-### Single Route Example
+### Minimal fallback: apply to the response you return
 
 ```python
-from masonite.request import Request
-from masonite.response import Response
-from masonite.foundation import Application
 from secure import Secure
 
-app = Application()
 secure_headers = Secure.with_default_headers()
 
-@app.route("/")
-def home(request: Request, response: Response):
-    return add_security_headers(response.view("Hello, world"))
-```
 
----
+def home(response):
+    rendered = response.json({"hello": "world"})
+    secure_headers.set_headers(rendered)
+    return rendered
+```
 
 ## Morepath
 
-**[Morepath](https://morepath.readthedocs.io)** is a Python web framework that provides URL to object mapping.
+Minimal fallback example. Morepath does not expose a conventional middleware layer for this, so view-level mutation is the practical integration point.
 
-### Middleware Example
-
-Morepath doesn’t have middleware. Use per-view settings as shown in the single route example.
-
-### Single Route Example
+### Minimal fallback: set headers in the view
 
 ```python
 import morepath
@@ -448,82 +372,82 @@ from secure import Secure
 
 secure_headers = Secure.with_default_headers()
 
+
 class App(morepath.App):
     pass
+
 
 @App.path(path="")
 class Root:
     pass
 
+
 @App.view(model=Root)
-def hello_world(self, request):
+def home(self, request):
     response = morepath.Response("Hello, world")
     secure_headers.set_headers(response)
     return response
-
-morepath.run(App())
 ```
-
----
 
 ## Pyramid
 
-**[Pyramid](https://trypyramid.com)** is a small, fast Python web framework.
+Pyramid applications commonly use tweens for cross-cutting response changes.
 
-### Middleware Example
+### Recommended: tween
+
+Register the tween in your `Configurator` with `config.add_tween("yourpackage.security.add_security_headers")`.
 
 ```python
-from pyramid.config import Configurator
-from pyramid.response import Response
 from secure import Secure
 
 secure_headers = Secure.with_default_headers()
+
 
 def add_security_headers(handler, registry):
     def tween(request):
         response = handler(request)
         secure_headers.set_headers(response)
         return response
+
     return tween
 ```
 
-### Single Route Example
+### Fallback: set headers in a view
 
 ```python
-from pyramid.config import Configurator
 from pyramid.response import Response
 from secure import Secure
 
 secure_headers = Secure.with_default_headers()
 
-def hello_world(request):
+
+def home(request):
     response = Response("Hello, world")
     secure_headers.set_headers(response)
     return response
 ```
 
----
-
 ## Quart
 
-**[Quart](https://quart.palletsprojects.com)** is an async Python web framework.
+Async Flask-compatible framework.
 
-### Middleware Example
+### Recommended: `after_request` with `set_headers_async()`
 
 ```python
-from quart import Quart, Response
+from quart import Quart
 from secure import Secure
 
 app = Quart(__name__)
 secure_headers = Secure.with_default_headers()
 
+
 @app.after_request
-async def add_security_headers(response: Response):
+async def add_security_headers(response):
     await secure_headers.set_headers_async(response)
     return response
 ```
 
-### Single Route Example
+### Fallback: set headers in a route
 
 ```python
 from quart import Quart, Response
@@ -532,34 +456,19 @@ from secure import Secure
 app = Quart(__name__)
 secure_headers = Secure.with_default_headers()
 
+
 @app.route("/")
-async def index():
+async def home():
     response = Response("Hello, world")
     await secure_headers.set_headers_async(response)
     return response
 ```
 
----
-
 ## Responder
 
-**[Responder](https://responder.kennethreitz.org)** is a fast web framework for building APIs.
+Minimal fallback example. Route handlers typically own the response, so route-level mutation is the practical integration point.
 
-### Middleware Example
-
-```python
-import responder
-from secure import Secure
-
-api = responder.API()
-secure_headers = Secure.with_default_headers()
-
-@api.route("/")
-async def add_security_headers(req, resp):
-    await secure_headers.set_headers_async(resp)
-```
-
-### Single Route Example
+### Minimal fallback: set headers in the route
 
 ```python
 import responder
@@ -567,6 +476,7 @@ from secure import Secure
 
 api = responder.API()
 secure_headers = Secure.with_default_headers()
+
 
 @api.route("/")
 async def home(req, resp):
@@ -574,50 +484,50 @@ async def home(req, resp):
     await secure_headers.set_headers_async(resp)
 ```
 
----
-
 ## Sanic
 
-**[Sanic](https://sanicframework.org)** is a Python web framework written for fast performance.
+Sanic exposes response middleware for app-wide coverage.
 
-### Middleware Example
+### Recommended: response middleware with `set_headers_async()`
 
 ```python
-from sanic import Sanic, response
+from sanic import Sanic
 from secure import Secure
 
-app = Sanic("SecureApp")
+app = Sanic("secure-app")
 secure_headers = Secure.with_default_headers()
+
 
 @app.middleware("response")
-async def add_security_headers(request, resp):
-    secure_headers.set_headers(resp)
-    return resp
+async def add_security_headers(request, response):
+    await secure_headers.set_headers_async(response)
+    return response
 ```
 
-### Single Route Example
+Use route-level setters when you only need a small integration or do not want extra app wiring in tests.
+
+### Fallback: set headers in a route
 
 ```python
 from sanic import Sanic, response
 from secure import Secure
 
-app = Sanic("SecureApp")
+app = Sanic("secure-app")
 secure_headers = Secure.with_default_headers()
 
-@app.route("/")
-async def index(request):
+
+@app.get("/")
+async def home(request):
     resp = response.text("Hello, world")
-    secure_headers.set_headers(resp)
+    await secure_headers.set_headers_async(resp)
     return resp
 ```
-
----
 
 ## Shiny
 
-**[Shiny](https://shiny.posit.co/py/)** is a fully reactive framework for building rich, interactive web apps in pure Python—without needing to learn JavaScript or front-end frameworks.
+Shiny applications are ASGI apps, so ASGI middleware is the cleanest and most direct path.
 
-### Middleware Example
+### Recommended: `SecureASGIMiddleware`
 
 ```python
 from secure import Secure
@@ -634,36 +544,34 @@ def server(input, output, session):
 
 
 app = App(app_ui, server)
-
 app = SecureASGIMiddleware(app, secure=secure_headers)
 ```
 
----
-
 ## Starlette
 
-**[Starlette](https://www.starlette.io)** is a lightweight ASGI framework.
+ASGI framework. Use ASGI middleware unless you only need route-level control.
 
-### Middleware Example
+### Recommended: `SecureASGIMiddleware`
 
 ```python
 from secure import Secure
 from secure.middleware import SecureASGIMiddleware
 from starlette.applications import Starlette
-from starlette.responses import JSONResponse
+from starlette.responses import PlainTextResponse
+from starlette.routing import Route
 
 secure_headers = Secure.with_default_headers()
 
-app = Starlette()
+
+async def home(request):
+    return PlainTextResponse("Hello, world")
+
+
+app = Starlette(routes=[Route("/", home)])
 app.add_middleware(SecureASGIMiddleware, secure=secure_headers)
-
-
-@app.route("/")
-async def read_root(request):
-    return JSONResponse({"hello": "world"})
 ```
 
-### Single Route Example
+### Alternative: set headers in an endpoint
 
 ```python
 from secure import Secure
@@ -674,69 +582,49 @@ from starlette.routing import Route
 secure_headers = Secure.with_default_headers()
 
 
-async def homepage(request):
+async def home(request):
     response = Response("Hello, world")
     await secure_headers.set_headers_async(response)
     return response
 
 
-app = Starlette(routes=[Route("/", homepage)])
+app = Starlette(routes=[Route("/", home)])
 ```
-
----
 
 ## Tornado
 
-**[Tornado](https://www.tornadoweb.org)** is a Python web framework designed for asynchronous networking.
+Minimal fallback example. Tornado usually applies headers inside request handlers, so handler-level mutation is the practical integration point.
 
-### Middleware Example
-
-Tornado doesn't directly support middleware, but you can use it in each request handler as shown in the single route example.
-
-### Single Route Example
+### Minimal fallback: set headers in the handler
 
 ```python
-import tornado.ioloop
 import tornado.web
 from secure import Secure
 
 secure_headers = Secure.with_default_headers()
 
+
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
         self.write("Hello, world")
         secure_headers.set_headers(self)
-```
 
----
+
+app = tornado.web.Application([(r"/", MainHandler)])
+```
 
 ## TurboGears
 
-**[TurboGears](https://turbogears.org)** is a full-stack framework.
+Minimal fallback example. If you do not already have a framework-level hook in place, controller-level mutation is the practical integration point.
 
-### Middleware Example
+### Minimal fallback: set headers in the controller
 
 ```python
-from tg import AppConfig, Response, TGController, expose
+from tg import Response, TGController, expose
 from secure import Secure
 
 secure_headers = Secure.with_default_headers()
 
-class SecureMiddleware:
-    def __init__(self, req, resp):
-        secure_headers.set_headers(resp)
-
-config = AppConfig(minimal=True, root_controller=TGController)
-config["middleware"] = [SecureMiddleware]
-```
-
-### Single Route Example
-
-```python
-from tg import AppConfig, Response, TGController, expose
-from secure import Secure
-
-secure_headers = Secure.with_default_headers()
 
 class RootController(TGController):
     @expose()
@@ -744,61 +632,35 @@ class RootController(TGController):
         response = Response("Hello, world")
         secure_headers.set_headers(response)
         return response
+
+
+root = RootController()
 ```
 
----
+## Custom frameworks
 
-## Web2py
+If your framework is not listed here, the integration rule is still simple: configure one `Secure` instance, then apply it to the response as late as possible before it is sent.
 
-**[Web2py](http://www.web2py.com)** is a free web framework designed for rapid development of database-driven applications.
-
-### Middleware Example
-
-Web2py doesn't directly support middleware, but you can use it in each route.
-
-### Single Route Example
-
-```python
-from gluon import current
-from secure import Secure
-
-secure_headers = Secure.with_default_headers()
-
-def index():
-    secure_headers.set_headers(current.response)
-    return "Hello, world"
-```
-
----
-
-## Custom Frameworks
-
-If you are using a framework that is not listed here, `secure` can still be integrated. Most frameworks offer a way to manipulate response headers, which is all you need to apply security headers.
-
-### General Steps:
-
-1. **Identify the Response Object**: Each framework typically has a response object or an equivalent that allows you to modify HTTP headers.
-
-2. **Set Headers**: Use the `set_headers()` or `set_headers_async()` method to inject security headers into the response before sending it back to the client.
-
-3. **Asynchronous Support**: For asynchronous frameworks, ensure that you're calling the correct async version of methods.
-
-### Example:
+### Recommended: use the response object's setter or headers mapping
 
 ```python
 from secure import Secure
 
 secure_headers = Secure.with_default_headers()
 
-def add_secure_headers(response):
+
+def add_security_headers(response):
     secure_headers.set_headers(response)
     return response
-
-# Apply the `add_secure_headers` function wherever your framework handles responses.
 ```
 
----
+### Fallback: emit header pairs manually
 
-### Need Help?
+```python
+from secure import Secure
 
-If you encounter any issues integrating Secure Headers with your custom framework, feel free to open an issue on our [GitHub repository](https://github.com/TypeError/secure) or consult the framework's documentation for handling response headers.
+secure_headers = Secure.with_default_headers()
+
+for name, value in secure_headers.header_items():
+    response.headers[name] = value
+```

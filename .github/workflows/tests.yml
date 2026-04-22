@@ -15,15 +15,23 @@ jobs:
           - "3.12"
           - "3.13"
           - "3.14-dev"
+
     steps:
       - uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version:  ${{ matrix.python }}
+          python-version: ${{ matrix.python }}
+
       - name: Install toolchain
-        run: pip install ruff
+        run: pip install ruff==0.13.2 pytest
+
+      - name: Install package
+        run: pip install -e .
+
       - name: Unit tests
-        run: python -m unittest tests/*/*.py
+        run: python -m pytest
+
       - name: Lint
         run: ruff check secure tests

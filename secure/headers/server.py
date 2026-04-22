@@ -58,10 +58,10 @@ class Server(BaseHeader):
 
     def clear(self) -> Server:
         """
-        Reset the `Server` header value to its default (`NULL`).
+        Reset the `Server` header value to its default (an empty string).
 
-        This method clears any custom value that has been set for the `Server` header
-        and reverts it to the default, which is a more secure value that hides server details.
+        This method clears any custom value that has been set for the `Server`
+        header and reverts it to the default, which hides server details.
 
         Returns:
             Server: The current instance, allowing for method chaining.

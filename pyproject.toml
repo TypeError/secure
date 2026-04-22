@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "secure"
-version = "2.0.0rc1"
+version = "2.0.1"
 description = "A lightweight package that adds security headers for Python web frameworks."
 readme = { file = "README.md", content-type = "text/markdown" }
 license = "MIT"
@@ -13,7 +13,7 @@ authors = [{ name = "Caleb Kinney", email = "caleb@typeerror.com" }]
 requires-python = ">=3.10"
 keywords = ["security", "headers", "web", "framework", "HTTP"]
 classifiers = [
-  "Development Status :: 4 - Beta",
+  "Development Status :: 5 - Production/Stable",
   "Intended Audience :: Developers",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
@@ -41,6 +41,10 @@ exclude = ["tests*", "docs*"]
 
 [tool.setuptools.package-data]
 secure = ["py.typed"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
 
 # --- Ruff (formatter + linter) ---
 [tool.ruff]

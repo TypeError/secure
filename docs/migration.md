@@ -1,36 +1,48 @@
-# v2.0.0 Migration Notes
+# v2 Migration Notes
 
-## Package and import changes
+The first stable v2 release is `2.0.1`. Skip `2.0.0`.
 
-- The package is now published as `secure` (not `secure.py`). Import the public API via `import secure` or `from secure import Secure, Preset, ContentSecurityPolicy`, and the builder classes are re-exported at the package level for convenience.
-- `Secure.with_default_headers()` now equals `Secure.from_preset(Preset.BALANCED)`, so you can keep calling the same helpers while taking advantage of the new preset enum. Balanced is the recommended default and intentionally omits `Cache-Control`; add it explicitly when your deployment depends on caching directives.
+If your application already uses `Secure` to set headers on responses, the upgrade should be straightforward. Most changes are about preset names, package-level imports, and clearer sync versus async integration.
+
+## What stayed the same
+
+- `Secure` is still the main entry point.
+- Header builders such as `ContentSecurityPolicy` and `StrictTransportSecurity` are still the way to define custom policies.
+- `set_headers(response)` is still the sync path for supported response objects.
+
+## What changed
+
+- Import from the package root: `from secure import Secure, Preset, ContentSecurityPolicy`.
+- `Secure.with_default_headers()` now means `Secure.from_preset(Preset.BALANCED)`.
+- Presets are now `Preset.BALANCED`, `Preset.BASIC`, and `Preset.STRICT`.
+- `set_headers_async(response)` is available for async integrations and async response setters.
+- `secure.middleware` exposes `SecureWSGIMiddleware` and `SecureASGIMiddleware` for app-wide integration.
+
+## What might break
+
+- `Preset.MODERN` is gone. Replace it with `Preset.BALANCED` or `Preset.STRICT`, depending on what you wanted.
+- The default profile is now `BALANCED`, which intentionally omits `Cache-Control` and the legacy compatibility headers from `BASIC`.
+- `Preset.STRICT` no longer enables HSTS preload by default. Add `.preload()` yourself if you rely on that behavior.
+- `set_headers()` is sync-only. If your response object only supports async setters, switch to `await set_headers_async(response)`.
+- If you set the `Server` header, disable framework or server defaults such as Uvicorn's `Server: uvicorn` to avoid duplicates.
+
+## Minimal upgrade path
+
+If you previously relied on the default helpers, this is usually enough:
 
 ```python
-from secure import Secure, StrictTransportSecurity
+from secure import Secure
 
-secure_headers = Secure(
-    hsts=StrictTransportSecurity().max_age(63072000)
-)
+secure_headers = Secure.with_default_headers()
+secure_headers.set_headers(response)
 ```
 
-## Presets and defaults
+If you want the new preset API explicitly:
 
-- There are three built-in presets now: `Preset.BALANCED` (the recommended default that `with_default_headers()` uses), `Preset.BASIC` (Helmet compatibility parity), and `Preset.STRICT` (the hardened profile). `Preset.MODERN` has been removed in favor of this clearer contract between the default, compatibility, and strict profiles.
-- The `BASIC` preset emits additional legacy/compatibility headers such as `X-Permitted-Cross-Domain-Policies`, `X-DNS-Prefetch-Control`, `Origin-Agent-Cluster`, `X-Download-Options`, and `X-XSS-Protection`. Use `Preset.BALANCED` when you want the same security posture without the extra response headers, and add those legacy headers manually only when you still depend on them.
-- `Preset.STRICT` continues to enable COEP, CSP base/frame restrictions, and a strict permissions policy, but it no longer preloads HSTS by default; add `.preload()` yourself when you are ready to opt into the preload list.
+```python
+from secure import Preset, Secure
 
-## Header pipeline helpers
+secure_headers = Secure.from_preset(Preset.BALANCED)
+```
 
-- Use `secure_headers.allowlist_headers(...).deduplicate_headers(...).validate_and_normalize_headers(...)` to enforce a clean, single-valued header mapping before calling `set_headers`/`set_headers_async`. This pipeline combines allowlists, duplicate resolution, and validation with sanitized output that you can inspect via `secure_headers.headers` or emit manually via `secure_headers.header_items()`.
-- `Secure.header_items()` keeps the original ordering and multi-valued headers, so you can still emit headers like CSP multiple times when necessary.
-
-## Setters and async support
-
-- `set_headers` now raises clear errors if the response object only exposes async setters, while `set_headers_async` transparently awaits either sync or async `set_header`/`headers.__setitem__` calls. If you previously manipulated headers manually, switching to these helpers gives you timeouts, logging, and validation hooks.
-
-## Security gotchas
-
-- The `Server` header defaults to an empty string, so disable framework defaults (e.g., `uvicorn --no-server-header`) if you apply a custom value to avoid duplicate headers.
-- `Preset.BASIC` includes legacy/compatibility defaults such as `X-Permitted-Cross-Domain-Policies: none` and `X-XSS-Protection: 0`. Use `Preset.BALANCED` (or roll your own `Secure` instance) when you want a leaner header set.
-
-Refer back to the [README](../README.md) and the individual header docs for exact builder methods when adapting your existing configuration to v2.0.0.
+If your old code expected stricter defaults, review `Preset.STRICT` before switching. The main thing to check is CSP behavior, caching, framing, and HSTS preload.

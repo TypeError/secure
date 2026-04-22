@@ -12,7 +12,7 @@ In this library, `PermissionsPolicy` is a fluent builder for producing a single 
 - Enable selectively: allow features only where required, and only for trusted origins.
 - Validate in real browsers: support varies by feature and browser; test the behaviors you rely on.
 
-## Configuration with `secure`
+## Configuration with `Secure`
 
 ```python
 from secure import PermissionsPolicy, Secure
@@ -24,6 +24,8 @@ secure_headers = Secure(
         .camera()
 )
 ```
+
+`Preset.BALANCED` and `Preset.STRICT` include `geolocation=(), microphone=(), camera=()` by default; `Preset.BASIC` does not add `Permissions-Policy`.
 
 ## Allowlist syntax
 
@@ -58,8 +60,7 @@ Common methods you’ll use:
 ## Example usage
 
 ```python
-from secure import Secure
-from secure.headers import PermissionsPolicy
+from secure import PermissionsPolicy, Secure
 
 permissions_policy = (
     PermissionsPolicy()

@@ -17,12 +17,13 @@ If you create `XDnsPrefetchControl()` and do not set a directive, it returns the
 ```python
 from secure import Secure, XDnsPrefetchControl
 
-secure = Secure(
+secure_headers = Secure(
     xdfc=XDnsPrefetchControl().off()
 )
 ```
 
 If you don’t configure anything, the default value is emitted.
+`Preset.BASIC` includes `X-DNS-Prefetch-Control: off`; `Preset.BALANCED` and `Preset.STRICT` leave it out unless you add it explicitly.
 
 ## Common recipes
 
@@ -104,7 +105,7 @@ print(xdfc.header_value)  # off
 
 - Output is always a **single token** (`on` or `off`) when using `.on()` / `.off()` (stable and deterministic).
 - Setting the value multiple times overwrites the previous value (last call wins).
-- Header value sanitization (e.g., blocking CR/LF) is enforced by `Secure.validate_and_normalize_headers(...)`.
+- `.set(...)`, `.value(...)`, and `.custom(...)` reject CR/LF; `Secure.validate_and_normalize_headers(...)` performs the broader normalization pass.
 
 ## Compatibility notes
 
