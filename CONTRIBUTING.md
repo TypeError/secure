@@ -15,13 +15,13 @@ Thanks for helping make `secure` better. The following guidance keeps contributi
    ```
 3. Install the tooling used by the project:
    ```bash
-   pip install ruff
+   pip install pytest ruff
    ```
-   _Optional:_ `uv` is the package manager used by the project for releases; you can use `uv add ...` to manage dependencies, but it is not required for local development.
+   _Optional:_ `uv` is the package manager used by the project for releases; you can use `uv run pytest` and `uv add ...` to manage dependencies, but it is not required for local development.
 
 ## Running tests, linting, and formatting
 
-- **Run unit tests:** `python -m unittest tests/*/*.py`
+- **Run unit tests:** `pytest`
 - **Run the linter:** `ruff check`
 - **Apply formatting / fix issues:** `ruff format`
 
@@ -57,7 +57,7 @@ Run these commands before opening a pull request. If you rely on a different Pyt
 
 ## Pull request checklist
 
-- [ ] I have run `python -m unittest tests/*/*.py` locally (or a representative suite) and addressed any failures.
+- [ ] I have run `pytest` locally (or a representative suite) and addressed any failures.
 - [ ] I have run `ruff check` and `ruff format` (when formatting attr).
 - [ ] Documentation updates describe the new behavior (new header docs, framework guidance, etc.).
 - [ ] If applicable, I have updated the release notes/CHANGELOG entry for new user-visible behavior.
