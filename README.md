@@ -1,5 +1,9 @@
 # secure
 
+<p align="center">
+  <img src="https://typeerror.com/assets/secure-hex.png" alt="secure hex" width="200">
+</p>
+
 HTTP security headers for Python web applications, centered on one object: `Secure`.
 
 [![PyPI Version](https://img.shields.io/pypi/v/secure.svg)](https://pypi.org/project/secure/)
