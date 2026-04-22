@@ -2,14 +2,16 @@
 
 `secure` keeps the same `Secure` object across frameworks. What changes is how you attach it.
 
+Some sections below are first-class integrations with clear framework-level hooks or middleware. Others are intentionally minimal fallback examples where support is thinner or framework APIs vary by version.
+
 ## How to choose an integration style
 
 - Use `set_headers()` when the response object is synchronous and you are already inside a response hook, middleware callback, or view.
-- Use `set_headers_async()` in async code when the response object may expose async setters, or when you want one helper that works safely in async integrations.
+- Use `set_headers_async()` in async middleware, hooks, or handlers when you want one helper that works safely across async response objects.
 - Use `SecureWSGIMiddleware` when you want app-wide coverage and can wrap a WSGI application directly.
 - Use `SecureASGIMiddleware` when you want app-wide coverage in an ASGI stack such as FastAPI, Starlette, or Shiny.
 
-Prefer middleware when your framework makes it easy. Use per-response setters when you are integrating into an existing hook or only securing part of an application.
+Prefer middleware when your framework makes it easy and you want app-wide coverage. Use per-response setters when you are integrating into an existing hook, view, or minimal handler path.
 
 ## Uvicorn `Server` header
 
@@ -26,7 +28,6 @@ uvicorn.run(app, host="0.0.0.0", port=8000, server_header=False)
 - [aiohttp](#aiohttp)
 - [Bottle](#bottle)
 - [CherryPy](#cherrypy)
-- [Custom frameworks](#custom-frameworks)
 - [Dash](#dash)
 - [Django](#django)
 - [Falcon](#falcon)
@@ -42,6 +43,7 @@ uvicorn.run(app, host="0.0.0.0", port=8000, server_header=False)
 - [Starlette](#starlette)
 - [Tornado](#tornado)
 - [TurboGears](#turbogears)
+- [Custom frameworks](#custom-frameworks)
 
 ## aiohttp
 
@@ -118,9 +120,9 @@ def home():
 
 ## CherryPy
 
-Object-oriented framework where the response object is available in the handler.
+Minimal fallback example. CherryPy exposes the response object in the handler, so handler-level mutation is the practical integration point.
 
-### Fallback: set headers in the exposed method
+### Minimal fallback: set headers in the exposed method
 
 ```python
 import cherrypy
@@ -137,34 +139,6 @@ class App:
 
 
 cherrypy.quickstart(App())
-```
-
-## Custom frameworks
-
-If your framework is not listed here, the integration rule is still simple: configure one `Secure` instance, then apply it to the response as late as possible before it is sent.
-
-### Recommended: use the response object's setter or headers mapping
-
-```python
-from secure import Secure
-
-secure_headers = Secure.with_default_headers()
-
-
-def add_security_headers(response):
-    secure_headers.set_headers(response)
-    return response
-```
-
-### Fallback: emit header pairs manually
-
-```python
-from secure import Secure
-
-secure_headers = Secure.with_default_headers()
-
-for name, value in secure_headers.header_items():
-    response.headers[name] = value
 ```
 
 ## Dash
@@ -212,6 +186,8 @@ server.wsgi_app = SecureWSGIMiddleware(server.wsgi_app, secure=secure_headers)
 Django is usually best integrated through Django middleware rather than raw WSGI wrapping.
 
 ### Recommended: Django middleware class
+
+Register the middleware class in your Django `MIDDLEWARE` setting.
 
 ```python
 from secure import Secure
@@ -368,18 +344,17 @@ app.wsgi_app = SecureWSGIMiddleware(app.wsgi_app, secure=secure_headers)
 
 ## Masonite
 
-Minimal fallback example. Masonite routing and controller setup varies by version, so apply `Secure` to the response object you return.
+Minimal fallback example. Masonite routing and response APIs vary by version, so apply `Secure` to the response object you actually return.
 
-### Fallback: apply to the response you return
+### Minimal fallback: apply to the response you return
 
 ```python
-from masonite.response import Response
 from secure import Secure
 
 secure_headers = Secure.with_default_headers()
 
 
-def home(response: Response):
+def home(response):
     rendered = response.json({"hello": "world"})
     secure_headers.set_headers(rendered)
     return rendered
@@ -387,9 +362,9 @@ def home(response: Response):
 
 ## Morepath
 
-Minimal fallback example. Morepath does not use a conventional middleware layer for this.
+Minimal fallback example. Morepath does not expose a conventional middleware layer for this, so view-level mutation is the practical integration point.
 
-### Fallback: set headers in the view
+### Minimal fallback: set headers in the view
 
 ```python
 import morepath
@@ -491,9 +466,9 @@ async def home():
 
 ## Responder
 
-Minimal fallback example. Route handlers typically own the response.
+Minimal fallback example. Route handlers typically own the response, so route-level mutation is the practical integration point.
 
-### Fallback: set headers in the route
+### Minimal fallback: set headers in the route
 
 ```python
 import responder
@@ -529,6 +504,8 @@ async def add_security_headers(request, response):
     return response
 ```
 
+Use route-level setters when you only need a small integration or do not want extra app wiring in tests.
+
 ### Fallback: set headers in a route
 
 ```python
@@ -548,7 +525,7 @@ async def home(request):
 
 ## Shiny
 
-Shiny applications are ASGI apps, so ASGI middleware is the cleanest path.
+Shiny applications are ASGI apps, so ASGI middleware is the cleanest and most direct path.
 
 ### Recommended: `SecureASGIMiddleware`
 
@@ -616,9 +593,9 @@ app = Starlette(routes=[Route("/", home)])
 
 ## Tornado
 
-Tornado usually applies headers inside request handlers.
+Minimal fallback example. Tornado usually applies headers inside request handlers, so handler-level mutation is the practical integration point.
 
-### Fallback: set headers in the handler
+### Minimal fallback: set headers in the handler
 
 ```python
 import tornado.web
@@ -631,13 +608,16 @@ class MainHandler(tornado.web.RequestHandler):
     def get(self):
         self.write("Hello, world")
         secure_headers.set_headers(self)
+
+
+app = tornado.web.Application([(r"/", MainHandler)])
 ```
 
 ## TurboGears
 
-Minimal fallback example. If you do not already have a framework-level hook in place, apply headers in the controller response path.
+Minimal fallback example. If you do not already have a framework-level hook in place, controller-level mutation is the practical integration point.
 
-### Fallback: set headers in the controller
+### Minimal fallback: set headers in the controller
 
 ```python
 from tg import Response, TGController, expose
@@ -652,4 +632,35 @@ class RootController(TGController):
         response = Response("Hello, world")
         secure_headers.set_headers(response)
         return response
+
+
+root = RootController()
+```
+
+## Custom frameworks
+
+If your framework is not listed here, the integration rule is still simple: configure one `Secure` instance, then apply it to the response as late as possible before it is sent.
+
+### Recommended: use the response object's setter or headers mapping
+
+```python
+from secure import Secure
+
+secure_headers = Secure.with_default_headers()
+
+
+def add_security_headers(response):
+    secure_headers.set_headers(response)
+    return response
+```
+
+### Fallback: emit header pairs manually
+
+```python
+from secure import Secure
+
+secure_headers = Secure.with_default_headers()
+
+for name, value in secure_headers.header_items():
+    response.headers[name] = value
 ```
