@@ -651,6 +651,13 @@ class TestSecure(unittest.TestCase):
         with self.assertRaises(ValueError):
             secure_headers.allowlist_headers()  # default on_unexpected is "raise"
 
+    def test_allowlist_accepts_default_balanced_headers(self) -> None:
+        """The default allowlist should accept the default preset without extra configuration."""
+        secure_headers = Secure.with_default_headers().allowlist_headers()
+
+        header_names = [h.header_name for h in secure_headers.headers_list]
+        self.assertIn("Server", header_names)
+
     def test_allowlist_respects_allow_x_prefixed(self) -> None:
         """Allowlist can be relaxed to accept any `X-` header when requested."""
         secure_headers = Secure(custom=[CustomHeader("X-Extra-Header", "ok")])

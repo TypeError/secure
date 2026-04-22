@@ -24,6 +24,7 @@ secure_headers = Secure(
         .camera()
 )
 ```
+`Preset.BALANCED` and `Preset.STRICT` include `geolocation=(), microphone=(), camera=()` by default; `Preset.BASIC` does not add `Permissions-Policy`.
 
 ## Allowlist syntax
 
@@ -58,8 +59,7 @@ Common methods you’ll use:
 ## Example usage
 
 ```python
-from secure import Secure
-from secure.headers import PermissionsPolicy
+from secure import PermissionsPolicy, Secure
 
 permissions_policy = (
     PermissionsPolicy()

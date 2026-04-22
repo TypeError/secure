@@ -21,12 +21,13 @@ This is the least permissive option and is the most common secure setting when y
 ```python
 from secure import Secure, XPermittedCrossDomainPolicies
 
-secure = Secure(
+secure_headers = Secure(
     xpcdp=XPermittedCrossDomainPolicies().none()
 )
 ```
 
 If you don’t configure anything, the default value is emitted.
+`Preset.BASIC` includes `X-Permitted-Cross-Domain-Policies: none`; `Preset.BALANCED` and `Preset.STRICT` leave it out unless you add it explicitly.
 
 ## Common recipes
 

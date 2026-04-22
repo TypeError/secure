@@ -2,12 +2,12 @@
 
 ## Purpose
 
-The `CustomHeader` class allows the creation and management of custom HTTP headers with arbitrary names and values. This is particularly useful for adding non-standard headers to HTTP responses or requests, such as headers specific to your application or infrastructure.
+The `CustomHeader` class lets you create arbitrary HTTP response headers when `secure` does not provide a dedicated builder.
 
 ## Best Practices
 
-- Custom headers should follow the convention of using a prefix like `X-` (e.g., `X-Custom-Header`), although this is no longer a requirement as per the latest RFC.
-- Be cautious when adding custom headers to avoid potential conflicts or leaking sensitive information.
+- Prefer standard header names when they exist; use custom names only for application- or infrastructure-specific behavior.
+- If you use `allowlist_headers(...)`, remember that custom names may need to be added through `allow_extra=...`.
 
 ## Configuration with `secure`
 
@@ -16,12 +16,14 @@ The `CustomHeader` class in `secure` provides flexibility for developers to defi
 ### Example Configuration
 
 ```python
+from secure import CustomHeader
+
 custom_header = CustomHeader("X-Custom-Header", "CustomValue")
 ```
 
 ### Methods Available
 
-- **`set(value)`**: Updates the value of the custom header.
+- **`set(value)` / `value(value)`**: Updates the value of the custom header.
 - **`header_value`**: Property that retrieves the current value of the custom header.
 
 ## Example Usage
@@ -29,6 +31,8 @@ custom_header = CustomHeader("X-Custom-Header", "CustomValue")
 To define a custom header and use it in a secure configuration:
 
 ```python
+from secure import CustomHeader
+
 custom_header = CustomHeader("X-Custom-Header", "CustomValue")
 print(custom_header.header_name)   # Output: 'X-Custom-Header'
 print(custom_header.header_value)  # Output: 'CustomValue'

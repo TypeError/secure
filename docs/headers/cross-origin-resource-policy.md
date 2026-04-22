@@ -19,12 +19,15 @@ The `CrossOriginResourcePolicy` class provides a fluent API for setting CORP dir
 ### Example Configuration
 
 ```python
+from secure import CrossOriginResourcePolicy, Secure
+
 secure_headers = Secure(
     corp=CrossOriginResourcePolicy().same_origin()
 )
 ```
 
 > Library default: if you do not change it, the library’s default value is `same-origin`.
+> Presets: `Preset.BASIC` and `Preset.BALANCED` include `same-origin`; `Preset.STRICT` does not add CORP by default.
 
 ### Methods Available
 

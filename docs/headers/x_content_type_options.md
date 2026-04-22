@@ -21,6 +21,7 @@ This helps reduce the risk of content being interpreted as executable when it sh
 The `XContentTypeOptions` class configures `X-Content-Type-Options`.
 
 **Default header value:** `nosniff`
+All built-in presets include `X-Content-Type-Options: nosniff`.
 
 ### Minimal configuration
 

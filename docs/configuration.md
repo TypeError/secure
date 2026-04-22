@@ -84,8 +84,10 @@ This replaces the preset HSTS builder while leaving the rest of the preset untou
 
 If you need stronger guarantees before emission, `Secure` also exposes optional pipeline helpers:
 
-- `allowlist_headers(...)` filters or rejects unexpected header names.
-- `deduplicate_headers(...)` resolves duplicate header names before you build a single-valued mapping.
-- `validate_and_normalize_headers(...)` sanitizes header names and values, then caches the normalized mapping used by `.headers`, `set_headers`, and `set_headers_async`.
+- `allowlist_headers(...)` filters or rejects unexpected header names in the current `headers_list`.
+- `deduplicate_headers(...)` resolves duplicate header names in `headers_list` before you build a single-valued mapping.
+- `validate_and_normalize_headers(...)` validates and normalizes the current `header_items()`, then caches the single-valued mapping used by `.headers`, `set_headers`, and `set_headers_async`.
+
+If you intentionally emit duplicate headers such as multiple `Content-Security-Policy` values, use `header_items()` instead of `.headers`.
 
 For per-header builder details, see the docs under [headers](./headers).

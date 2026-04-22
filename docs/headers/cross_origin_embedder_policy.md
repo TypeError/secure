@@ -28,7 +28,7 @@ COEP is a **single-value** header (choose one):
 If you want “no-op” behavior, you must explicitly choose it:
 
 ```python
-from secure.headers import CrossOriginEmbedderPolicy
+from secure import CrossOriginEmbedderPolicy
 
 coep = CrossOriginEmbedderPolicy().unsafe_none()
 ```
@@ -43,22 +43,22 @@ Some powerful browser features require your document to be **cross-origin isolat
 ## Usage with `Secure`
 
 ```python
-from secure import Secure
-from secure.headers import CrossOriginEmbedderPolicy, CrossOriginOpenerPolicy
+from secure import CrossOriginEmbedderPolicy, CrossOriginOpenerPolicy, Secure
 
-secure = Secure(
+secure_headers = Secure(
     coep=CrossOriginEmbedderPolicy().require_corp(),
     coop=CrossOriginOpenerPolicy().same_origin(),
 )
 
 # Inspect emitted headers:
-print(secure.header_items())
+print(secure_headers.header_items())
 ```
+`Preset.STRICT` includes COEP by default; `Preset.BASIC` and `Preset.BALANCED` do not.
 
 ## Header builder API
 
 ```python
-from secure.headers import CrossOriginEmbedderPolicy
+from secure import CrossOriginEmbedderPolicy
 
 coep = (
     CrossOriginEmbedderPolicy()

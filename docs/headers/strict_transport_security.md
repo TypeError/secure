@@ -27,8 +27,7 @@ If you do not configure any directives, this library emits the default header va
 The `StrictTransportSecurity` header module supports fluent, chainable configuration:
 
 ```python
-from secure import Secure
-from secure.headers import StrictTransportSecurity
+from secure import Secure, StrictTransportSecurity
 
 secure_headers = Secure(
     hsts=StrictTransportSecurity()
@@ -36,13 +35,14 @@ secure_headers = Secure(
         .include_subdomains()
 )
 ```
+`Preset.BASIC` and `Preset.BALANCED` use one year with `includeSubDomains`; `Preset.STRICT` uses two years with `includeSubDomains`.
 
 ### Preload configuration
 
 If you opt into preload, the library ensures preload requirements are satisfied:
 
 ```python
-from secure.headers import StrictTransportSecurity
+from secure import StrictTransportSecurity
 
 hsts = (
     StrictTransportSecurity()
@@ -82,7 +82,7 @@ If `preload()` is enabled with a `max-age` less than `31536000`, the header buil
 Minimal one-year HSTS:
 
 ```python
-from secure.headers import StrictTransportSecurity
+from secure import StrictTransportSecurity
 
 hsts = StrictTransportSecurity().max_age(31536000)
 print(hsts.header_value)  # 'max-age=31536000'
@@ -91,7 +91,7 @@ print(hsts.header_value)  # 'max-age=31536000'
 One-year HSTS including subdomains:
 
 ```python
-from secure.headers import StrictTransportSecurity
+from secure import StrictTransportSecurity
 
 hsts = StrictTransportSecurity().max_age(31536000).include_subdomains()
 print(hsts.header_value)  # 'max-age=31536000; includeSubDomains'

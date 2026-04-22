@@ -24,6 +24,7 @@ DEFAULT_ALLOWED_HEADERS: frozenset[str] = frozenset(
         "origin-agent-cluster",
         "permissions-policy",
         "referrer-policy",
+        "server",
         "strict-transport-security",
         "x-content-type-options",
         "x-dns-prefetch-control",

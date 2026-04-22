@@ -32,16 +32,15 @@ This directive is **obsolete**. Modern browsers that encounter `ALLOW-FROM` may 
 ### Minimal usage
 
 ```python
-from secure import Secure
-from secure.headers import XFrameOptions
+from secure import Secure, XFrameOptions
 
-secure = Secure(xfo=XFrameOptions().sameorigin())
+secure_headers = Secure(xfo=XFrameOptions().sameorigin())
 ```
 
 ### Choose a directive
 
 ```python
-from secure.headers import XFrameOptions
+from secure import XFrameOptions
 
 xfo = XFrameOptions().deny()
 print(xfo.header_name)   # 'X-Frame-Options'
@@ -53,7 +52,7 @@ print(xfo.header_value)  # 'DENY'
 If you already have a fully-formed value, set it directly:
 
 ```python
-from secure.headers import XFrameOptions
+from secure import XFrameOptions
 
 xfo = XFrameOptions().value("SAMEORIGIN")
 # Aliases (for compatibility / readability):
@@ -71,7 +70,7 @@ print(xfo.header_value)  # 'SAMEORIGIN'
 ### Obsolete directive (not recommended)
 
 ```python
-from secure.headers import XFrameOptions
+from secure import XFrameOptions
 
 # Warning: obsolete; prefer CSP frame-ancestors
 xfo = XFrameOptions().allow_from("https://example.com")

@@ -19,6 +19,7 @@ default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'; base
 ```
 
 This matches `HeaderDefaultValue.CONTENT_SECURITY_POLICY`.
+The built-in presets use explicit CSP builders rather than this bare builder default; `Preset.BASIC` and `Preset.BALANCED` add `font-src`, `img-src`, `script-src-attr`, `style-src`, and `upgrade-insecure-requests`.
 
 ## Best-practice baseline
 
@@ -49,7 +50,7 @@ csp = (
     .base_uri(ContentSecurityPolicy.keyword("self"))
 )
 
-secure = Secure(csp=csp)
+secure_headers = Secure(csp=csp)
 ```
 
 Then apply headers in your framework integration:
@@ -59,11 +60,11 @@ Then apply headers in your framework integration:
 from flask import Flask, Response
 
 app = Flask(__name__)
-secure = Secure(csp=csp)
+secure_headers = Secure(csp=csp)
 
 @app.after_request
 def add_security_headers(response: Response) -> Response:
-    secure.set_headers(response)
+    secure_headers.set_headers(response)
     return response
 ```
 
@@ -79,7 +80,7 @@ csp_report_only = (
     .script_src(ContentSecurityPolicy.keyword("self"))
 )
 
-secure = Secure(csp=csp_report_only)
+secure_headers = Secure(csp=csp_report_only)
 ```
 
 Use `.enforce()` to switch back to the enforcing header name.

@@ -17,12 +17,13 @@ This is a secure baseline intended to prevent storage of sensitive responses.
 ```python
 from secure import CacheControl, Secure
 
-secure = Secure(
+secure_headers = Secure(
     cache=CacheControl().no_store().max_age(0)
 )
 ```
 
 If you don’t configure any directives, the default value is emitted.
+`Preset.STRICT` includes `Cache-Control: no-store, max-age=0`; `Preset.BASIC` and `Preset.BALANCED` leave caching unchanged unless you add this builder.
 
 ## Common recipes
 

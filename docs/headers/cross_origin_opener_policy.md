@@ -21,8 +21,7 @@ The `Cross-Origin-Opener-Policy` (COOP) response header controls whether documen
 Use the `CrossOriginOpenerPolicy` builder and pass it into `Secure(...)`:
 
 ```python
-from secure import Secure
-from secure.headers import CrossOriginOpenerPolicy
+from secure import CrossOriginOpenerPolicy, Secure
 
 secure_headers = Secure(
     coop=CrossOriginOpenerPolicy().same_origin()
@@ -47,6 +46,8 @@ Escape hatches:
 ## Example Usage
 
 ```python
+from secure import CrossOriginOpenerPolicy, Secure
+
 coop = CrossOriginOpenerPolicy().same_origin()
 print(coop.header_name)   # 'Cross-Origin-Opener-Policy'
 print(coop.header_value)  # 'same-origin'
