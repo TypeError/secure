@@ -241,15 +241,12 @@ In your HTML rendering, use the same nonce:
 ## References
 
 - MDN: Content-Security-Policy
-
   - [https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy)
 
 - MDN: CSP guide
-
   - [https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP)
 
 - OWASP Secure Headers Project
-
   - [https://owasp.org/www-project-secure-headers/#content-security-policy](https://owasp.org/www-project-secure-headers/#content-security-policy)
 
 ## Attribution

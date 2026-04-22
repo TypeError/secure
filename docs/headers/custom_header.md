@@ -9,9 +9,9 @@ The `CustomHeader` class lets you create arbitrary HTTP response headers when `s
 - Prefer standard header names when they exist; use custom names only for application- or infrastructure-specific behavior.
 - If you use `allowlist_headers(...)`, remember that custom names may need to be added through `allow_extra=...`.
 
-## Configuration with `secure`
+## Configuration with `Secure`
 
-The `CustomHeader` class in `secure` provides flexibility for developers to define and set custom HTTP headers as needed. You can specify both the header name and value and update the value later if necessary.
+Use `CustomHeader` when you need a header without a dedicated builder. You can set the name and value directly, then update the value later if needed.
 
 ### Example Configuration
 
@@ -42,7 +42,7 @@ custom_header.set("NewValue")
 print(custom_header.header_value)  # Output: 'NewValue'
 ```
 
-This can then be applied as part of your Secure headers configuration:
+Then pass it into `Secure`:
 
 ```python
 from secure import Secure

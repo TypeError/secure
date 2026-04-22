@@ -10,9 +10,9 @@ The `Server` header can reveal details about the software handling the request. 
 - **Avoid exposing server information**: Avoid leaving the default server response, which may expose sensitive version information.
 - **Check upstream defaults**: Proxies, ASGI servers, and framework middleware may still add their own `Server` header unless you disable that behavior.
 
-## Configuration with `secure`
+## Configuration with `Secure`
 
-The `Server` class in `secure` allows you to easily control the `Server` header value, with the default value set to an empty string to enhance security.
+Use `Server` to control the `Server` header value. Its default value is an empty string.
 
 ### Example Configuration
 
@@ -41,7 +41,7 @@ print(server_header.header_name)   # Output: 'Server'
 print(server_header.header_value)  # Output: ''
 ```
 
-This can then be applied as part of your Secure headers configuration:
+Then pass it into `Secure`:
 
 ```python
 from secure import Secure

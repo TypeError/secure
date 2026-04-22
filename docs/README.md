@@ -1,6 +1,6 @@
 # Documentation
 
-Use this index when you already know what you need. For the first-use path, start with the [top-level README](../README.md).
+Use this index when you know what you need. For a first pass, start with the [top-level README](../README.md).
 
 ## Start here
 

@@ -1,6 +1,6 @@
 # Configuration Guide
 
-This guide covers the parts of `secure` you are most likely to customize after the quick start. In normal use, keep `Secure` as the public facade and pass it the header builders you need.
+This guide covers the parts of `secure` you are most likely to customize after the quick start. Keep `Secure` as the public entry point and pass it the builders you need.
 
 ## Default configuration
 
@@ -86,7 +86,7 @@ If you need stronger guarantees before emission, `Secure` also exposes optional 
 
 - `allowlist_headers(...)` filters or rejects unexpected header names in the current `headers_list`.
 - `deduplicate_headers(...)` resolves duplicate header names in `headers_list` before you build a single-valued mapping.
-- `validate_and_normalize_headers(...)` validates and normalizes the current `header_items()`, then caches the single-valued mapping used by `.headers`, `set_headers`, and `set_headers_async`.
+- `validate_and_normalize_headers(...)` validates and normalizes the current `header_items()`, then caches the single-valued mapping used by `.headers`, `set_headers()`, and `set_headers_async()`.
 
 If you intentionally emit duplicate headers such as multiple `Content-Security-Policy` values, use `header_items()` instead of `.headers`.
 

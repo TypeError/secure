@@ -16,12 +16,12 @@ This helps reduce the risk of content being interpreted as executable when it sh
 - **Set to `nosniff`** (recommended): This is the standard and widely supported directive.
 - **Use correct `Content-Type` values**: `nosniff` is most effective when your server sends accurate MIME types.
 
-## Configuration in `secure`
+## Configuration with `Secure`
 
 The `XContentTypeOptions` class configures `X-Content-Type-Options`.
 
 **Default header value:** `nosniff`
-All built-in presets include `X-Content-Type-Options: nosniff`.
+All built-in presets include it.
 
 ### Minimal configuration
 

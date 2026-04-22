@@ -53,6 +53,7 @@ secure_headers = Secure(
 # Inspect emitted headers:
 print(secure_headers.header_items())
 ```
+
 `Preset.STRICT` includes COEP by default; `Preset.BASIC` and `Preset.BALANCED` do not.
 
 ## Header builder API

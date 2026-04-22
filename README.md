@@ -9,7 +9,7 @@ HTTP security headers for Python web applications, centered on one object: `Secu
 
 `secure` exists to keep header policy out of ad hoc view code. Instead of copying header strings into routes, middleware, and framework-specific hooks, you configure one `Secure` instance and apply it consistently.
 
-That matters because hand-written header code tends to drift. Headers get missed, defaults vary between apps, and sync or async framework details leak into code that should be simple. `secure` gives you a small public API, opinionated presets, and typed builders when you need to go beyond the defaults.
+Hand-written header code tends to drift. Headers get missed, defaults vary between apps, and sync or async framework details leak into otherwise simple code. `secure` gives you a small public API, opinionated presets, and typed builders when you need to go beyond the defaults.
 
 ## Install
 
@@ -30,23 +30,20 @@ Start with `Secure.with_default_headers()`. It uses `Preset.BALANCED`, the recom
 ```python
 from secure import Secure
 
-secure_headers = Secure.with_default_headers()
+class Response:
+    def __init__(self):
+        self.headers = {}
 
-
-def add_security_headers(response):
-    secure_headers.set_headers(response)
-    return response
-
-
-async def add_security_headers_async(response):
-    await secure_headers.set_headers_async(response)
-    return response
+response = Response()
+Secure.with_default_headers().set_headers(response)
 ```
 
 `Secure` applies headers to response objects that expose either:
 
 - `response.set_header(name, value)`
 - `response.headers[name] = value`
+
+The quick start uses the `response.headers[name] = value` form.
 
 Use `set_headers()` for synchronous response objects. Use `set_headers_async()` in async code or when the response object may use async setters.
 

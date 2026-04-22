@@ -31,6 +31,7 @@ secure_headers = Secure(
     referrer=ReferrerPolicy()  # uses the default: strict-origin-when-cross-origin
 )
 ```
+
 `Preset.BALANCED` uses `strict-origin-when-cross-origin`; `Preset.BASIC` and `Preset.STRICT` use `no-referrer`.
 
 ### Set a single explicit policy
