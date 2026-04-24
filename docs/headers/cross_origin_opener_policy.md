@@ -1,8 +1,28 @@
 # Cross-Origin-Opener-Policy
 
-## Purpose
+## What it does
 
 The `Cross-Origin-Opener-Policy` (COOP) response header controls whether documents opened via `Window.open()` (or navigations) share the same **browsing context group (BCG)** as their opener. When a document is opened into a new BCG, references between the opener and the opened document are severed, which helps mitigate cross-origin attacks often referred to as **XS-Leaks**.
+
+## Minimal example
+
+```python
+from secure import CrossOriginOpenerPolicy, Secure
+
+secure_headers = Secure(
+    coop=CrossOriginOpenerPolicy().same_origin()
+)
+```
+
+## Resulting header
+
+```http
+Cross-Origin-Opener-Policy: same-origin
+```
+
+## Practical note
+
+`same-origin` is a strong default, but popup-based flows such as OAuth or payment providers sometimes need `same-origin-allow-popups`. Test those flows before tightening COOP.
 
 ## Defaults
 
@@ -18,15 +38,7 @@ The `Cross-Origin-Opener-Policy` (COOP) response header controls whether documen
 
 ## Configuration with `Secure`
 
-Use the `CrossOriginOpenerPolicy` builder and pass it into `Secure(...)`:
-
-```python
-from secure import CrossOriginOpenerPolicy, Secure
-
-secure_headers = Secure(
-    coop=CrossOriginOpenerPolicy().same_origin()
-)
-```
+Use the `CrossOriginOpenerPolicy` builder and pass it into `Secure(...)`.
 
 ## Methods Available
 
@@ -63,5 +75,5 @@ secure_headers = Secure(coop=coop)
 
 This library implements security recommendations from trusted sources:
 
-- MDN Web Docs: Cross-Origin-Opener-Policy (licensed under CC-BY-SA 2.5)
-- OWASP Secure Headers Project (licensed under CC-BY-SA 4.0)
+- [MDN Web Docs: Cross-Origin-Opener-Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cross-Origin-Opener-Policy) (licensed under [CC-BY-SA 2.5](https://creativecommons.org/licenses/by-sa/2.5/))
+- [OWASP Secure Headers Project](https://owasp.org/www-project-secure-headers/#cross-origin-opener-policy) (licensed under [CC-BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/))

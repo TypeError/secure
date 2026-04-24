@@ -13,6 +13,25 @@ Some sections below are first-class integrations with clear framework-level hook
 
 Prefer middleware when your framework makes it easy and you want app-wide coverage. Use per-response setters when you are integrating into an existing hook, view, or minimal handler path.
 
+## Middleware behavior
+
+`SecureASGIMiddleware` and `SecureWSGIMiddleware` share the same core behavior:
+
+- Configured header names are overwritten by default so stale values do not accumulate.
+- Pass `multi_ok` when a header should be preserved and `secure` should append its own value instead.
+- The default `secure.MULTI_OK` setting allows controlled duplication for headers such as `Content-Security-Policy`.
+- `SecureASGIMiddleware` only modifies HTTP responses. WebSocket and other non-HTTP scopes pass through unchanged.
+
+Example:
+
+```python
+from secure import Secure
+from secure.middleware import SecureASGIMiddleware
+
+secure_headers = Secure.with_default_headers()
+secured_app = SecureASGIMiddleware(app, secure=secure_headers, multi_ok={"content-security-policy"})
+```
+
 ## Uvicorn `Server` header
 
 Uvicorn adds `Server: uvicorn` by default. If you want `secure` to control the `Server` header, disable Uvicorn's default header with `--no-server-header` or `server_header=False`.
@@ -546,6 +565,8 @@ def server(input, output, session):
 app = App(app_ui, server)
 app = SecureASGIMiddleware(app, secure=secure_headers)
 ```
+
+If your Shiny app loads external assets or opens additional browser connections, you may need to extend CSP directives such as `connect-src`, `script-src`, or `style-src`. Start from the balanced preset and test the running app before relaxing the policy.
 
 ## Starlette
 

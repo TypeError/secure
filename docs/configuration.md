@@ -18,6 +18,10 @@ This guide covers the parts of `secure` you are most likely to customize after t
 
 Balanced intentionally skips `Cache-Control` and the compatibility headers (`X-Permitted-Cross-Domain-Policies`, `X-DNS-Prefetch-Control`, `Origin-Agent-Cluster`, `X-Download-Options`, `X-XSS-Protection`). Add them explicitly when your deployment still depends on them.
 
+`Preset.BALANCED` is the recommended default. `Preset.BASIC` is the compatibility-oriented option that most closely matches Helmet-style defaults. `Preset.STRICT` is available when you want tighter CSP and stronger isolation. It is not the default.
+
+The balanced CSP includes `'unsafe-inline'` in `style-src` for compatibility. It does not allow inline scripts by default. If your app needs a looser CSP, treat that as an app-specific adjustment and test it against real behavior.
+
 ## Customizing individual builders
 
 All public header builders are re-exported from `secure`, so most applications can stay on the package-level API.
@@ -66,7 +70,7 @@ Every `Secure` instance exposes its configured builders through `headers_list`, 
 ```python
 from secure import Preset, Secure, StrictTransportSecurity
 
-secure_headers = Secure.from_preset(Preset.BASIC)
+secure_headers = Secure.from_preset(Preset.BALANCED)
 
 secure_headers.headers_list = [
     header
@@ -79,6 +83,15 @@ secure_headers.headers_list.append(
 ```
 
 This replaces the preset HSTS builder while leaving the rest of the preset untouched.
+If you need the compatibility profile instead, start from `Preset.BASIC`.
+
+## Middleware behavior
+
+The ASGI and WSGI middleware classes use the same `Secure` instance you would use in hooks or handlers:
+
+- Existing header values are overwritten by default for configured header names.
+- Pass `multi_ok` when a header name should be preserved and appended instead.
+- `SecureASGIMiddleware` only changes HTTP responses. WebSocket scopes pass through unchanged.
 
 ## Validation and normalization
 

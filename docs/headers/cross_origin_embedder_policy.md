@@ -1,6 +1,6 @@
 # Cross-Origin-Embedder-Policy (COEP)
 
-## Purpose
+## What it does
 
 The **`Cross-Origin-Embedder-Policy`** response header configures the current document’s policy for **loading and embedding cross-origin resources**.
 
@@ -9,6 +9,27 @@ At a high level, COEP lets you:
 - keep the default behavior (`unsafe-none`),
 - require explicit opt-in via **CORP** (`Cross-Origin-Resource-Policy`) and/or **CORS** (`require-corp`), or
 - allow some cross-origin loading while **stripping credentials** (`credentialless`).
+
+## Minimal example
+
+```python
+from secure import CrossOriginEmbedderPolicy, CrossOriginOpenerPolicy, Secure
+
+secure_headers = Secure(
+    coep=CrossOriginEmbedderPolicy().require_corp(),
+    coop=CrossOriginOpenerPolicy().same_origin(),
+)
+```
+
+## Resulting header
+
+```http
+Cross-Origin-Embedder-Policy: require-corp
+```
+
+## Practical note
+
+COEP is most useful when you are intentionally working toward cross-origin isolation. It can break third-party assets that do not send compatible CORP or CORS headers, so test the full app before enabling it broadly.
 
 ## Directive values
 
@@ -42,17 +63,7 @@ Some powerful browser features require your document to be **cross-origin isolat
 
 ## Usage with `Secure`
 
-```python
-from secure import CrossOriginEmbedderPolicy, CrossOriginOpenerPolicy, Secure
-
-secure_headers = Secure(
-    coep=CrossOriginEmbedderPolicy().require_corp(),
-    coop=CrossOriginOpenerPolicy().same_origin(),
-)
-
-# Inspect emitted headers:
-print(secure_headers.header_items())
-```
+You can inspect the emitted header pairs with `secure_headers.header_items()` if you need to confirm the final output.
 
 `Preset.STRICT` includes COEP by default; `Preset.BASIC` and `Preset.BALANCED` do not.
 
@@ -72,11 +83,11 @@ print(coep.header_value)  # "credentialless"
 
 ### Methods
 
-- `unsafe_none()` — set value to `unsafe-none`
-- `require_corp()` — set value to `require-corp`
-- `credentialless()` — set value to `credentialless`
-- `set(value)` — escape hatch: set a custom value (string)
-- `clear()` — reset to the library default (`require-corp`)
+- `unsafe_none()`: set the value to `unsafe-none`
+- `require_corp()`: set the value to `require-corp`
+- `credentialless()`: set the value to `credentialless`
+- `set(value)`: set a custom value
+- `clear()`: reset to the library default (`require-corp`)
 
 ## Notes / gotchas
 
@@ -87,5 +98,5 @@ print(coep.header_value)  # "credentialless"
 
 This library implements security recommendations and definitions from trusted sources:
 
-- MDN Web Docs (CC-BY-SA 2.5): https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cross-Origin-Embedder-Policy
-- OWASP Secure Headers Project (CC-BY-SA 4.0): https://owasp.org/www-project-secure-headers/#cross-origin-embedder-policy
+- [MDN Web Docs](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cross-Origin-Embedder-Policy) (CC-BY-SA 2.5)
+- [OWASP Secure Headers Project](https://owasp.org/www-project-secure-headers/#cross-origin-embedder-policy) (CC-BY-SA 4.0)

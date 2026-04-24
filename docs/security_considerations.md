@@ -24,7 +24,8 @@ The `Content-Security-Policy` header limits which sources the browser will trust
 
 - [MDN Docs - Content-Security-Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy)
 - **Best Practice**: Start with a restrictive baseline and expand only where the application requires it. Use nonces or hashes for inline scripts when possible.
-- **Pitfall**: Overly permissive CSP rules (e.g., using `unsafe-inline`, `unsafe-eval`, or `*`) can leave your application vulnerable to XSS attacks.
+- **Pitfall**: Overly permissive CSP rules such as `unsafe-inline`, `unsafe-eval`, or broad allowlists can leave your application vulnerable to XSS attacks.
+- **Library note**: `Preset.BALANCED` allows `'unsafe-inline'` in `style-src` for compatibility. It does not allow inline scripts by default. If you add `'unsafe-inline'` to `script-src`, treat it as an app-specific compatibility change and test the real app before rollout.
 
 ---
 

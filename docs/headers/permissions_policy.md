@@ -1,18 +1,12 @@
 # Permissions-Policy
 
-## Purpose
+## What it does
 
 The `Permissions-Policy` HTTP response header lets you enable or disable access to selected browser features and powerful APIs in the current document and in nested browsing contexts (iframes). It replaces the deprecated `Feature-Policy` header.
 
 In this library, `PermissionsPolicy` is a fluent builder for producing a single `Permissions-Policy` header value, suitable for applying via `Secure`.
 
-## Best practices
-
-- Start restrictive: disable features you don’t need to reduce attack surface and protect privacy.
-- Enable selectively: allow features only where required, and only for trusted origins.
-- Validate in real browsers: support varies by feature and browser; test the behaviors you rely on.
-
-## Configuration with `Secure`
+## Minimal example
 
 ```python
 from secure import PermissionsPolicy, Secure
@@ -24,6 +18,24 @@ secure_headers = Secure(
         .camera()
 )
 ```
+
+## Resulting header
+
+```http
+Permissions-Policy: geolocation=(), microphone=(), camera=()
+```
+
+## Practical note
+
+Browser support varies by feature. Keep the policy restrictive, then test the specific features your app actually needs in real browsers.
+
+## Best practices
+
+- Start restrictive: disable features you don’t need to reduce attack surface and protect privacy.
+- Enable selectively: allow features only where required, and only for trusted origins.
+- Validate in real browsers: support varies by feature and browser; test the behaviors you rely on.
+
+## Configuration with `Secure`
 
 `Preset.BALANCED` and `Preset.STRICT` include `geolocation=(), microphone=(), camera=()` by default; `Preset.BASIC` does not add `Permissions-Policy`.
 
@@ -77,8 +89,8 @@ secure_headers = Secure(permissions=permissions_policy)
 
 ## Resources
 
-- MDN Web Docs: Permissions-Policy (Reference) — https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Permissions-Policy
-- OWASP Secure Headers Project: Permissions-Policy — https://owasp.org/www-project-secure-headers/#permissions-policy
+- [MDN Web Docs: Permissions-Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Permissions-Policy)
+- [OWASP Secure Headers Project: Permissions-Policy](https://owasp.org/www-project-secure-headers/#permissions-policy)
 
 ## Attribution
 

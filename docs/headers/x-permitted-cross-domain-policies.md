@@ -1,12 +1,32 @@
 # X-Permitted-Cross-Domain-Policies
 
-## Purpose
+## What it does
 
 `X-Permitted-Cross-Domain-Policies` is a **response header** that sets a _meta-policy_ controlling whether site resources can be accessed cross-origin by documents running in legacy web clients (for example, Adobe Acrobat or Microsoft Silverlight).
 
 Usage is less common today because Flash/Silverlight have been deprecated, but many security testing tools still check for `X-Permitted-Cross-Domain-Policies: none` to reduce the risk of an overly-permissive cross-domain policy being present accidentally or maliciously.
 
 > This documentation format mirrors the style used in the existing header docs (e.g., Cache-Control).
+
+## Minimal example
+
+```python
+from secure import Secure, XPermittedCrossDomainPolicies
+
+secure_headers = Secure(
+    xpcdp=XPermittedCrossDomainPolicies().none()
+)
+```
+
+## Resulting header
+
+```http
+X-Permitted-Cross-Domain-Policies: none
+```
+
+## Practical note
+
+Most modern apps do not need this header, but security scanners still look for it. Add it when you want an explicit deny policy for legacy cross-domain policy files.
 
 ## Default behavior
 
@@ -17,14 +37,6 @@ If you create `XPermittedCrossDomainPolicies()` and do not set a policy, it retu
 This is the least permissive option and is the most common secure setting when you do not need legacy cross-domain policy behavior.
 
 ## Using with `Secure`
-
-```python
-from secure import Secure, XPermittedCrossDomainPolicies
-
-secure_headers = Secure(
-    xpcdp=XPermittedCrossDomainPolicies().none()
-)
-```
 
 If you don’t configure anything, the default value is emitted.
 `Preset.BASIC` includes `X-Permitted-Cross-Domain-Policies: none`; `Preset.BALANCED` and `Preset.STRICT` leave it out unless you add it explicitly.

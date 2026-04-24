@@ -1,8 +1,28 @@
 # Cache-Control
 
-## Purpose
+## What it does
 
 `Cache-Control` is a comma-separated list of **directives** that control caching behavior for both **requests** and **responses**. Used correctly, it helps prevent sensitive data from being cached and improves performance for cacheable assets.
+
+## Minimal example
+
+```python
+from secure import CacheControl, Secure
+
+secure_headers = Secure(
+    cache=CacheControl().no_store().max_age(0)
+)
+```
+
+## Resulting header
+
+```http
+Cache-Control: no-store, max-age=0
+```
+
+## Practical note
+
+Use `no-store` for sensitive pages such as sign-in or account settings. `no-cache` is different. It allows storage but requires revalidation before reuse.
 
 ## Default behavior
 
@@ -14,15 +34,7 @@ This is a secure baseline intended to prevent storage of sensitive responses.
 
 ## Using with `Secure`
 
-```python
-from secure import CacheControl, Secure
-
-secure_headers = Secure(
-    cache=CacheControl().no_store().max_age(0)
-)
-```
-
-If you don’t configure any directives, the default value is emitted.
+If you do not configure any directives, the default value is emitted.
 `Preset.STRICT` includes `Cache-Control: no-store, max-age=0`; `Preset.BASIC` and `Preset.BALANCED` leave caching unchanged unless you add this builder.
 
 ## Common recipes

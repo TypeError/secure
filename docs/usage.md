@@ -23,8 +23,8 @@ strict = Secure.from_preset(Preset.STRICT)
 ```
 
 - `Preset.BALANCED`: recommended default for most applications.
-- `Preset.BASIC`: adds legacy and interoperability headers.
-- `Preset.STRICT`: tighter CSP, disabled caching, and stricter framing rules.
+- `Preset.BASIC`: Helmet-style compatibility.
+- `Preset.STRICT`: tighter CSP, cross-origin isolation headers, disabled caching, and stricter framing rules.
 
 ## Apply headers to a response
 
@@ -61,6 +61,24 @@ async def add_security_headers(response):
 
 If your framework uses a different contract, emit headers manually with `header_items()`.
 
+## App-wide middleware
+
+If you want application-wide coverage, use the middleware classes from `secure.middleware`.
+
+- Both `SecureASGIMiddleware` and `SecureWSGIMiddleware` overwrite configured header names by default.
+- Use `multi_ok` when you intentionally want controlled duplication instead of overwrite.
+- `SecureASGIMiddleware` only modifies HTTP responses. WebSocket and other non-HTTP scopes pass through unchanged.
+
+```python
+from secure import Secure
+from secure.middleware import SecureASGIMiddleware
+
+secure_headers = Secure.with_default_headers()
+secured_app = SecureASGIMiddleware(app, secure=secure_headers)
+```
+
+If you need multiple `Content-Security-Policy` headers, keep those names in `multi_ok` and emit the policy values you intend to preserve.
+
 ## Build an explicit configuration
 
 Presets are the shortest path. When you need more control, pass builder objects into `Secure`.
@@ -86,6 +104,7 @@ secure_headers = Secure(
 ```
 
 This keeps the configuration readable while avoiding hand-built header strings.
+Stricter CSP changes should always be tested against the real application before rollout.
 
 ## Optional validation pipeline
 

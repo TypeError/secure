@@ -15,12 +15,13 @@ If your application already uses `Secure` to set headers on responses, the upgra
 - Import from the package root: `from secure import Secure, Preset, ContentSecurityPolicy`.
 - `Secure.with_default_headers()` now means `Secure.from_preset(Preset.BALANCED)`.
 - Presets are now `Preset.BALANCED`, `Preset.BASIC`, and `Preset.STRICT`.
+- `Preset.BALANCED` is the recommended default. `Preset.BASIC` is the compatibility-oriented option. `Preset.STRICT` is not the default.
 - `set_headers_async(response)` is available for async integrations and async response setters.
 - `secure.middleware` exposes `SecureWSGIMiddleware` and `SecureASGIMiddleware` for app-wide integration.
 
 ## What might break
 
-- `Preset.MODERN` is gone. Replace it with `Preset.BALANCED` or `Preset.STRICT`, depending on what you wanted.
+- `Preset.MODERN` is gone. Replace it with `Preset.BALANCED` for the new default or `Preset.STRICT` if you specifically want a tighter profile.
 - The default profile is now `BALANCED`, which intentionally omits `Cache-Control` and the legacy compatibility headers from `BASIC`.
 - `Preset.STRICT` no longer enables HSTS preload by default. Add `.preload()` yourself if you rely on that behavior.
 - `set_headers()` is sync-only. If your response object only supports async setters, switch to `await set_headers_async(response)`.

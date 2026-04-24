@@ -23,3 +23,5 @@ After installation, import the public API from the package root:
 ```python
 from secure import Secure
 ```
+
+Most public builders are also re-exported from the package root, so you can usually keep imports in the form `from secure import Secure, Preset, ContentSecurityPolicy`.

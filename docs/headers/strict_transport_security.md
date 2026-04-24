@@ -1,10 +1,30 @@
 # Strict-Transport-Security (HSTS)
 
-## Purpose
+## What it does
 
 The `Strict-Transport-Security` (HSTS) header tells browsers that a host **must only be accessed over HTTPS**. Once a browser has received this header, it will automatically upgrade future HTTP navigations to HTTPS for the configured duration, helping prevent man-in-the-middle and downgrade attacks.
 
 > Important: Browsers **ignore** `Strict-Transport-Security` if it is delivered over **insecure HTTP**. You must send it over HTTPS only.
+
+## Minimal example
+
+```python
+from secure import Secure, StrictTransportSecurity
+
+secure_headers = Secure(
+    hsts=StrictTransportSecurity().max_age(31536000).include_subdomains()
+)
+```
+
+## Resulting header
+
+```http
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+```
+
+## Practical note
+
+Do not enable `includeSubDomains` until every subdomain is HTTPS-ready. Treat `preload()` as a deliberate rollout step because removal is slow once a domain is on the preload list.
 
 ## Default behavior
 
@@ -24,17 +44,7 @@ If you do not configure any directives, this library emits the default header va
 
 ## Configuration with `Secure`
 
-Use `StrictTransportSecurity` for fluent, chainable configuration:
-
-```python
-from secure import Secure, StrictTransportSecurity
-
-secure_headers = Secure(
-    hsts=StrictTransportSecurity()
-        .max_age(31536000)
-        .include_subdomains()
-)
-```
+Use `StrictTransportSecurity` for fluent, chainable configuration.
 
 `Preset.BASIC` and `Preset.BALANCED` use one year with `includeSubDomains`; `Preset.STRICT` uses two years with `includeSubDomains`.
 

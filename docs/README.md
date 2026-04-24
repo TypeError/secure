@@ -1,6 +1,8 @@
 # Documentation
 
-Use this index when you know what you need. For a first pass, start with the [top-level README](../README.md).
+Use this index when you know what you need. For a first pass, start with the [top-level README](../README.md), then continue with [Usage](./usage.md).
+
+The recommended default throughout the docs is `Secure.with_default_headers()`, which maps to `Preset.BALANCED`.
 
 ## Start here
 

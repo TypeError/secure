@@ -1,6 +1,6 @@
 # Content-Security-Policy (CSP)
 
-## Purpose
+## What it does
 
 The `Content-Security-Policy` (CSP) response header helps mitigate cross-site scripting (XSS), data injection, and related attacks by restricting where content can be loaded from (scripts, styles, images, fonts, connections, frames, etc.).
 
@@ -10,6 +10,31 @@ CSP is expressed as a list of **directives** separated by semicolons:
 Content-Security-Policy: default-src 'self'; script-src 'self'; object-src 'none'
 ```
 
+## Minimal example
+
+```python
+from secure import ContentSecurityPolicy, Secure
+
+csp = (
+    ContentSecurityPolicy()
+    .default_src("'self'")
+    .object_src("'none'")
+    .base_uri("'self'")
+)
+
+secure_headers = Secure(csp=csp)
+```
+
+## Resulting header
+
+```http
+Content-Security-Policy: default-src 'self'; object-src 'none'; base-uri 'self'
+```
+
+## Practical note
+
+Do not treat `'unsafe-inline'` as a default starting point for scripts. Use it only as an app-specific compatibility adjustment and test the real app before and after any CSP change.
+
 ## Library defaults
 
 If you create a `ContentSecurityPolicy()` and do not configure any directives, it returns the library default:
@@ -18,8 +43,8 @@ If you create a `ContentSecurityPolicy()` and do not configure any directives, i
 default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'
 ```
 
-This matches `HeaderDefaultValue.CONTENT_SECURITY_POLICY`.
-The built-in presets use explicit CSP builders rather than this bare builder default; `Preset.BASIC` and `Preset.BALANCED` add `font-src`, `img-src`, `script-src-attr`, `style-src`, and `upgrade-insecure-requests`.
+This matches the builder default.
+The built-in presets use explicit CSP builders rather than this bare builder default. `Preset.BASIC` and `Preset.BALANCED` add `font-src`, `img-src`, `script-src-attr`, `style-src`, and `upgrade-insecure-requests`.
 
 ## Best-practice baseline
 
@@ -32,30 +57,15 @@ A common “safe baseline” CSP includes:
 - `form-action 'self'`
 - optionally `upgrade-insecure-requests`
 
-> CSP is powerful but can break applications if rolled out too aggressively. Start with a report-only policy (see below), review violations, then enforce.
+> CSP is powerful but can break applications if rolled out too aggressively. Start with a report-only policy, review violations, then enforce.
 
 ---
 
 ## Configuration with `Secure`
 
-### Minimal example
+Once you configure `csp`, apply it in your framework integration:
 
-```py
-from secure import ContentSecurityPolicy, Secure
-
-csp = (
-    ContentSecurityPolicy()
-    .default_src(ContentSecurityPolicy.keyword("self"))
-    .object_src(ContentSecurityPolicy.keyword("none"))
-    .base_uri(ContentSecurityPolicy.keyword("self"))
-)
-
-secure_headers = Secure(csp=csp)
-```
-
-Then apply headers in your framework integration:
-
-```py
+```python
 # Flask example
 from flask import Flask, Response
 
@@ -72,12 +82,12 @@ def add_security_headers(response: Response) -> Response:
 
 To observe violations without enforcing (recommended for rollout):
 
-```py
+```python
 csp_report_only = (
     ContentSecurityPolicy()
     .report_only()
-    .default_src(ContentSecurityPolicy.keyword("self"))
-    .script_src(ContentSecurityPolicy.keyword("self"))
+    .default_src("'self'")
+    .script_src("'self'")
 )
 
 secure_headers = Secure(csp=csp_report_only)
@@ -110,7 +120,7 @@ Common methods include:
 
 Use `keyword()` to safely produce quoted CSP keywords like `'self'` and `'none'`:
 
-```py
+```python
 ContentSecurityPolicy.keyword("self")  # "'self'"
 ContentSecurityPolicy.keyword("none")  # "'none'"
 ```
@@ -119,7 +129,7 @@ ContentSecurityPolicy.keyword("none")  # "'none'"
 
 Use `nonce()` to produce a CSP nonce source expression:
 
-```py
+```python
 nonce_value = "abc123=="  # base64 / url-safe base64
 ContentSecurityPolicy.nonce(nonce_value)  # "'nonce-abc123=='"
 ```
@@ -132,7 +142,7 @@ ContentSecurityPolicy.nonce(nonce_value)  # "'nonce-abc123=='"
 
 If you need full control (or want to carry over an existing CSP string), use `.value(...)`:
 
-```py
+```python
 csp = ContentSecurityPolicy().value(
     "default-src 'self'; script-src 'self' https://cdn.example; object-src 'none'"
 )
@@ -142,7 +152,7 @@ csp = ContentSecurityPolicy().value(
 
 ### Clear configuration
 
-```py
+```python
 csp = ContentSecurityPolicy().default_src(ContentSecurityPolicy.keyword("self"))
 csp.clear()  # resets back to library default behavior
 ```
@@ -151,11 +161,11 @@ csp.clear()  # resets back to library default behavior
 
 If you need a directive not covered by a helper method:
 
-```py
+```python
 csp = (
     ContentSecurityPolicy()
-    .custom_directive("default-src", ContentSecurityPolicy.keyword("self"))
-    .custom_directive("script-src", ContentSecurityPolicy.keyword("self"))
+    .custom_directive("default-src", "'self'")
+    .custom_directive("script-src", "'self'")
 )
 
 # `.custom(...)` is an alias
@@ -170,7 +180,7 @@ A common pattern is to generate the nonce in request context, then build CSP usi
 
 ### Framework-agnostic CSP construction
 
-```py
+```python
 import secrets
 from secure import ContentSecurityPolicy
 
@@ -178,12 +188,12 @@ nonce = secrets.token_urlsafe(16)
 
 csp = (
     ContentSecurityPolicy()
-    .default_src(ContentSecurityPolicy.keyword("self"))
+    .default_src("'self'")
     .script_src(
         ContentSecurityPolicy.nonce(nonce),
         ContentSecurityPolicy.keyword("strict-dynamic"),
     )
-    .object_src(ContentSecurityPolicy.keyword("none"))
+    .object_src("'none'")
 )
 
 print(csp.header_value)
@@ -192,7 +202,7 @@ print(csp.header_value)
 
 ### Flask pattern (nonce shared via `g`)
 
-```py
+```python
 import secrets
 from flask import Flask, Response, g
 
@@ -208,13 +218,13 @@ def set_nonce() -> None:
 def add_security_headers(response: Response) -> Response:
     csp = (
         ContentSecurityPolicy()
-        .default_src(ContentSecurityPolicy.keyword("self"))
+        .default_src("'self'")
         .script_src(
             ContentSecurityPolicy.nonce(g.csp_nonce),
             ContentSecurityPolicy.keyword("strict-dynamic"),
         )
-        .style_src(ContentSecurityPolicy.keyword("self"))
-        .object_src(ContentSecurityPolicy.keyword("none"))
+        .style_src("'self'")
+        .object_src("'none'")
     )
     Secure(csp=csp).set_headers(response)
     return response
@@ -240,14 +250,9 @@ In your HTML rendering, use the same nonce:
 
 ## References
 
-- MDN: Content-Security-Policy
-  - [https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy)
-
-- MDN: CSP guide
-  - [https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP)
-
-- OWASP Secure Headers Project
-  - [https://owasp.org/www-project-secure-headers/#content-security-policy](https://owasp.org/www-project-secure-headers/#content-security-policy)
+- [MDN: Content-Security-Policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy)
+- [MDN: CSP guide](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CSP)
+- [OWASP Secure Headers Project](https://owasp.org/www-project-secure-headers/#content-security-policy)
 
 ## Attribution
 

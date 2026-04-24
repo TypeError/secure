@@ -1,8 +1,28 @@
 # Server Header
 
-## Purpose
+## What it does
 
 The `Server` header can reveal details about the software handling the request. In `secure`, the builder defaults to an empty string so your application can avoid adding identifying detail when the surrounding stack allows it.
+
+## Minimal example
+
+```python
+from secure import Secure, Server
+
+secure_headers = Secure(
+    server=Server().set("")
+)
+```
+
+## Resulting header
+
+```http
+Server:
+```
+
+## Practical note
+
+Application code can only control this header if the surrounding stack does not re-add its own value. Check your ASGI server, WSGI server, proxy, or CDN settings too.
 
 ## Best Practices
 
@@ -13,16 +33,6 @@ The `Server` header can reveal details about the software handling the request. 
 ## Configuration with `Secure`
 
 Use `Server` to control the `Server` header value. Its default value is an empty string.
-
-### Example Configuration
-
-```python
-from secure import Secure, Server
-
-secure_headers = Secure(
-    server=Server().set("")
-)
-```
 
 ### Methods Available
 

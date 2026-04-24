@@ -1,10 +1,30 @@
 # Referrer-Policy
 
-## Purpose
+## What it does
 
 The `Referrer-Policy` response header controls how much referrer information (sent via the `Referer` header) is included with outgoing requests. It is primarily a privacy and data-minimization control, with important security implications when navigating across origins or downgrading from HTTPS to HTTP.
 
 > Note: `Referer` is intentionally misspelled in HTTP. `Referrer-Policy` does **not** share that misspelling.
+
+## Minimal example
+
+```python
+from secure import ReferrerPolicy, Secure
+
+secure_headers = Secure(
+    referrer=ReferrerPolicy().strict_origin_when_cross_origin()
+)
+```
+
+## Resulting header
+
+```http
+Referrer-Policy: strict-origin-when-cross-origin
+```
+
+## Practical note
+
+`strict-origin-when-cross-origin` is the recommended default because it preserves same-origin behavior while avoiding full URL leakage across origins. Move to `no-referrer` only when you want the strictest privacy posture.
 
 ## Default behavior
 

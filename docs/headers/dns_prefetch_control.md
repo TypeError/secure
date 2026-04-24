@@ -1,8 +1,28 @@
 # X-DNS-Prefetch-Control
 
-## Purpose
+## What it does
 
 `X-DNS-Prefetch-Control` controls **DNS prefetching**, where browsers may proactively resolve domain names for links and referenced subresources (images, CSS, JS, etc.) in the background to reduce perceived latency.
+
+## Minimal example
+
+```python
+from secure import Secure, XDnsPrefetchControl
+
+secure_headers = Secure(
+    xdfc=XDnsPrefetchControl().off()
+)
+```
+
+## Resulting header
+
+```http
+X-DNS-Prefetch-Control: off
+```
+
+## Practical note
+
+When this header is absent, supporting browsers commonly behave as if DNS prefetching is on. Add the header only when you want to state a clear preference.
 
 ## Default behavior
 
@@ -13,14 +33,6 @@ If you create `XDnsPrefetchControl()` and do not set a directive, it returns the
 > Note (MDN behavior): In browsers that support DNS prefetching, if this header is **not present**, the effective behavior is typically **`on`**. This library’s default is **privacy-first** when you choose to emit the header.
 
 ## Using with `Secure`
-
-```python
-from secure import Secure, XDnsPrefetchControl
-
-secure_headers = Secure(
-    xdfc=XDnsPrefetchControl().off()
-)
-```
 
 If you don’t configure anything, the default value is emitted.
 `Preset.BASIC` includes `X-DNS-Prefetch-Control: off`; `Preset.BALANCED` and `Preset.STRICT` leave it out unless you add it explicitly.

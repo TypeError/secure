@@ -1,6 +1,6 @@
 # X-Content-Type-Options
 
-## Purpose
+## What it does
 
 The `X-Content-Type-Options` header tells browsers to **respect the MIME type declared in `Content-Type`** instead of trying to guess ("sniff") a different type.
 
@@ -10,6 +10,26 @@ In practice, setting `X-Content-Type-Options: nosniff` can cause browsers to **b
 - `script` requests not served with a JavaScript MIME type
 
 This helps reduce the risk of content being interpreted as executable when it should not be.
+
+## Minimal example
+
+```python
+from secure import Secure, XContentTypeOptions
+
+secure_headers = Secure(
+    xcto=XContentTypeOptions().nosniff(),
+)
+```
+
+## Resulting header
+
+```http
+X-Content-Type-Options: nosniff
+```
+
+## Practical note
+
+`nosniff` can expose incorrect MIME types in your app or asset pipeline. If enabling it breaks assets, fix the response `Content-Type` rather than weakening the header.
 
 ## Best Practices
 
@@ -22,16 +42,6 @@ The `XContentTypeOptions` class configures `X-Content-Type-Options`.
 
 **Default header value:** `nosniff`
 All built-in presets include it.
-
-### Minimal configuration
-
-```python
-from secure import Secure, XContentTypeOptions
-
-secure_headers = Secure(
-    xcto=XContentTypeOptions().nosniff(),
-)
-```
 
 ### Methods available
 

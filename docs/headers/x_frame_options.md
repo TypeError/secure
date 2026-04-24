@@ -8,6 +8,24 @@
 
 **Default header value:** `SAMEORIGIN`
 
+## Minimal example
+
+```python
+from secure import Secure, XFrameOptions
+
+secure_headers = Secure(xfo=XFrameOptions().sameorigin())
+```
+
+## Resulting header
+
+```http
+X-Frame-Options: SAMEORIGIN
+```
+
+## Practical note
+
+Prefer CSP `frame-ancestors` for modern framing control. Keep `X-Frame-Options` as a compatibility layer, especially when you need support for older clients.
+
 ## Important notes
 
 - **CSP is the modern replacement:** For comprehensive framing control, use CSP `frame-ancestors` (recommended).
@@ -31,11 +49,7 @@ This directive is **obsolete**. Modern browsers that encounter `ALLOW-FROM` may 
 
 ### Minimal usage
 
-```python
-from secure import Secure, XFrameOptions
-
-secure_headers = Secure(xfo=XFrameOptions().sameorigin())
-```
+The example above applies the default `SAMEORIGIN` behavior through `Secure`.
 
 ### Choose a directive
 
@@ -87,9 +101,9 @@ If you want full modern control, keep CSP `frame-ancestors` and treat `X-Frame-O
 
 ## Resources
 
-- MDN: X-Frame-Options (Reference) — [https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/X-Frame-Options](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/X-Frame-Options)
-- MDN: Clickjacking — [https://developer.mozilla.org/en-US/docs/Web/Security/Attacks/Clickjacking](https://developer.mozilla.org/en-US/docs/Web/Security/Attacks/Clickjacking)
-- OWASP Secure Headers Project: X-Frame-Options — [https://owasp.org/www-project-secure-headers/#x-frame-options](https://owasp.org/www-project-secure-headers/#x-frame-options)
+- [MDN: X-Frame-Options](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/X-Frame-Options)
+- [MDN: Clickjacking](https://developer.mozilla.org/en-US/docs/Web/Security/Attacks/Clickjacking)
+- [OWASP Secure Headers Project: X-Frame-Options](https://owasp.org/www-project-secure-headers/#x-frame-options)
 
 ## Attribution
 
