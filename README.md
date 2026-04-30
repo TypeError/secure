@@ -1,45 +1,34 @@
 # secure
 
-Add modern security headers to any Python web app in minutes.
+[![PyPI Version](https://img.shields.io/pypi/v/secure.svg)](https://pypi.org/project/secure/) [![Python Versions](https://img.shields.io/pypi/pyversions/secure.svg)](https://pypi.org/project/secure/) [![License](https://img.shields.io/pypi/l/secure.svg)](https://github.com/TypeError/secure/blob/main/LICENSE)
 
-Works with FastAPI, Flask, Django, Starlette, and Shiny for Python. No dependencies.
+Define HTTP security headers once. Apply them consistently across Python web apps.
+
+`secure` provides a small, dependency-free API for configuring modern security headers across common Python web frameworks through ASGI middleware, WSGI middleware, or framework response hooks.
+
+Use it when you want to avoid copy-pasted header strings spread across handlers, hooks, and middleware.
 
 <p align="center">
   <img src="https://typeerror.com/assets/secure-hex.png" alt="secure hex" width="200">
 </p>
 
-[![PyPI Version](https://img.shields.io/pypi/v/secure.svg)](https://pypi.org/project/secure/) [![Python Versions](https://img.shields.io/pypi/pyversions/secure.svg)](https://pypi.org/project/secure/) [![License](https://img.shields.io/pypi/l/secure.svg)](https://github.com/TypeError/secure/blob/main/LICENSE)
-
 Quick links: [Quick start](#quick-start) · [Headers](#what-headers-are-applied-by-default) · [Middleware](#middleware)
-
----
-
-## Introduction
-
-Security headers are one of the simplest ways to improve a web application's security, but they are often applied inconsistently across frameworks and deployments.
-
-`secure` provides a single, modern, well-typed API for configuring and applying HTTP security headers in Python.
-
-- Good defaults that are safe to adopt
-- A small, explicit API
-- Sync and async support
-- Framework-agnostic design
-
-```python
-import secure
-```
 
 ---
 
 ## Why use `secure`
 
-- Apply essential security headers in a few lines
-- Share one configuration across multiple frameworks
-- Start with presets, then customize
-- Keep header logic out of your handlers
-- Use one library for FastAPI, Starlette, Flask, Django, Shiny for Python, and more
+Setting headers manually is fine for one endpoint. It gets harder to review when values are copied across routes, response hooks, reverse-proxy settings, and different framework integrations.
 
-If you want a strong security baseline without adding a large dependency, `secure` is designed for that use case.
+`secure` helps you:
+
+- Keep one `Secure` policy object instead of scattered header strings
+- Apply the same policy through ASGI middleware, WSGI middleware, or response hooks
+- Start with practical presets, then customize headers for your application
+- Use builders for complex headers such as Content Security Policy and Permissions Policy
+- Make duplicate handling, header overwrites, and validation explicit
+
+The defaults are a reasonable starting point, not a substitute for application-specific review. Content Security Policy in particular should be adjusted for the scripts, styles, assets, and third-party services your app actually uses.
 
 ---
 
@@ -55,20 +44,36 @@ pip install secure
 
 ## Quick start
 
+### FastAPI / ASGI middleware
+
+Use middleware when you can attach `secure` once and cover the whole application.
+
 ```python
-import secure
+from fastapi import FastAPI
+from secure import Secure
+from secure.middleware import SecureASGIMiddleware
 
-secure_headers = secure.Secure.with_default_headers()
+app = FastAPI()
+secure_headers = Secure.with_default_headers()
 
-# Apply to any response object with headers support
+app.add_middleware(SecureASGIMiddleware, secure=secure_headers)
+```
+
+### Response hooks and handlers
+
+Use the same policy object in framework hooks, middleware callbacks, or handlers that expose a response object with headers support.
+
+```python
+from secure import Secure
+
+secure_headers = Secure.with_default_headers()
+
 secure_headers.set_headers(response)
 # or
 await secure_headers.set_headers_async(response)
 ```
 
-`Secure.with_default_headers()` maps to `Preset.BALANCED`, the recommended default.
-
-> Works with FastAPI, Flask, Django, Starlette, and Shiny for Python in minutes.
+`Secure.with_default_headers()` maps to `Preset.BALANCED`, a practical default designed to be customized.
 
 ---
 
@@ -85,9 +90,9 @@ X-Content-Type-Options: nosniff
 X-Frame-Options: SAMEORIGIN
 ```
 
-This baseline reflects modern browser guidance from MDN and OWASP. It reduces cross-origin risk, prevents MIME sniffing, and provides a conservative Content Security Policy you can extend.
+This preset reflects modern browser guidance from MDN and OWASP. It reduces cross-origin risk, prevents MIME sniffing, and provides a conservative Content Security Policy you can extend.
 
-The default CSP is designed to work for most applications while avoiding unsafe script execution. Interactive apps or third-party integrations may require additional CSP configuration depending on how scripts, styles, or external resources are used.
+The default CSP avoids unsafe script execution by default, but CSP is context-sensitive. Interactive apps, dashboards, CDNs, analytics, embedded content, or other third-party integrations may require additional configuration.
 
 ---
 
@@ -101,11 +106,11 @@ Secure.from_preset(Preset.BASIC)
 Secure.from_preset(Preset.STRICT)
 ```
 
-- **BALANCED**: recommended default
+- **BALANCED**: practical default for many applications
 - **BASIC**: Helmet-style compatibility
 - **STRICT**: tighter CSP and isolation
 
-Start with BALANCED and move stricter only when needed.
+Start with BALANCED, review the generated headers, and move stricter only when needed.
 
 ---
 
@@ -113,21 +118,28 @@ Start with BALANCED and move stricter only when needed.
 
 `secure` provides both ASGI and WSGI middleware.
 
-- Works with FastAPI, Starlette, Shiny, Flask, Django, and others
 - Overwrites headers by default
 - Allows controlled duplication via `multi_ok`
+- Only modifies HTTP responses in ASGI apps
 
-### ASGI example
+### ASGI
 
 ```python
-from fastapi import FastAPI
 from secure import Secure
 from secure.middleware import SecureASGIMiddleware
 
-app = FastAPI()
 secure_headers = Secure.with_default_headers()
+app = SecureASGIMiddleware(app, secure=secure_headers)
+```
 
-app.add_middleware(SecureASGIMiddleware, secure=secure_headers)
+### WSGI
+
+```python
+from secure import Secure
+from secure.middleware import SecureWSGIMiddleware
+
+secure_headers = Secure.with_default_headers()
+app = SecureWSGIMiddleware(app, secure=secure_headers)
 ```
 
 ### Django example
@@ -148,11 +160,15 @@ class SecureHeadersMiddleware:
 
 ---
 
-## Framework examples
+## Framework integration examples
+
+These examples show common integration paths. See the full [framework integration guide](https://github.com/TypeError/secure/tree/main/docs/frameworks.md) for additional frameworks and notes about first-class middleware versus minimal fallback examples.
 
 ### FastAPI
 
 ```python
+from secure.middleware import SecureASGIMiddleware
+
 app.add_middleware(SecureASGIMiddleware, secure=secure_headers)
 ```
 
@@ -174,7 +190,7 @@ from secure.middleware import SecureASGIMiddleware
 app = SecureASGIMiddleware(App(), secure=secure_headers)
 ```
 
-Interactive apps may require additional CSP configuration depending on how scripts, styles, or external resources are used.
+Interactive apps often need CSP configuration for their script, style, and asset loading patterns.
 
 ---
 
@@ -208,7 +224,7 @@ permissions = (
 
 ## Header pipeline and validation
 
-Optional pipeline for stricter control:
+Use the optional pipeline when you need stricter control:
 
 ```python
 secure_headers = (
@@ -219,15 +235,7 @@ secure_headers = (
 )
 ```
 
-Use this when you need strict validation, predictable output, or want to fail fast on unsafe headers.
-
----
-
-## Supported frameworks
-
-FastAPI, Starlette, Flask, Django, Shiny for Python, aiohttp, Sanic, Pyramid, Tornado, and more.
-
-See the full [framework integration guides](https://github.com/TypeError/secure/tree/main/docs/frameworks.md).
+This makes header allowlists, deduplication, normalization, and validation explicit instead of leaving those choices spread across application code.
 
 ---
 
