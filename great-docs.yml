@@ -1,0 +1,366 @@
+# Great Docs Configuration
+# See https://posit-dev.github.io/great-docs/user-guide/configuration.html
+
+# Module Name (optional)
+# ----------------------
+# Set this if your importable module name differs from the project name.
+# Example: project 'py-yaml12' with module name 'yaml12'
+# module: yaml12
+
+# Docstring Parser
+# ----------------
+# The docstring format used in your package (numpy, google, or sphinx)
+parser: numpy
+
+# Dynamic Introspection
+# ---------------------
+# Use runtime introspection for more accurate documentation (default: true)
+# Set to false if your package has cyclic alias issues (e.g., PyO3/Rust bindings)
+dynamic: false
+
+# API Discovery Settings
+# ----------------------
+# Exclude items from auto-documentation
+# exclude:
+#   - InternalClass
+#   - helper_function
+
+# Logo & Favicon
+# ---------------
+# Point to a single logo file (replaces the text title in the navbar):
+# logo: assets/logo.svg
+#
+# For light/dark variants:
+# logo:
+#   light: assets/logo-light.svg
+#   dark: assets/logo-dark.svg
+#
+# To show the text title alongside the logo, add: show_title: true
+
+# Author Information
+# ------------------
+# Author metadata for display in the landing page sidebar
+# You can add additional fields: github, orcid, affiliation, homepage
+authors:
+  - name: Caleb Kinney
+    role: Author
+    # affiliation:
+    email: caleb@typeerror.com
+    github: https://github.com/cak
+    # orcid:
+    homepage: https://typeerror.com
+
+# Funding / Copyright Holder
+# --------------------------
+# Credit the organization that funds or holds copyright for this package.
+# Displays in sidebar and footer. Homepage and ROR provide links.
+# funding:
+#   name: "Posit Software, PBC"
+#   roles:
+#     - Copyright holder
+#     - funder
+#   homepage: https://posit.co
+#   ror: https://ror.org/03wc8by49
+
+# API Reference Structure
+# -----------------------
+# Customize the sections below to organize your API documentation.
+# - Reorder items within a section to change their display order
+# - Move items between sections or create new sections
+# - Use 'members: false' to exclude methods from documentation
+# - Add 'desc:' to sections for descriptions
+
+reference:
+  - title: Classes
+    desc: Main classes provided by the package
+    contents:
+      - name: Secure
+        members: false # 10 methods listed below
+
+  - title: Dataclasses
+    desc: Dataclass definitions
+    contents:
+      - name: CacheControl
+        members: false # 21 methods listed below
+      - name: ContentSecurityPolicy
+        members: false # 37 methods listed below
+      - name: CrossOriginEmbedderPolicy
+        members: false # 6 methods listed below
+      - name: CrossOriginOpenerPolicy
+        members: false # 8 methods listed below
+      - name: CrossOriginResourcePolicy
+        members: false # 6 methods listed below
+      - CustomHeader # 2 method(s)
+      - name: PermissionsPolicy
+        members: false # 53 methods listed below
+      - name: ReferrerPolicy
+        members: false # 14 methods listed below
+      - Server # 3 method(s)
+      - StrictTransportSecurity # 5 method(s)
+      - XContentTypeOptions # 4 method(s)
+      - name: XDnsPrefetchControl
+        members: false # 8 methods listed below
+      - name: XFrameOptions
+        members: false # 7 methods listed below
+      - name: XPermittedCrossDomainPolicies
+        members: false # 11 methods listed below
+
+  - title: Secure Methods
+    desc: Methods for the Secure class
+    contents:
+      - Secure.with_default_headers
+      - Secure.from_preset
+      - Secure.__str__
+      - Secure.__repr__
+      - Secure.validate_and_normalize_headers
+      - Secure.deduplicate_headers
+      - Secure.allowlist_headers
+      - Secure.header_items
+      - Secure.set_headers
+      - Secure.set_headers_async
+
+  - title: CacheControl Methods
+    desc: Methods for the CacheControl class
+    contents:
+      - CacheControl.value
+      - CacheControl.set
+      - CacheControl.clear
+      - CacheControl.custom
+      - CacheControl.immutable
+      - CacheControl.max_age
+      - CacheControl.max_stale
+      - CacheControl.min_fresh
+      - CacheControl.must_revalidate
+      - CacheControl.must_understand
+      - CacheControl.no_cache
+      - CacheControl.no_store
+      - CacheControl.no_transform
+      - CacheControl.only_if_cached
+      - CacheControl.private
+      - CacheControl.proxy_revalidate
+      - CacheControl.public
+      - CacheControl.s_maxage
+      - CacheControl.s_max_age
+      - CacheControl.stale_if_error
+      - CacheControl.stale_while_revalidate
+
+  - title: ContentSecurityPolicy Methods
+    desc: Methods for the ContentSecurityPolicy class
+    contents:
+      - ContentSecurityPolicy.value
+      - ContentSecurityPolicy.set
+      - ContentSecurityPolicy.clear
+      - ContentSecurityPolicy.report_only
+      - ContentSecurityPolicy.enforce
+      - ContentSecurityPolicy.custom
+      - ContentSecurityPolicy.custom_directive
+      - ContentSecurityPolicy.base_uri
+      - ContentSecurityPolicy.block_all_mixed_content
+      - ContentSecurityPolicy.child_src
+      - ContentSecurityPolicy.connect_src
+      - ContentSecurityPolicy.default_src
+      - ContentSecurityPolicy.fenced_frame_src
+      - ContentSecurityPolicy.font_src
+      - ContentSecurityPolicy.form_action
+      - ContentSecurityPolicy.frame_ancestors
+      - ContentSecurityPolicy.frame_src
+      - ContentSecurityPolicy.img_src
+      - ContentSecurityPolicy.manifest_src
+      - ContentSecurityPolicy.media_src
+      - ContentSecurityPolicy.object_src
+      - ContentSecurityPolicy.prefetch_src
+      - ContentSecurityPolicy.report_to
+      - ContentSecurityPolicy.report_uri
+      - ContentSecurityPolicy.require_trusted_types_for
+      - ContentSecurityPolicy.sandbox
+      - ContentSecurityPolicy.script_src
+      - ContentSecurityPolicy.script_src_attr
+      - ContentSecurityPolicy.script_src_elem
+      - ContentSecurityPolicy.style_src
+      - ContentSecurityPolicy.style_src_attr
+      - ContentSecurityPolicy.style_src_elem
+      - ContentSecurityPolicy.trusted_types
+      - ContentSecurityPolicy.upgrade_insecure_requests
+      - ContentSecurityPolicy.worker_src
+      - ContentSecurityPolicy.keyword
+      - ContentSecurityPolicy.nonce
+
+  - title: CrossOriginEmbedderPolicy Methods
+    desc: Methods for the CrossOriginEmbedderPolicy class
+    contents:
+      - CrossOriginEmbedderPolicy.set
+      - CrossOriginEmbedderPolicy.value
+      - CrossOriginEmbedderPolicy.clear
+      - CrossOriginEmbedderPolicy.unsafe_none
+      - CrossOriginEmbedderPolicy.require_corp
+      - CrossOriginEmbedderPolicy.credentialless
+
+  - title: CrossOriginOpenerPolicy Methods
+    desc: Methods for the CrossOriginOpenerPolicy class
+    contents:
+      - CrossOriginOpenerPolicy.value
+      - CrossOriginOpenerPolicy.custom
+      - CrossOriginOpenerPolicy.set
+      - CrossOriginOpenerPolicy.clear
+      - CrossOriginOpenerPolicy.unsafe_none
+      - CrossOriginOpenerPolicy.same_origin_allow_popups
+      - CrossOriginOpenerPolicy.same_origin
+      - CrossOriginOpenerPolicy.noopener_allow_popups
+
+  - title: CrossOriginResourcePolicy Methods
+    desc: Methods for the CrossOriginResourcePolicy class
+    contents:
+      - CrossOriginResourcePolicy.clear
+      - CrossOriginResourcePolicy.value
+      - CrossOriginResourcePolicy.set
+      - CrossOriginResourcePolicy.same_origin
+      - CrossOriginResourcePolicy.same_site
+      - CrossOriginResourcePolicy.cross_origin
+
+  - title: PermissionsPolicy Methods
+    desc: Methods for the PermissionsPolicy class
+    contents:
+      - PermissionsPolicy.value
+      - PermissionsPolicy.set
+      - PermissionsPolicy.clear
+      - PermissionsPolicy.add_directive
+      - PermissionsPolicy.directive
+      - PermissionsPolicy.accelerometer
+      - PermissionsPolicy.ambient_light_sensor
+      - PermissionsPolicy.aria_notify
+      - PermissionsPolicy.attribution_reporting
+      - PermissionsPolicy.autoplay
+      - PermissionsPolicy.bluetooth
+      - PermissionsPolicy.browsing_topics
+      - PermissionsPolicy.compute_pressure
+      - PermissionsPolicy.cross_origin_isolated
+      - PermissionsPolicy.fullscreen
+      - PermissionsPolicy.gamepad
+      - PermissionsPolicy.geolocation
+      - PermissionsPolicy.gyroscope
+      - PermissionsPolicy.hid
+      - PermissionsPolicy.identity_credentials_get
+      - PermissionsPolicy.idle_detection
+      - PermissionsPolicy.local_fonts
+      - PermissionsPolicy.magnetometer
+      - PermissionsPolicy.microphone
+      - PermissionsPolicy.on_device_speech_recognition
+      - PermissionsPolicy.otp_credentials
+      - PermissionsPolicy.publickey_credentials_create
+      - PermissionsPolicy.publickey_credentials_get
+      - PermissionsPolicy.serial
+      - PermissionsPolicy.speaker_selection
+      - PermissionsPolicy.storage_access
+      - PermissionsPolicy.summarizer
+      - PermissionsPolicy.translator
+      - PermissionsPolicy.language_detector
+      - PermissionsPolicy.usb
+      - PermissionsPolicy.web_share
+      - PermissionsPolicy.window_management
+      - PermissionsPolicy.xr_spatial_tracking
+      - PermissionsPolicy.battery
+      - PermissionsPolicy.camera
+      - PermissionsPolicy.clipboard_read
+      - PermissionsPolicy.clipboard_write
+      - PermissionsPolicy.display_capture
+      - PermissionsPolicy.document_domain
+      - PermissionsPolicy.encrypted_media
+      - PermissionsPolicy.execution_while_not_rendered
+      - PermissionsPolicy.execution_while_out_of_viewport
+      - PermissionsPolicy.midi
+      - PermissionsPolicy.navigation_override
+      - PermissionsPolicy.payment
+      - PermissionsPolicy.picture_in_picture
+      - PermissionsPolicy.screen_wake_lock
+      - PermissionsPolicy.sync_xhr
+
+  - title: ReferrerPolicy Methods
+    desc: Methods for the ReferrerPolicy class
+    contents:
+      - ReferrerPolicy.add
+      - ReferrerPolicy.set
+      - ReferrerPolicy.value
+      - ReferrerPolicy.custom
+      - ReferrerPolicy.fallback
+      - ReferrerPolicy.clear
+      - ReferrerPolicy.no_referrer
+      - ReferrerPolicy.no_referrer_when_downgrade
+      - ReferrerPolicy.origin
+      - ReferrerPolicy.origin_when_cross_origin
+      - ReferrerPolicy.same_origin
+      - ReferrerPolicy.strict_origin
+      - ReferrerPolicy.strict_origin_when_cross_origin
+      - ReferrerPolicy.unsafe_url
+
+  - title: XDnsPrefetchControl Methods
+    desc: Methods for the XDnsPrefetchControl class
+    contents:
+      - XDnsPrefetchControl.clear
+      - XDnsPrefetchControl.set
+      - XDnsPrefetchControl.value
+      - XDnsPrefetchControl.custom
+      - XDnsPrefetchControl.on
+      - XDnsPrefetchControl.off
+      - XDnsPrefetchControl.allow
+      - XDnsPrefetchControl.disable
+
+  - title: XFrameOptions Methods
+    desc: Methods for the XFrameOptions class
+    contents:
+      - XFrameOptions.value
+      - XFrameOptions.set
+      - XFrameOptions.custom
+      - XFrameOptions.clear
+      - XFrameOptions.deny
+      - XFrameOptions.sameorigin
+      - XFrameOptions.allow_from
+
+  - title: XPermittedCrossDomainPolicies Methods
+    desc: Methods for the XPermittedCrossDomainPolicies class
+    contents:
+      - XPermittedCrossDomainPolicies.clear
+      - XPermittedCrossDomainPolicies.value
+      - XPermittedCrossDomainPolicies.custom
+      - XPermittedCrossDomainPolicies.set
+      - XPermittedCrossDomainPolicies.policy
+      - XPermittedCrossDomainPolicies.none
+      - XPermittedCrossDomainPolicies.master_only
+      - XPermittedCrossDomainPolicies.by_content_type
+      - XPermittedCrossDomainPolicies.by_ftp_filename
+      - XPermittedCrossDomainPolicies.all
+      - XPermittedCrossDomainPolicies.none_this_response
+
+  - title: Enumerations
+    desc: Enumeration types
+    contents:
+      - Preset
+
+# Site URL
+# --------
+# Canonical address of the deployed documentation site.
+# Required for subdirectory deployments, skills page install commands,
+# .well-known/ discovery, and sitemaps.
+site_url: "https://typeerror.com/secure/"
+
+# Site Settings
+# -------------
+# site:
+#   theme: flatly              # Quarto theme (default: flatly)
+#   toc: true                  # Show table of contents (default: true)
+#   toc-depth: 2               # TOC heading depth (default: 2)
+#   toc-title: On this page    # TOC title (default: "On this page")
+
+# Jupyter Kernel
+# --------------
+# Jupyter kernel to use for executing code cells in .qmd files.
+# This is set at the project level so it applies to all pages, including
+# auto-generated API reference pages. Can be overridden in individual .qmd
+# file frontmatter if needed for special cases.
+jupyter: python3
+
+# CLI Documentation
+# -----------------
+# cli:
+#   enabled: true              # Enable CLI documentation
+#   module: my_package.cli     # Module containing Click commands
+#   name: cli                  # Name of the Click command object
