@@ -97,3 +97,8 @@ force-sort-within-sections = true
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
+
+[dependency-groups]
+dev = [
+    "great-docs>=0.13.0 ; python_full_version >= '3.11'",
+]
