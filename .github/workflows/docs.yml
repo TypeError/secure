@@ -10,6 +10,8 @@ jobs:
   build-docs:
     name: "Build Docs"
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v6
         with:
