@@ -110,6 +110,13 @@ def _expected_basic_csp_value() -> str:
     ).header_value
 
 
+def _custom_header_with_unchecked_value(name: str, value: str) -> CustomHeader:
+    """Simulate a malformed builder to exercise Secure's optional normalization pipeline."""
+    header = CustomHeader(name, "placeholder")
+    header._value = value
+    return header
+
+
 class TestSecure(unittest.TestCase):
     def setUp(self) -> None:
         # Initialize Secure with some test headers
@@ -381,7 +388,7 @@ class TestSecure(unittest.TestCase):
         """Test that invalid headers are removed before emission."""
         secure_headers = Secure(
             custom=[
-                CustomHeader("X-Invalid-Header", "\n"),
+                _custom_header_with_unchecked_value("X-Invalid-Header", "\n"),
                 CustomHeader("X-Valid-Header", "value"),
             ]
         )
@@ -397,7 +404,7 @@ class TestSecure(unittest.TestCase):
         """Test that normalized headers drive both sync and async setters."""
         secure_headers = Secure(
             custom=[
-                CustomHeader("X-Test-Header", "value\nwith\r\nbad"),
+                _custom_header_with_unchecked_value("X-Test-Header", "value\nwith\r\nbad"),
             ]
         )
         secure_headers.validate_and_normalize_headers()
@@ -484,7 +491,7 @@ class TestSecure(unittest.TestCase):
         """str() should reflect the normalized output used when setting headers."""
         secure_headers = Secure(
             custom=[
-                CustomHeader("X-Test-Normalized", "value\nwith\r\nspaces"),
+                _custom_header_with_unchecked_value("X-Test-Normalized", "value\nwith\r\nspaces"),
             ]
         )
         secure_headers.validate_and_normalize_headers()
@@ -696,7 +703,7 @@ class TestSecure(unittest.TestCase):
         """Strict mode in validation treats CR/LF as configuration errors."""
         secure_headers = Secure(
             custom=[
-                CustomHeader("X-Strict", "bad\rvalue"),
+                _custom_header_with_unchecked_value("X-Strict", "bad\rvalue"),
             ]
         )
 
@@ -705,7 +712,8 @@ class TestSecure(unittest.TestCase):
 
     def test_validate_and_normalize_headers_is_cleared_by_headers_list_mutation(self) -> None:
         """Mutating `headers_list` should discard any normalized snapshot."""
-        secure_headers = Secure(custom=[CustomHeader("X-Test", "value\nwith\r\nspaces")])
+        malformed_header = _custom_header_with_unchecked_value("X-Test", "value\nwith\r\nspaces")
+        secure_headers = Secure(custom=[malformed_header])
         secure_headers.validate_and_normalize_headers()
 
         secure_headers.headers_list.append(CustomHeader("X-New", "fresh"))

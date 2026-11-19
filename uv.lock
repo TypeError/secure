@@ -1780,7 +1780,7 @@ wheels = [
 
 [[package]]
 name = "secure"
-version = "2.0.1"
+version = "2.0.2"
 source = { editable = "." }
 
 [package.dev-dependencies]

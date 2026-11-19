@@ -35,7 +35,7 @@ class CustomHeader(BaseHeader):
             value: The header value to emit.
         """
         self.header_name = normalize_header_value(header, what="custom header name")
-        self._value = value
+        self._value = normalize_header_value(value, what="custom header value")
 
     @property
     def header_value(self) -> str:
