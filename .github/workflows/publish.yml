@@ -1,0 +1,101 @@
+name: Publish to PyPI
+
+on:
+  release:
+    types: [published]
+
+permissions: {}
+
+concurrency:
+  group: pypi-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build release distributions
+    if: ${{ !github.event.release.prerelease }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Validate release source and version
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          python - <<'PY'
+          import os
+          import subprocess
+          import tomllib
+
+          with open("pyproject.toml", "rb") as file:
+              version = tomllib.load(file)["project"]["version"]
+
+          tag = os.environ["RELEASE_TAG"]
+          expected_tag = f"v{version}"
+          if tag != expected_tag:
+              raise SystemExit(f"Release tag {tag!r} does not match package version {version!r}; expected {expected_tag!r}")
+
+          subprocess.run(
+              ["git", "merge-base", "--is-ancestor", "HEAD", "origin/main"],
+              check=True,
+          )
+          print(f"Validated {tag} from main for secure {version}")
+          PY
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
+      - name: Install build tools
+        run: python -m pip install --group build
+
+      - name: Build distributions
+        run: python -m build
+
+      - name: Validate distributions
+        run: python -m twine check dist/*
+
+      - name: Upload distributions
+        uses: actions/upload-artifact@v7
+        with:
+          name: python-package-distributions
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish release to PyPI
+    if: ${{ !github.event.release.prerelease }}
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: pypi
+      url: https://pypi.org/project/secure/
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@v8
+        with:
+          name: python-package-distributions
+          path: dist/
+
+      - name: Publish distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@v1.14.3
