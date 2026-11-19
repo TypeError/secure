@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "secure"
-version = "2.0.1"
+version = "2.0.2"
 description = "A lightweight package that adds security headers for Python web frameworks."
 readme = { file = "README.md", content-type = "text/markdown" }
 license = "MIT"
