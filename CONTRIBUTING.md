@@ -4,26 +4,25 @@ Thanks for helping make `secure` better. The following guidance keeps contributi
 
 ## Development environment
 
-1. Create a virtual environment and activate it:
+1. Install the locked development environment:
+   ```bash
+   uv sync
+   ```
+   `uv` creates `.venv`, installs `secure` in editable mode, and installs the default `dev` group. On Python 3.11+, this also provides `uv run great-docs`.
+
+2. If `uv` is unavailable, use a standard virtual environment and pip:
    ```bash
    python -m venv .venv
    source .venv/bin/activate
+   python -m pip install --group dev --editable .
    ```
-2. Install the package in editable mode so local changes are picked up automatically:
-   ```bash
-   pip install -e .
-   ```
-3. Install the tooling used by the project:
-   ```bash
-   pip install pytest ruff
-   ```
-   _Optional:_ `uv` is the package manager used by the project for releases; you can use `uv run pytest` and `uv add ...` to manage dependencies, but it is not required for local development.
 
 ## Running tests, linting, and formatting
 
-- **Run unit tests:** `pytest`
-- **Run the linter:** `ruff check`
-- **Apply formatting / fix issues:** `ruff format`
+- **Run unit tests:** `uv run pytest -q`
+- **Run the linter:** `uv run ruff check secure tests`
+- **Check formatting:** `uv run ruff format --check secure tests`
+- **Apply formatting locally:** `uv run ruff format secure tests`
 
 Run these commands before opening a pull request. If you rely on a different Python version, keep it within the supported range (Python 3.10+).
 
@@ -57,8 +56,8 @@ Run these commands before opening a pull request. If you rely on a different Pyt
 
 ## Pull request checklist
 
-- [ ] I have run `pytest` locally (or a representative suite) and addressed any failures.
-- [ ] I have run `ruff check` and `ruff format` (when formatting attr).
+- [ ] I have run `uv run pytest -q` locally (or a representative suite) and addressed any failures.
+- [ ] I have run `uv run ruff check secure tests` and `uv run ruff format --check secure tests`.
 - [ ] Documentation updates describe the new behavior (new header docs, framework guidance, etc.).
 - [ ] If applicable, I have updated the release notes/CHANGELOG entry for new user-visible behavior.
 - [ ] My changes follow the project’s security and contribution guidelines (this document).
